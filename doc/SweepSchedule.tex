@@ -1,0 +1,75 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+%\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\author{Kris Garrett}
+\title{Sweep Schedule}
+\begin{document}
+\maketitle
+
+\section{Priorities}
+Two sets of priorities are created: (i) intra-angle and (ii) inter-angle.
+The prioritization heuristics come from the original Tycho code described in ``An Algorithm for Parallel S$_n$ Sweeps on Unstructured Meshes'' by Shawn Pautz.
+
+First, intra-angle priorities are found.
+This means we split all the cell-angle pairs into sets of cells where each set corresponds to a distinct angle.
+Then each set has priorities applied to every cell.
+Second, a global priority is set for each cell-angle pair as a function of the intra-angle priority for each cell and the angle index.
+
+
+
+\subsection{Intra-angle Priorities}
+There are 5 priority types here.
+All use the B-level in the graph for the given angle.
+The B-level is defined as the longest path to get to a graph leaf.
+A leaf has B-level 1.
+
+\paragraph{Random}
+Assign a random priority to each cell.
+
+\paragraph{B-Levels}
+Cell priority equals the b-level.
+
+\paragraph{BFDS - Breadth First Descendant Seeking}
+Priority equals the highest b-level of any descendant on another process.
+If the cell has no descendants on another process, the priority is zero.
+
+\paragraph{DFDS - Depth First Descendant Seeking}
+If a cell has no descendants on another process, the priority is zero.
+If the cell has a child on another process, the priority is the highest b-level of the children on the other process \textit{plus} a constant greater than or equal to the number of levels of the graph.
+Otherwise, the cell has priority one less than the max of the priority of its children.
+
+\paragraph{DFHDS - Depth First Highest Descendant Seeking}
+If a cell has no descendants on another process, the priority is zero.
+If the cell has a child on another process, the priority is the highest b-level of the children on the other process \textit{times} a constant greater than or equal to the number of levels of the graph.
+Otherwise, the cell has priority one less than the max of the priority of its children.
+
+
+\subsection{Inter-angle Priorities}
+Given the intra-angle priorites, there are 3 types of inter-angle priorities.
+
+
+\paragraph{Interleaved}
+This makes the global priority equal to the intra-angle priority.
+This will interleave the ordering of cell-angle pairs in angle.
+
+\paragraph{Global}
+This makes the global priority equal to the intra-angle priority plus a constant large enough to ensure each angle of lower index are prioritized before angles of higher index.
+
+\paragraph{Local}
+Highest b-level is prioritized first.
+
+
+
+\section{SweepSchedule}
+A sweep schedule is made which given priorities, orders the calculations for the sweep.
+The idea is that a \textit{step} is something that can be solved in each process without communication between processes.
+These steps are to be done on each process together.
+A maximum of \textit{MaxCellsPerStep} cell-angle pairs may be computed for each step and each process.
+Then communication of boundary data between processes is done and the process repeats.
+
+
+\end{document}

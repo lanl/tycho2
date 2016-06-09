@@ -1,0 +1,419 @@
+#include "Priorities.hh"
+#include "TraverseGraph.hh"
+#include "Mat.hh"
+#include "Global.hh"
+#include "Comm.hh"
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+
+/*
+    BLevelData
+    
+    Calculates b-levels when traversing a graph.
+    Note: OpenMP assumes threading across angle.
+          Without this assumption, there could be a race condition.
+*/
+class BLevelData : public TraverseData
+{
+public:
+    
+    /*
+        Constructor
+    */
+    BLevelData(Mat2<UINT> &bLevels, Mat2<UINT> &sideBLevels)
+    : c_bLevels(bLevels), c_sideBLevels(sideBLevels)
+    {
+        // Initialize all to 0 b-level
+        c_maxBLevel = 0;
+        bLevels = 0;
+        sideBLevels = 0;
+        c_bLevels = 0;
+        c_sideBLevels = 0;
+    }
+    
+    
+    /*
+        getData
+        
+        Return b-level data given (cell, angle) pair.
+    */
+    virtual const char* getData(UINT cell, UINT face, UINT angle)
+    {
+        UNUSED_VARIABLE(face);
+        return (char*) (&c_bLevels(cell, angle));
+    }
+    
+    
+    /*
+        getDataSize
+    */
+    virtual size_t getDataSize()
+    {
+        return sizeof(UINT);
+    }
+    
+    
+    /*
+        setSideData
+        
+        Return b-level data given (side, angle) pair.
+    */
+    virtual void setSideData(UINT side, UINT angle, const char *data)
+    {
+        c_sideBLevels(side, angle) = *((UINT*)(data));
+    }
+    
+    
+    /*
+        getPriority
+        
+        Return a priority for the cell/angle pair.
+        Not needed for this class, so it is just set to a constant.
+    */
+    virtual UINT getPriority(UINT cell, UINT angle)
+    {
+        UNUSED_VARIABLE(cell);
+        UNUSED_VARIABLE(angle);
+        return 1;
+    }
+    
+    
+    /*
+        update
+        
+        Updates b-level information for a given (cell, angle) pair.
+    */
+    virtual void update(UINT cell, UINT angle, 
+                        UINT adjCellsSides[g_nFacePerCell], 
+                        BoundaryType bdryType[g_nFacePerCell])
+    {
+        c_bLevels(cell, angle) = 0;
+        for (UINT face = 0; face < g_nFacePerCell; face++) {
+            
+            if (bdryType[face] == BoundaryType_OutIntBdry) {
+                UINT adjSide = adjCellsSides[face];
+                UINT adjBLevel = c_sideBLevels(adjSide, angle);
+                c_bLevels(cell, angle) = max(c_bLevels(cell, angle), adjBLevel + 1);
+            }
+            
+            else if (bdryType[face] == BoundaryType_OutInt) {
+                UINT adjCell = adjCellsSides[face];
+                UINT adjBLevel = c_bLevels(adjCell, angle);
+                c_bLevels(cell, angle) = max(c_bLevels(cell, angle), adjBLevel + 1);
+            }
+        }
+        
+        #pragma omp critical
+        {
+            c_maxBLevel = max(c_maxBLevel, c_bLevels(cell, angle));
+        }
+    }
+    
+    
+    /*
+        getMaxBLevel
+    */
+    virtual UINT getMaxBLevel()
+    {
+        UINT maxBLevel;
+        
+        #pragma omp atomic read
+        maxBLevel = c_maxBLevel;
+        
+        return maxBLevel;
+    }
+    
+private:
+    Mat2<UINT> &c_bLevels;
+    Mat2<UINT> &c_sideBLevels;
+    UINT c_maxBLevel;
+};
+
+
+/*
+    NeighborPriorityData
+    
+    Calculates priorities when traversing a graph.
+    Can calculate BFDS, DFDS, or DFHDS depending on 
+    boundScale, boundShift, parentShift.
+    
+            boundScale   boundShift   parentShift
+    BFDS  =     1             0             0
+    DFDS  =     1         maxBLevel        -1
+    DFHDS =  maxBLevel    maxBLevel        -1
+    
+    Note: OpenMP assumes threading across angle.
+          Without this assumption, there could be a race condition.
+*/
+class NeighborPriorityData : public TraverseData
+{
+public:
+    
+    /*
+        Constructor
+    */
+    NeighborPriorityData(Mat2<UINT> &priorities, const Mat2<UINT> &sideBLevels, 
+                         const UINT boundScale, const UINT boundShift, 
+                         const int parentShift)
+    : c_priorities(priorities), c_sideBLevels(sideBLevels), 
+      c_boundScale(boundScale), c_boundShift(boundShift), c_parentShift(parentShift)
+    {
+        c_priorities = 0;
+    }
+    
+    
+    /*
+        data
+        
+        Return priority data given (cell, angle) pair.
+    */
+    virtual const char* getData(UINT cell, UINT face, UINT angle)
+    {
+        UNUSED_VARIABLE(face);
+        return (char*) (&c_priorities(cell, angle));
+    }
+    
+    
+    /*
+        getDataSize
+    */
+    virtual size_t getDataSize()
+    {
+        return sizeof(UINT);
+    }
+    
+    
+    /*
+        getPriority
+        
+        Return a priority for the cell/angle pair.
+        Not needed for this class, so it is just set to a constant.
+    */
+    virtual UINT getPriority(UINT cell, UINT angle)
+    {
+        UNUSED_VARIABLE(cell);
+        UNUSED_VARIABLE(angle);
+        return 1;
+    }
+    
+    
+    /*
+        update
+        
+        Updates priority information for a given (cell, angle) pair.
+    */
+    virtual void update(UINT cell, UINT angle, 
+                        UINT adjCellsSides[g_nFacePerCell], 
+                        BoundaryType bdryType[g_nFacePerCell])
+    {
+        c_priorities(cell, angle) = 0;
+        
+        for (UINT face = 0; face < g_nFacePerCell; face++) {
+            
+            UINT priority = 0;
+            
+            if (bdryType[face] == BoundaryType_OutIntBdry) {
+                UINT adjSide = adjCellsSides[face];
+                priority = c_sideBLevels(adjSide, angle) * c_boundScale + 
+                           c_boundShift;
+            }
+            
+            else if (bdryType[face] == BoundaryType_OutInt) {
+                UINT adjCell = adjCellsSides[face];
+                priority = c_priorities(adjCell, angle) + c_parentShift;
+            }
+            
+            c_priorities(cell, angle) = max(c_priorities(cell, angle), priority);
+        }
+    }
+    
+    
+    /*
+        These should never be called.
+        They are only used when communication is involved in traversing the
+        graph.
+    */
+    virtual void setSideData(UINT side, UINT angle, const char *data)
+    {
+        UNUSED_VARIABLE(side);
+        UNUSED_VARIABLE(angle);
+        UNUSED_VARIABLE(data);
+        Assert(false);
+    }
+    
+private:
+    Mat2<UINT> &c_priorities;
+    const Mat2<UINT> &c_sideBLevels;
+    const UINT c_boundScale;
+    const UINT c_boundShift;
+    const int c_parentShift;
+};
+
+
+/*
+    calcBLevels
+*/
+static
+UINT calcBLevels(const UINT maxComputePerStep,
+                 Mat2<UINT> &bLevels, Mat2<UINT> &sideBLevels)
+{
+    BLevelData bLevelData(bLevels, sideBLevels);
+    const bool doComm = true;
+    traverseGraph(maxComputePerStep, bLevelData, doComm, 
+                  MPI_COMM_WORLD, Direction_Backward);
+    
+    UINT maxBLevel = bLevelData.getMaxBLevel();
+    Comm::gmax(maxBLevel);
+    return maxBLevel;
+}
+
+
+/*
+    randomPriorities
+*/
+static 
+void randomPriorities(const UINT numAngles, Mat2<UINT> &priorities)
+{
+    srand(0);
+    for (UINT angle = 0; angle < numAngles; ++angle) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+        priorities(cell, angle) = rand();
+    }}
+}
+
+
+/*
+    levelPriorities
+*/
+static 
+void levelPriorities(const Mat2<UINT> &bLevels, const UINT numAngles, 
+                     Mat2<UINT> &priorities)
+{
+    for (UINT angle = 0; angle < numAngles; ++angle) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+        priorities(cell, angle) = bLevels(cell, angle);
+    }}
+}
+
+
+/*
+    neighborPriorities
+*/
+static 
+void neighborPriorities(const Mat2<UINT> &sideBLevels, 
+                        const UINT boundScale, 
+                        const UINT boundShift, 
+                        const int parentShift,  // Can be -1 or 0
+                        const UINT maxComputePerStep,
+                        Mat2<UINT> &priorities)
+{
+    NeighborPriorityData priorityData(priorities, sideBLevels, 
+                                      boundScale, boundShift, parentShift);
+    const bool doComm = false;
+    traverseGraph(maxComputePerStep, priorityData, doComm, 
+                  MPI_COMM_WORLD, Direction_Backward);
+}
+
+
+/*
+    anglePriorities
+*/
+static
+void anglePriorities(const UINT numAngles, const UINT interAngleP, 
+                     const UINT nlevels, Mat2<UINT> &priorities)
+{
+    vector<UINT> highPriorities(numAngles, 0);
+    for (UINT angle = 0; angle < numAngles; ++angle) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+        highPriorities[angle] =
+            max(highPriorities[angle], priorities(cell, angle));
+    }}
+
+    UINT ncells = g_spTychoMesh->getNCells();
+    Comm::gsum(ncells);
+
+    switch (interAngleP)
+    {
+        case 0:  // interleaved
+            break;
+        case 1:  // globally prioritized angles
+            for (UINT angle = 0; angle < numAngles; ++angle) {
+            for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+                priorities(cell, angle) += angle * nlevels * ncells;
+            }}
+            break;
+        case 2:  // locally prioritized angles
+        {
+            vector<pair<UINT, UINT> > orderedAngles;
+            for (UINT angle = 0; angle < numAngles; ++angle) {
+                orderedAngles.push_back(make_pair(highPriorities[angle], angle));
+            }
+            std::sort(orderedAngles.begin(), orderedAngles.end());
+            UINT order = 0;
+            for (auto iter = orderedAngles.rbegin();
+                 iter != orderedAngles.rend(); ++iter)
+            {
+                ++order;
+                UINT angle = iter->second;
+                for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+                    priorities(cell, angle) +=
+                        (numAngles-order) * nlevels * ncells;
+                }
+            }
+            break;
+        }
+    }
+}
+
+namespace Priorities
+{
+
+/*
+    calcPriorities
+*/
+void calcPriorities(const UINT maxComputePerStep,
+                    const UINT intraAngleP, const UINT interAngleP, 
+                    Mat2<UINT> &priorities)
+{
+    UINT numAngles = g_quadrature->getNumAngles();
+    Mat2<UINT> bLevels(g_spTychoMesh->getNCells(), numAngles, (UINT)0);
+    Mat2<UINT> sideBLevels(g_spTychoMesh->getNSides(), numAngles, (UINT)0);
+    
+    UINT maxBLevel = calcBLevels(maxComputePerStep, bLevels, sideBLevels);
+    
+    
+    switch (intraAngleP)
+    {
+      case 0:  // random
+        randomPriorities(numAngles, priorities);
+        break;
+      case 1:  // b-levels
+        levelPriorities(bLevels, numAngles, priorities);
+        break;
+      case 2:  // breadth-first dependent seeking
+        neighborPriorities(sideBLevels, 1, 0, 0, 
+                           maxComputePerStep, priorities);
+        break;
+      case 3:  // depth-first dependent seeking
+        neighborPriorities(sideBLevels, 
+                           1, maxBLevel, -1, 
+                           maxComputePerStep, priorities);
+        break;
+      case 4:  // strict depth-first dependent seeking
+        neighborPriorities(sideBLevels, 
+                           maxBLevel, maxBLevel, -1, 
+                           maxComputePerStep, priorities);
+        break;
+    }
+    
+    
+    // Calculate inter-angle priorities
+    anglePriorities(numAngles, interAngleP, maxBLevel, priorities);
+}
+
+} // End namespace
+
+
