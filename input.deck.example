@@ -1,0 +1,13 @@
+# Sample input deck
+# Copy this to input.deck (or any other name you choose)
+
+snOrder         8
+iterMax         100
+errMax          0.000100
+maxCellsPerStep 100
+intraAngleP     3
+interAngleP     1
+nGroups         2
+
+# Types: OriginalTycho1, OriginalTycho2, TraverseGraph
+SweepType TraverseGraph

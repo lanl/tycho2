@@ -1,0 +1,12 @@
+# Settings to change for local environment
+# Copy this file to make.inc and fill in your local environment settings
+
+
+# Assert level: 0 = no asserts, 1 = all asserts
+ASSERT_ON = 
+
+# Compile command
+# Needs (1) MPI C++ compiler wrapper
+#       (2) openmp enabled
+#       (3) c++11 standard enabled  (-std=c++11 for gcc)
+MPICC = 
