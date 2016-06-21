@@ -2,8 +2,9 @@
 
 
 ## Warning
-Do not use yet.
-Still creating the repository.
+This is still being heavily developed.
+Use at your own risk!!!
+
 
 ## License
 
@@ -19,17 +20,28 @@ Additionally, redistribution and use in source and binary forms, with or without
 
 THIS SOFTWARE IS PROVIDED BY LOS ALAMOS NATIONAL SECURITY, LLC AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL LOS ALAMOS NATIONAL SECURITY, LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-## Typical Usage
 
-In the `util` directory, there are several mesh files already created.
-You will need to make a utility to partition a mesh into parallel meshes.
-You can use either `SerialToParallelMesh` or `PartitionColumns`.
-This will create a `.pmesh` file for the sweep program to use.
+## Quick start guide
 
-## Building the main program
+The first step is to create a parallel mesh.
+To do this:
+- Go to the `util` folder
+- Copy `make.inc.example` to `make.inc`
+- In `make.inc`, write in your C++ compiler with the option for the C++11 standard set.
+For example with GCC, this would be: g++ -std=c++11.
+- At the command prompt, type `make PartitionColumns`
+- Then type `./PartitionColumns.x` to see how to use the utility.
+- Type `./PartitionColumns.x 1 1 cube-1374.smesh cube-1374.pmesh` to create a mesh that is only partitioned into 1 partition.
+- Go back to the previous directory `cd ..`
 
-To build the main program, copy `make.inc.example` to `make.inc` and fill in your local parameters.
-Then type `make` to build the program, sweep.x.
+Now that you have created a parallel mesh, it is time to compile the main program.
+- Copy make.inc.example to make.inc
+- Copy input.deck.example to input.deck
+- In `make.inc`
+  - Set ASSERT_ON = 0
+  - Set MPICC = <your MPI compiler with C++11 standard and OpenMP> (e.g. mpicxx -std=c++11 -fopenmp)
+- Type `make`.  This will build `sweep.x`
+- Then run `./sweep.x util/cube-1374.pmesh input.deck`
 
 
 ## Los Alamos LACC Number

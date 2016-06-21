@@ -5,7 +5,6 @@
 #include <set>
 #include <map>
 #include <algorithm>
-#include <metis.h>
 #include "SerialMesh.hh"
 #include "ParallelMesh.hh"
 
