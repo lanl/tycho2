@@ -46,7 +46,7 @@ namespace Solver
 {
     void solve(const double sigmaTotal, const double sigmaScat, 
                const UINT iterMax, const double errMax);
-};
+}
 
 
 #endif

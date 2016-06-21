@@ -46,6 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #include <vector>
 #include <math.h>
+#include <string.h>
 
 
 using namespace std;

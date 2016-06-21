@@ -52,6 +52,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <omp.h>
 #include <limits.h>
+#include <string.h>
 
 using namespace std;
 

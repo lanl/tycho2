@@ -55,6 +55,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <execinfo.h>
 #include <omp.h>
 #include <unistd.h>
+#include <vector>
 
 
 using namespace std;
@@ -95,7 +96,7 @@ void createSweepSchedule()
     g_spSweepSchedule = new SweepSchedule*[g_nAngleGroups];
     
     // Get the angle indices for each angle group
-    UINT angleBdryIndices[g_nAngleGroups + 1];
+    vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
     angleBdryIndices[0] = 0;
     for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
         UINT numAngles = g_quadrature->getNumAngles() / g_nAngleGroups;

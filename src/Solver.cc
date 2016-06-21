@@ -46,6 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "Timer.hh"
 #include <math.h>
+#include <vector>
 
 
 using namespace std;
@@ -309,7 +310,7 @@ static
 void splitAnglesAcrossThreads(vector<vector<UINT>> &anglesVector)
 {
     // Get the angle indices for each angle group
-    UINT angleBdryIndices[g_nAngleGroups + 1];
+    vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
     angleBdryIndices[0] = 0;
     for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
         UINT numAngles = g_quadrature->getNumAngles() / g_nAngleGroups;

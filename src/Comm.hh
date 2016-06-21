@@ -47,6 +47,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Typedef.hh"
 #include <mpi.h>
 #include <vector>
+#include <string>
 
 namespace Comm
 {

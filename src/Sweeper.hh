@@ -49,7 +49,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Sweeper 
 {
     void sweep(PsiData &psi, const PsiData &source, const double sigmaTotal);
-};
+}
 
 
 #endif
