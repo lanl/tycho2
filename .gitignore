@@ -2,3 +2,8 @@
 *.aux
 *.log
 *.gz
+*.o
+input.deck
+make.inc
+*.x
+*.pmesh
