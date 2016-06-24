@@ -7,7 +7,6 @@ Use at your own risk!!!
 
 
 ## License
-
 Copyright (c) 2016, Los Alamos National Security, LLC  
 All rights reserved.
 
