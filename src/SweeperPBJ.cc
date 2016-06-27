@@ -429,7 +429,8 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
                       Direction_Forward);
         
-        // Check tolerance and psi0 = psi1
+        
+        // Check tolerance and set psi0 = psi1
         double errL1 = 0.0;
         double normL1 = 0.0;
         for (UINT group = 0; group < g_nGroups; ++group) {
@@ -445,6 +446,8 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
             psi0(vertex, angle, cell, group) = p1;
         }}}}
         
+        Comm::gsum(errL1);
+        Comm::gsum(normL1);
         if (errL1 / normL1 < tolerance)
             break;
         

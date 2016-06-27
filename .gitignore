@@ -8,3 +8,4 @@ make.inc
 *.x
 *.pmesh
 *.dSYM
+run.sh
