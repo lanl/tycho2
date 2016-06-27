@@ -159,6 +159,8 @@ void readInput(const string &inputFileName)
         g_sweepType = SweepType_OriginalTycho2;
     else if (sweepType == "TraverseGraph")
         g_sweepType = SweepType_TraverseGraph;
+    else if (sweepType == "PBJ")
+        g_sweepType = SweepType_PBJ;
     else
         Insist(false, "Sweep type not recognized.");
 }

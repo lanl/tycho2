@@ -49,6 +49,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Priorities.hh"
 #include "Transport.hh"
 #include "PsiData.hh"
+#include "Comm.hh"
 #include <omp.h>
 #include <vector>
 #include <math.h>
@@ -63,18 +64,23 @@ using namespace std;
     
     Holds psi and other data for the sweep.
 */
-class SweepData : public TraverseData
+class SweepDataPBJ : public TraverseData
 {
 public:
     
     /*
         Constructor
     */
-    SweepData(PsiData &psi, const PsiData &source, PsiData &psiBound, 
+    SweepDataPBJ(PsiData &psi, const PsiData &source, PsiData &psiBound, 
               const double sigmaTotal)
     : c_psi(psi), c_psiBound(psiBound), 
-      c_source(source), c_sigmaTotal(sigmaTotal)
-    { }
+      c_source(source), c_sigmaTotal(sigmaTotal),
+      c_localFaceData(g_nThreads)
+    {
+        for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
+            c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
+        }
+    }
     
     
     /*
@@ -84,7 +90,7 @@ public:
     */
     virtual const char* getData(UINT cell, UINT face, UINT angle)
     {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
+        Mat2<double> &localFaceData = c_localFaceData[omp_get_thread_num()];
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
@@ -181,6 +187,7 @@ private:
     PsiData &c_psiBound;
     const PsiData &c_source;
     const double c_sigmaTotal;
+    vector<Mat2<double>> c_localFaceData;
 };
 
 
@@ -203,11 +210,12 @@ void commSides(const vector<UINT> &adjRanks,
                const vector<vector<MetaData>> &sendMetaData,
                const vector<UINT> &numSendPackets,
                const vector<UINT> &numRecvPackets,
-               SweepData &sweepData)
+               SweepDataPBJ &sweepData)
 {
     int mpiError;
     UINT numToRecv;
     UINT numAdjRanks = adjRanks.size();
+    UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
     vector<MPI_Request> mpiRecvRequests(numAdjRanks);
     vector<MPI_Request> mpiSendRequests(numAdjRanks);
     vector<vector<char>> dataToSend(numAdjRanks);
@@ -216,7 +224,6 @@ void commSides(const vector<UINT> &adjRanks,
     
     // Data structures to send/recv packets
     for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
         dataToSend[rankIndex].resize(packetSize * numSendPackets[rankIndex]);
         dataToRecv[rankIndex].resize(packetSize * numRecvPackets[rankIndex]);
     }
@@ -258,8 +265,8 @@ void commSides(const vector<UINT> &adjRanks,
                 UINT cell  = sendMetaData[rankIndex][metaDataIndex].cell;
                 UINT face  = sendMetaData[rankIndex][metaDataIndex].face;
                 const char *data = sweepData.getData(cell, face, angle);
-            
-                char *ptr = &dataToSend[rankIndex][metaDataIndex];
+                
+                char *ptr = &dataToSend[rankIndex][metaDataIndex * packetSize];
                 memcpy(ptr, &gSide, sizeof(UINT));
                 ptr += sizeof(UINT);
                 memcpy(ptr, &angle, sizeof(UINT));
@@ -295,7 +302,6 @@ void commSides(const vector<UINT> &adjRanks,
         
         
         // Process Data
-        UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
         UINT numPackets = dataToRecv[rankIndex].size() / packetSize;
         for (UINT packetIndex = 0; packetIndex < numPackets; packetIndex++) {
             char *ptr = &dataToRecv[rankIndex][packetIndex * packetSize];
@@ -359,7 +365,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     
     // Create SweepData for traversal
-    SweepData sweepData(psi, source, psiBound, c_sigmaTotal);
+    SweepDataPBJ sweepData(psi, source, psiBound, c_sigmaTotal);
     
     
     // Get adjacent ranks
@@ -446,6 +452,16 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         // Communicate
         commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, 
                   sweepData);
+        
+        
+        // Increment iter
+        iter++;
+    }
+    
+    
+    // Print statistics
+    if (Comm::rank() == 0) {
+        printf("      PBJ Iters: %" PRIu64 "\n", iter);
     }
 }
 

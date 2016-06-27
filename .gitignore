@@ -7,3 +7,4 @@ input.deck
 make.inc
 *.x
 *.pmesh
+*.dSYM

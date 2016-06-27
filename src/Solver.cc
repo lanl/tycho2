@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include "Sweeper.hh"
 #include "Sweeper2.hh"
+#include "SweeperPBJ.hh"
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "Timer.hh"
@@ -380,6 +381,12 @@ void solve(const double sigmaTotal, const double sigmaScat,
         sweeper2 = new Sweeper2(g_maxCellsPerStep,
                                 g_intraAngleP, g_interAngleP, sigmaTotal);
     }
+    SweeperPBJ *sweeperPBJ = NULL;
+    if (g_sweepType == SweepType_PBJ) {
+        vector<vector<UINT>> anglesVector(g_nAngleGroups);
+        splitAnglesAcrossThreads(anglesVector);
+        sweeperPBJ = new SweeperPBJ(sigmaTotal);
+    }
     
     
     // Source iteration
@@ -422,6 +429,9 @@ void solve(const double sigmaTotal, const double sigmaScat,
                 break;
             case SweepType_TraverseGraph:
                 sweeper2->sweep(psi, totalSource);
+                break;
+            case SweepType_PBJ:
+                sweeperPBJ->sweep(psi, totalSource);
                 break;
             default:
                 Insist(false, "Sweep type not recognized.");

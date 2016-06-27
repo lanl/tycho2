@@ -65,6 +65,7 @@ enum SweepType
     SweepType_OriginalTycho1,
     SweepType_OriginalTycho2,
     SweepType_TraverseGraph,
+    SweepType_PBJ
 };
 
 EXTERN UINT g_nAngleGroups;
