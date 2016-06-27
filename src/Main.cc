@@ -188,6 +188,16 @@ int main( int argc, char *argv[] )
     Insist (required <= provided, "");
     
     
+    // Check inputs
+    if (Comm::rank() == 0) {
+        if (argc != 3) {
+            printf("Incorrect number of arguments\n");
+            printf("Usage: ./sweep.x <.pmesh file> <input.deck file>\n\n\n");
+            MPI_Abort(MPI_COMM_WORLD, 6);
+        }
+    }
+    
+    
     // Print initial stuff
     if(Comm::rank() == 0) {
         printf("\n\n--- Initiating test of parallel sweeps. ---\n");

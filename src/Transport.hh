@@ -1,13 +1,6 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- * \file   transport/Transport.hh
- * \author Shawn Pautz
- * \date   Fri Jan 14 16:30:59 2000
- * \brief  Transport class header file.
- */
-//---------------------------------------------------------------------------//
-// $Id: Transport.hh,v 1.12 2000/10/17 16:36:45 pautz Exp $
-//---------------------------------------------------------------------------//
+/*
+    Transport.hh
+*/
 
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
@@ -48,8 +41,8 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __transport_Transport_hh__
-#define __transport_Transport_hh__
+#ifndef __TRANSPORT_HH__
+#define __TRANSPORT_HH__
 
 #include "Mat.hh"
 #include "PsiData.hh"
@@ -64,6 +57,10 @@ namespace Transport
                const Mat3<double> &localPsiBound, 
                const Mat2<double> &localSource,
                Mat2<double> &localPsi);
+    
+    void populateLocalPsiBound(const UINT angle, const UINT cell, 
+                               const PsiData &psi, const PsiData &psiBound,
+                               Mat3<double> &localPsiBound);
 } // End namespace Transport
 
 #endif

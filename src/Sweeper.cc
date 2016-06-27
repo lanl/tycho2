@@ -261,48 +261,6 @@ void updateBoundData(const UINT cell, const UINT angle, PsiData &psiBound,
 
 
 /*
-    populateLocalPsiBound
-    
-    Put data from neighboring cells into localPsiBound(fvrtx, face, group).
-*/
-static
-void populateLocalPsiBound(const UINT angle, const UINT cell, 
-                           const PsiData &psi, const PsiData &psiBound,
-                           Mat3<double> &localPsiBound)
-{
-    // Default to 0.0
-    localPsiBound = 0.0;
-    
-    // Populate if incoming flux
-    for (UINT group = 0; group < g_nGroups; group++) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
-            size_t neighborCell = g_spTychoMesh->getAdjCell(cell, face);
-            
-            // In local mesh
-            if (neighborCell != TychoMesh::BOUNDARY_FACE) {
-                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    UINT neighborVrtx = 
-                        g_spTychoMesh->getNeighborVrtx(cell, face, fvrtx);
-                    localPsiBound(fvrtx, face, group) = 
-                        psi(neighborVrtx, angle, neighborCell, group);
-                }
-            }
-            
-            // Not in local mesh
-            else if (g_spTychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
-                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    UINT side = g_spTychoMesh->getSide(cell, face);
-                    localPsiBound(fvrtx, face, group) = 
-                        psiBound(side, angle, fvrtx, group);
-                }
-            }
-        }
-    }}
-}
-
-
-/*
     doComputation
     
     Overall computation part of the sweeper.
@@ -338,7 +296,8 @@ void doComputation(const UINT step,
             }}
             
             // Populate localPsiBound
-            populateLocalPsiBound(angle, cell, psi, psiBound, localPsiBound);
+            Transport::populateLocalPsiBound(angle, cell, psi, psiBound, 
+                                             localPsiBound);
             
             // Transport solve
             Transport::solve(cell, angle, sigmaTotal, 

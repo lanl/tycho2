@@ -1,14 +1,8 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- * \file   transport/Transport.cc
- * \author Shawn Pautz
- * \date   Fri Jan 14 16:30:59 2000
- * \brief \link rtt_transport::Transport Transport \endlink discretization
- *        method class implementation file.
- */
-//---------------------------------------------------------------------------//
-// $Id: Transport.cc,v 1.13 2000/10/17 16:36:45 pautz Exp $
-//---------------------------------------------------------------------------//
+/*
+    Transport.cc
+    
+    Implements sweep on one cell given incoming boundary data.
+*/
 
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
@@ -272,6 +266,47 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
             localPsi(vertex, group) = solution[vertex];
     }
+}
+
+
+/*
+    populateLocalPsiBound
+    
+    Put data from neighboring cells into localPsiBound(fvrtx, face, group).
+*/
+void populateLocalPsiBound(const UINT angle, const UINT cell, 
+                           const PsiData &psi, const PsiData &psiBound,
+                           Mat3<double> &localPsiBound)
+{
+    // Default to 0.0
+    localPsiBound = 0.0;
+    
+    // Populate if incoming flux
+    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT face = 0; face < g_nFacePerCell; face++) {
+        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
+            UINT neighborCell = g_spTychoMesh->getAdjCell(cell, face);
+            
+            // In local mesh
+            if (neighborCell != TychoMesh::BOUNDARY_FACE) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    UINT neighborVrtx = 
+                        g_spTychoMesh->getNeighborVrtx(cell, face, fvrtx);
+                    localPsiBound(fvrtx, face, group) = 
+                        psi(neighborVrtx, angle, neighborCell, group);
+                }
+            }
+            
+            // Not in local mesh
+            else if (g_spTychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    UINT side = g_spTychoMesh->getSide(cell, face);
+                    localPsiBound(fvrtx, face, group) = 
+                        psiBound(side, angle, fvrtx, group);
+                }
+            }
+        }
+    }}
 }
 
 
