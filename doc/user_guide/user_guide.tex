@@ -21,7 +21,53 @@ The new code adds energy dependence to the calculations to give realistic comput
 The code is implemented in MPI and OpenMP and uses only open source software and libraries to generate meshes and compile.
 
 
-\section{The equation}
+
+
+
+
+
+\section{Compiling and running the code}
+The code is split into the main executable named {\tt sweep.x} and several utilities dealing with meshes in the {\tt util} directory.
+All the code requires a C++11 compliant compiler.
+The utilities require nothing more as they are written for serial code.
+The main program, sweep.x, also requires MPI and OpenMP to compile.
+
+\subsection{Compiling sweep.x}
+\paragraph{Quick step guide}
+\begin{itemize}
+\item Copy {\tt make.inc.example} to {\tt make.inc}
+\item Set {\tt ASSERT} and {\tt MPICC} in the file {\tt make.inc}
+\item Type {\tt make} to build {\tt sweep.x}
+\end{itemize}
+
+\paragraph{Details}
+To compile {\tt sweep.x}, first copy {\tt make.inc.example} to {\tt make.inc}.
+The file {\tt make.inc} will contain the two user definable parts for the build process.
+The first user definable attribute is {\tt ASSERT}.
+If {\tt ASSERT = 1}, then the code will run much slower since bounds checking is performed on all the multidimensional arrays.
+
+The second user definable parameter is your compiler information, which is set in {\tt MPICC}.
+In this, you name the MPI compiler wrapper and any features of the compilation you want such as optimization and debugging symbols.
+You must enable C++11 and OpenMP for your compiler.
+For an optimized compile using GCC, I usually set {\tt mpic++ -O3 -Wall -Wextra -pedantic -std=c++11 -fopenmp}.
+This compile command is optimized to level 3, spits out as many warnings as possible, enables C++11 features, and enables OpenMP.
+
+The last step is to type {\tt make} to build the main executable.
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{The underlying mathematics}
+\subsection{The equation}
 Tycho 2 solves the following kinetic equation with isotropic scattering
 \begin{equation} \label{eq:main}
 \Omega \cdot \nabla_x \Psi(x,\Omega,E) + \sigma_t \Psi(x,\Omega,E) = \frac{\sigma_s}{4\pi} \int_{\mathbb{S}^2} \Psi(x,\Omega',E) d\Omega' + Q(x,\Omega,E).
@@ -48,25 +94,53 @@ to get the equivalent equation
 \end{equation}
 
 
-\section{Method of discretization}
+\subsection{Method of discretization}
 Equation \eqref{eq:main1} is discretized using: discontinuous Galerkin (DG) with linear elements in $x$, discrete ordinates in $\Omega$, and energy groups in $E$.
 
+
 \paragraph{Energy discretization.}
-Since equation~\eqref{eq:main1} is not coupled in energy, the discretization of $E$ does not matter.
-Hence, $E$ discretized in energy will be denoted by $E_g$ where $g$ is an integer indexing in energy group.
-The input deck for Tycho 2 allows the user to set the number of energy groups $G$.
+Since equation~\eqref{eq:main1} is not coupled in energy, the method of discretization of $E$ does not matter.
+However, it is typical to discretize $E$ into energy groups.
+Hence, the discretization in energy is denoted by $E_g$ where $g$ is an integer indexing the energy group (though any other discretization is fine).
+\begin{equation}
+\Omega \cdot \nabla_x \Psi_g(x,\Omega) + \sigma_t \Psi_g(x,\Omega) = \frac{\sigma_s}{4\pi} \int_{\mathbb{S}^2} \Psi_g(x,\Omega') d\Omega' + Q_g(x,\Omega).
+\end{equation}
+
 
 \paragraph{Angle discretization.}
-As stated, angle is discretized via discrete ordinates, which is often denoted as S$_N$ where $N$ is the order of the discretization.
+Angle is discretized via discrete ordinates, which is often denoted as S$_N$ where $N$ is the order of the discretization.
 Tycho 2 implements the Chebyshev-Legendre quadrature of the sphere.
+This involves a Cartesian product of $N$ Legendre nodes on the z-axis and $2N$ equally spaced points on the circle for each Legendre node.
+The weights are proportional to the weights of the Legendre quadrature and scaled to sum to $4\pi$.
+The nodes and weights will be denoted by $\Omega_q$ and $w_q$, where $q$ stands for the quadrature index.
 
-Given the parameterization $(\mu,\theta)$ of the sphere where $\mu$ is on the z-axis and $\theta$ is the angle in the plane $z = \mu$, the Chebyshev-Legendre quadrature is given by weights $w_q$ and nodes $\Omega_q = (\mu_{q_1}, \theta_{q_2})$.
-The indices have ranges $q = 0, \ldots, 2N^2-1$, $q_1 = 0, \ldots, N-1$, and $q_2 = 0, \ldots, 2N-1$.
-The node is discretized as $\mu$ along $N$ Legendre nodes and $\theta$ along $2N$ equally spaced angles in $[0,2\pi]$.
-The weights are scaled Legendre weights so that $\sum_q w_q = 4 \pi$.
+Equation~\eqref{eq:main} becomes
+\begin{equation}
+\Omega_q \cdot \nabla_x \Psi_{qg}(x) + \sigma_t \Psi_{qg}(x) = 
+\frac{\sigma_s}{4\pi} \sum_{q'=0}^{2N^2-1} w_{q'} \Psi_{q'g}(x) + Q_{qg}(x).
+\end{equation}
+Equation~\eqref{eq:main1} becomes
+\begin{equation}
+\Omega_q \cdot \nabla_x \Psi_{qg}(x) + \sigma_t \Psi_{qg}(x) = 
+\frac{\sigma_s}{4\pi} \Phi_{g}(x) + Q_{qg}(x),
+\end{equation}
+where
+\begin{equation}
+\Phi_g(x) = \sum_{q'=0}^{2N^2-1} w_{q'} \Psi_{q'g}(x).
+\end{equation}
+Below is a depiction of the quadrature nodes on the sphere.
+
+\includegraphics[scale=0.5]{chebyshev-legendre.jpg}
+
 
 \paragraph{Spatial discretization.}
-Space is discretized via DG.
+Since source iteration is used to converge the RHS of equation~\eqref{eq:main}, it will be easier to show the equations for the simpler problem
+\begin{equation}
+\Omega_q \cdot \nabla_x \Psi_{qg}(x) + \sigma_t \Psi_{qg}(x) = Q_{qg}(x).
+\end{equation}
+In this formulation, the scattering term has been absorbed into the source $Q_{qg}(x)$.
+
+Space is discretized via linear DG.
 In each tetrahedral cell $C_i$, define basis functions $b_{ik}|_{k=0}^3$ to be linear interpolation functions with 
 \begin{equation}
 b_{ik} = \begin{cases}
@@ -74,12 +148,40 @@ b_{ik} = \begin{cases}
 0, \textrm{ at other vertices of cell } C_i
 \end{cases}.
 \end{equation}
-
-Define 
+Also, define 
 \begin{equation}
-\Psi|_{C_i} = \sum_k \Psi_{ik} b_k.
+\Psi^h|_{C_i} = \sum_k \Psi_{ik} b_k.
 \end{equation}
 
+Then the DG formulation is derived by starting with the equation
+\begin{equation} \label{eq:sweep}
+\Omega \cdot \nabla_x \Psi(x) + \sigma_t \Psi(x) = Q(x),
+\end{equation}
+where the subscripts $q,g$ are implicit.
+Then multiply by test function $b_j$ in cell $C_i$ and integrate to get
+\begin{equation}
+\int_{C_i} \Omega \cdot \nabla_x \Psi b_j dx + \int_{C_i} \sigma_t \Psi b_j dx = \int_{C_i} Q b_j dx.
+\end{equation}
+Then use integration by parts on the first integral to get
+\begin{equation}
+-\int_{C_i} \Omega \cdot \nabla_x b_j \Psi dx + 
+\sum_k \int_{F_{ik}} (\Omega \cdot \nu_k) b_j \hat{\Psi}^{(k)} dA + 
+\int_{C_i} \sigma_t \Psi b_j dx = \int_{C_i} Q b_j dx.
+\end{equation}
+Here, $k$ indexes over the faces $F_{ik}$ of cell $i$, and $\nu_k$ is the outward normal to face $F_{ik}$.
+The only thing left to define is the numerical flux $\hat{\Psi}^{(k)}$.
+Since $\Psi$ is discontinuous at the faces, this is not well defined and must be defined by the numerical method.
+We use the upwind flux
+\begin{equation}
+\hat{\Psi}^{(k)} = \begin{cases}
+\Psi|_{F_{ik}} \textrm{ from } C_{i}, & \textrm{if } \Omega \cdot \nu_k > 0 \\
+\Psi|_{F_{ik}} \textrm{ from adjacent cell} , & \textrm{if } \Omega \cdot \nu_k < 0 \\
+\end{cases}
+\end{equation}
+
+Putting everything together, one gets the linear system below.
+The derivation is described in an accompanying document.
+Face $k$ is defined to be opposite vertex $k$ as shown in the figure.
 \begin{align*}
 \frac{1}{12} \bar{A}_1 \left( 2\hat{\Psi}^{(1)}_0 + \hat{\Psi}^{(1)}_2 + \hat{\Psi}^{(1)}_3 \right)
 + \frac{1}{12} \bar{A}_2 \left( 2\hat{\Psi}^{(2)}_0 + \hat{\Psi}^{(2)}_1 + \hat{\Psi}^{(2)}_3 \right)
@@ -115,6 +217,42 @@ Define
 
 
 \includegraphics[scale=0.5]{tet-eps-converted-to.pdf}
+
+
+
+
+
+\subsection{Source iteration}
+The overall algorithm is to lag the data from the integral on the RHS of equation~\eqref{eq:main1}.
+This is called source iteration
+\begin{equation}
+\Omega \cdot \nabla_x \Psi^{k+1} + \sigma_t \Psi^{k+1} = \frac{\sigma_s}{4\pi} \Phi^k + Q.
+\end{equation}
+Tycho 2 iterates this process until $||\Phi^{k+1} - \Phi^k||_\infty / ||\Phi^{k+1}||_\infty < \textrm{tolerance}$.
+
+
+
+\subsection{Sweeps}
+The most common method of solving the discretized form of equation~\eqref{eq:sweep} for $\Psi$ is called a sweep.
+Consider the following 2D example shown below.
+
+\includegraphics[scale=0.75]{grid2d.pdf}
+\includegraphics[scale=0.75]{dag.pdf}
+
+The sweep algorithm for the transport direction (angle) shown, shows that cells 1 and 10 have no dependencies except for the incoming boundary.
+Once $\Psi$ is computed in these cells, the upwind flux is calculated for the boundaries between (1,2), (1,6), and (10,11).
+With this boundary data between cells known, $\Psi$ in cells 2, 6, and 11 can be computed.
+This continues until $\Psi$ is computed in all cells.
+
+A sweep is needed for each angle and energy group.
+Fortunately, all these sweeps are completely independent and therefore trivially parallelizable.
+
+
+
+
+
+
+
 
 
 
