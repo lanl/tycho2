@@ -29,8 +29,11 @@ The code is implemented in MPI and OpenMP and uses only open source software and
 \section{Compiling and running the code}
 The code is split into the main executable named {\tt sweep.x} and several utilities dealing with meshes in the {\tt util} directory.
 All the code requires a C++11 compliant compiler.
-The utilities require nothing more as they are written for serial code.
 The main program, sweep.x, also requires MPI and OpenMP to compile.
+The utilities in the {\tt util} directory are all serial and hence do not require MPI or OpenMP.
+However, depending on the utility, various libraries are needed.
+These will be described below.
+
 
 \subsection{Compiling sweep.x}
 \paragraph{Quick step guide}
@@ -41,21 +44,83 @@ The main program, sweep.x, also requires MPI and OpenMP to compile.
 \end{itemize}
 
 \paragraph{Details}
-To compile {\tt sweep.x}, first copy {\tt make.inc.example} to {\tt make.inc}.
-The file {\tt make.inc} will contain the two user definable parts for the build process.
-The first user definable attribute is {\tt ASSERT}.
+To compile {\tt sweep.x}, first copy {\tt make.inc.example} to {\tt make.inc} in the main project directory.
+The file {\tt make.inc} contains the two user definable parts for the build process.
+The first user definable parameter is {\tt ASSERT}.
 If {\tt ASSERT = 1}, then the code will run much slower since bounds checking is performed on all the multidimensional arrays.
 
 The second user definable parameter is your compiler information, which is set in {\tt MPICC}.
 In this, you name the MPI compiler wrapper and any features of the compilation you want such as optimization and debugging symbols.
 You must enable C++11 and OpenMP for your compiler.
-For an optimized compile using GCC, I usually set {\tt mpic++ -O3 -Wall -Wextra -pedantic -std=c++11 -fopenmp}.
+For an optimized compile using GCC, I usually set {\tt mpicxx -O3 -Wall -Wextra -pedantic -std=c++11 -fopenmp}.
 This compile command is optimized to level 3, spits out as many warnings as possible, enables C++11 features, and enables OpenMP.
 
 The last step is to type {\tt make} to build the main executable.
+The {\tt Makefile} will include the variables set in {\tt make.inc}.
+All the object files will be stored in the {\tt build} directory and the executable, {\tt sweep.x}, will be created in the main project directory.
 
 
+\subsection{Compiling the utilities}
+The util directory contains several utilities for creating and partitioning meshes that sweep.x will use.
+When you clone Tycho 2 from github, you should get several files in the util directory.
+\begin{itemize}
+\item {\tt cube\_no\_mesh.hdf} -- File containing a cube's geometry.  The cube is a 100x100x100 cube.  This can be opened by certain CAD programs to be meshed.
+\item {\tt cube-<N>.cgns} -- CGNS file formatted tetrahedral meshes of {\tt cube\_no\_mesh.hdf} where $N$ is the number of cells in the mesh.
+\item {\tt cube-<N>.smesh} -- The same meshes as given by {\tt cube-<N>.cgns}, just in a file format made for Tycho 2 that does not require any library dependencies to be read.
+\item {\tt CreateGaussLegendre.py} -- This is a Python script used to create the Gauss Legendre quadrature in the main code.
+\item {\tt MakeTet.py} -- This is a Python script used to make one tetrahedron in the smesh file format.
+\item {\tt CreateRegularMesh.cc} -- Creates a regular Cartesian mesh and then each hexahedron is split into Tetrahedra.
+\item {\tt MoabToSerialMesh.cc} -- Uses the MOAB mesh library to read in a common mesh format (such as CGNS, HDF5, NetCDF, etc) and convert it to the smesh file format.
+\item {\tt ParallelMeshToMoab.cc} -- Converts the pmesh file format into a file format that the Visit visualization tool can read.
+\item {\tt PartitionColumns.cc} -- Partitions an smesh into a pmesh by columns.
+\item {\tt RefineSerialMesh.cc} -- Refines each tetrahedron in an smesh into 8 tetrahedra.
+\item {\tt SerialMeshToMoab.cc} -- Converts the smesh file format into a file format that the Visit visualization tool can read.
+\item {\tt SerialToParallelMesh.cc} -- Partitions an smesh using the Metis partitioning library.
+\end{itemize}
 
+\paragraph{Creating a pmesh}
+To run the main executable {\tt sweep.x}, you must supply a pmesh as an argument to the executable.
+Several smesh files containing meshes of cubes are supplied, but it is also possible to supply your own mesh.
+Either the PartitionColumns or SerialToParallelMesh utility must be used to convert an smesh file into a pmesh file.
+PartitionColumns requires no library dependencies and SerialToParallelMesh requires the Metis partitioning library.
+
+\paragraph{Creating your own mesh}
+If you wish to supply your own mesh, you will need to convert your mesh into an smesh.
+This can be done using the MoabToSerialMesh utility which requires the MOAB mesh library.
+MOAB can read several mesh file format, but extra libraries may have to be included in the build process for your mesh format.
+
+\paragraph{Visualization}
+If you wish to visualize either an smesh or pmesh, you will use either the SerialMeshToMoab or ParallelMeshToMoab utilities.
+These require the MOAB mesh library, but no other dependencies are required.
+SerialMeshToMoab will create a .vtk file that can be read by Visit.
+ParallelMeshToMoab will create a .vtk file for each partition of the pmesh and a .visit file linking all the .vtk files together.
+You can then read the .visit file in Visit to visualize the mesh and its partitions.
+
+\paragraph{The build process}
+The build process is almost the same as for the main executable.
+\begin{itemize}
+\item Copy {\tt make.inc.example} to {\tt make.inc}
+\item Set {\tt CPP} in the file {\tt make.inc}
+\item Set any of the library directories needed by the utilities you will build
+\item Type {\tt make <name of utility>}.  For instance {\tt make PartitionColumns} will create the executable {\tt PartitionColumns.x}.  Typing {\tt make} without a target will attempt to build all the utilities.
+\end{itemize}
+
+
+\subsection{Running sweep.x}
+To run {\tt sweep.x}, type {\tt ./sweep.x <.pmesh file> <input.deck file>}.
+This requires that you have created a pmesh as described in the previous section and you have copied {\tt input.deck.example} to {\tt input.deck} (or any other name you prefer).
+In {\tt input.deck}, you have the following options to set.
+\begin{itemize}
+\item {\tt snOrder} -- Order of the angular quadrature.  This can be any even number from 2 to 30.
+\item {\tt iterMax} -- Maximum number of iterations for source iteration
+\item {\tt errMax} -- Tolerance for the relative error for source iteration
+\item {\tt maxCellsPerStep} -- Maximum number of of cell/angle pairs to compute for $\Psi$ before communication via MPI
+\item {\tt intraAngleP} -- This can be 0, 1, 2, 3, or 4 for random, b-level, BFDS, DFDS, and DFHDS
+\item {\tt interAngleP} -- This can be 0, 1, or 2 for interleaved, globally prioritized, and locally prioritized
+\item {\tt nGroups} -- Number of energy group.  Should be 1 or greater.
+\item {\tt SweepType} Type of sweeper to use.  Possible values are commented in the input.deck file.
+\end{itemize}
+An example {\tt run.sh} script is supplied which will create a pmesh with 1 partition and run {\tt sweep.x} in serial.
 
 
 
