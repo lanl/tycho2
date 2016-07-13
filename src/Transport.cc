@@ -180,86 +180,363 @@ void faceDependence(const UINT cell, const UINT angle,
 static 
 void gaussElim4(double A[4][4], double b[4])
 {
-	const int n = 4;
-	
-	// Gaussian Elimination
-	for (int col = 0; col < n-1; ++col) {
-		for (int row = col+1; row < n; ++row) {
-			A[row][col] = A[row][col]/A[col][col];
-			for (int j = col+1; j < n; ++j) {
-				A[row][j] -= A[row][col]*A[col][j];
-			}
+	// flag method: 
+	// 0=Cramer's Rule
+	// 1=MESA implementation of GLU library
+	// 2=Gaussian No Pivot 
+	// >2=original gaussian
+	int flag = 0;
+
+	if (flag == 0) { // CRAMER'S RULE
+		
+		double tmp[12], src[16], dst[16], bCpy[4], det;
+
+		// transpose matrix
+		for (int i = 0; i < 4; i++) {
+			src[i]      = A[i][0];
+			src[i + 4]  = A[i][1];
+			src[i + 8]  = A[i][2];
+			src[i + 12] = A[i][3];
 		}
+    
+		// calculate pairs for first 8 elements (cofactors)
+		tmp[0] = src[10] * src[15];
+		tmp[1] = src[11] * src[14];
+		tmp[2] = src[9] * src[15];
+		tmp[3] = src[11] * src[13];
+		
+		tmp[4] = src[9] * src[14];
+		tmp[5] = src[10] * src[13];
+		tmp[6] = src[8] * src[15];
+		tmp[7] = src[11] * src[12];
+		
+		tmp[8] = src[8] * src[14];
+		tmp[9] = src[10] * src[12];
+		tmp[10] = src[8] * src[13];
+		tmp[11] = src[9] * src[12];
+    
+		// calculate first 8 elements (cofactors)
+		dst[0]  = tmp[0]*src[5] + tmp[3]*src[6] + tmp[4]*src[7];
+		dst[0] -= tmp[1]*src[5] + tmp[2]*src[6] + tmp[5]*src[7];
+		
+		dst[1]  = tmp[1]*src[4] + tmp[6]*src[6] + tmp[9]*src[7];
+		dst[1] -= tmp[0]*src[4] + tmp[7]*src[6] + tmp[8]*src[7];
+		
+		dst[2]  = tmp[2]*src[4] + tmp[7]*src[5] + tmp[10]*src[7];
+		dst[2] -= tmp[3]*src[4] + tmp[6]*src[5] + tmp[11]*src[7];
+		
+		dst[3]  = tmp[5]*src[4] + tmp[8]*src[5] + tmp[11]*src[6];
+		dst[3] -= tmp[4]*src[4] + tmp[9]*src[5] + tmp[10]*src[6];
+		
+		dst[4]  = tmp[1]*src[1] + tmp[2]*src[2] + tmp[5]*src[3];
+		dst[4] -= tmp[0]*src[1] + tmp[3]*src[2] + tmp[4]*src[3];
+		
+		dst[5]  = tmp[0]*src[0] + tmp[7]*src[2] + tmp[8]*src[3];
+		dst[5] -= tmp[1]*src[0] + tmp[6]*src[2] + tmp[9]*src[3];
+		
+		dst[6]  = tmp[3]*src[0] + tmp[6]*src[1] + tmp[11]*src[3];
+		dst[6] -= tmp[2]*src[0] + tmp[7]*src[1] + tmp[10]*src[3];
+		
+		dst[7]  = tmp[4]*src[0] + tmp[9]*src[1] + tmp[10]*src[2];
+		dst[7] -= tmp[5]*src[0] + tmp[8]*src[1] + tmp[11]*src[2];
+		
+		// calculate pairs for second 8 elements (cofactors)
+		tmp[0]  = src[2]*src[7];
+		tmp[1]  = src[3]*src[6];
+		tmp[2]  = src[1]*src[7];
+		tmp[3]  = src[3]*src[5];
+		
+		tmp[4]  = src[1]*src[6];
+		tmp[5]  = src[2]*src[5];
+		tmp[6]  = src[0]*src[7];
+		tmp[7]  = src[3]*src[4];
+		
+		tmp[8]  = src[0]*src[6];
+		tmp[9]  = src[2]*src[4];
+		tmp[10] = src[0]*src[5];
+		tmp[11] = src[1]*src[4];
+		
+		// calculate second 8 elements (cofactors)
+		dst[8]   = tmp[0]*src[13] + tmp[3]*src[14] + tmp[4]*src[15];
+		dst[8]  -= tmp[1]*src[13] + tmp[2]*src[14] + tmp[5]*src[15];
+		
+		dst[9]   = tmp[1]*src[12] + tmp[6]*src[14] + tmp[9]*src[15];
+		dst[9]  -= tmp[0]*src[12] + tmp[7]*src[14] + tmp[8]*src[15];
+		
+		dst[10]  = tmp[2]*src[12] + tmp[7]*src[13] + tmp[10]*src[15];
+		dst[10] -= tmp[3]*src[12] + tmp[6]*src[13] + tmp[11]*src[15];
+		
+		dst[11]  = tmp[5]*src[12] + tmp[8]*src[13] + tmp[11]*src[14];
+		dst[11] -= tmp[4]*src[12] + tmp[9]*src[13] + tmp[10]*src[14];
+		
+		dst[12]  = tmp[2]*src[10] + tmp[5]*src[11] + tmp[1]*src[9];
+		dst[12] -= tmp[4]*src[11] + tmp[0]*src[9] + tmp[3]*src[10];
+		
+		dst[13]  = tmp[8]*src[11] + tmp[0]*src[8] + tmp[7]*src[10];
+		dst[13] -= tmp[6]*src[10] + tmp[9]*src[11] + tmp[1]*src[8];
+		
+		dst[14]  = tmp[6]*src[9] + tmp[11]*src[11] + tmp[3]*src[8];
+		dst[14] -= tmp[10]*src[11] + tmp[2]*src[8] + tmp[7]*src[9];
+		
+		dst[15]  = tmp[10]*src[10] + tmp[4]*src[8] + tmp[9]*src[9];
+		dst[15] -= tmp[8]*src[9] + tmp[11]*src[10] + tmp[5]*src[8];
+		
+		// calculate determinant
+		det = src[0]*dst[0] + src[1]*dst[1] + src[2]*dst[2] + src[3]*dst[3];
+    
+		// calculate matrix inverse
+		det = 1/det;
+		for (int j = 0; j < 16; j++) {
+			dst[j] *= det;
+		}
+    
+		// get solution
+		bCpy[0] = b[0];
+		bCpy[1] = b[1];
+		bCpy[2] = b[2];
+		bCpy[3] = b[3];
+
+		b[0] = dst[0]*bCpy[0]  + dst[1]*bCpy[1]  + dst[2]*bCpy[2]  + dst[3]*bCpy[3];
+		b[1] = dst[4]*bCpy[0]  + dst[5]*bCpy[1]  + dst[6]*bCpy[2]  + dst[7]*bCpy[3];
+		b[2] = dst[8]*bCpy[0]  + dst[9]*bCpy[1]  + dst[10]*bCpy[2] + dst[11]*bCpy[3];
+		b[3] = dst[12]*bCpy[0] + dst[13]*bCpy[1] + dst[14]*bCpy[2] + dst[15]*bCpy[3];
+
 	}
 
-	// Forward Elimination
-	for (int col = 0; col < n-1; ++col) {
-        for (int row = col+1; row < n; ++row) {
-            b[row] -= A[row][col]*b[col];
-        }
-    }
-	
-	// Backward Solve
-	for (int row = n-1; row >= 0; --row) {
-		double s = b[row];
-        for (int j = row+1; j < n; ++j) {
-            s -= A[row][j]*b[j];
-        }
-        b[row] = s/A[row][row];
-    }
-}
 
-//{
-//    const int n = 4;
-//    
-//    for (int column = 0; column < n-1; ++column) {
-//        int rowmax = column;
-//        double colmax = fabs(A[column][column]);
-//        for (int row = column+1; row < n; ++row) {
-//            double temp = fabs(A[row][column]);
-//            if (temp > colmax)  {
-//                rowmax = row;
-//                colmax = temp;
-//            }
-//        }
-//
-//        if (rowmax != column) {
-//            for (int column2 = 0; column2 < n; ++column2) {
-//                double temp = A[rowmax][column2];
-//                A[rowmax][column2] = A[column][column2];
-//                A[column][column2] = temp;
-//            }
-//            double temp = b[rowmax];
-//            b[rowmax] = b[column];
-//            b[column] = temp;
-//        }
-//
-//        Assert(A[column][column] != 0.);
-//        A[column][column] = 1./A[column][column];
-//
-//        for (int row = column+1; row < n; ++row)
-//            A[row][column] *= A[column][column];
-//
-//        for (int column2 = 0; column2 <= column; ++column2) {
-//        for (int row = column2+1; row < n; ++row) {
-//            A[row][column+1] -= A[row][column2]*A[column2][column+1];
-//        }}
-//    }
-//
-//    Assert(A[n-1][n-1] != 0.);
-//    A[n-1][n-1] = 1./A[n-1][n-1];
-//
-//    for (int column = 0; column < n-1; ++column) {
-//    for (int row = column+1; row < n; ++row) {
-//        b[row] -= A[row][column]*b[column];
-//    }}
-//
-//    for (int column = n-1; column >= 0; --column) {
-//        b[column] *= A[column][column];
-//        for (int row = column-1; row >= 0; --row)
-//            b[row] -= A[row][column]*b[column];
-//    }
-//}
+	else if (flag == 1) { // GLU LIBRARY-MESA IMPLEMENTATION
+
+		int i;
+		
+		double inv[16], invOut[16], bCpy[4], det;    
+    
+    	// 1d array
+    	double* m = &(A[0][0]);
+    
+		inv[0] = m[5]  * m[10] * m[15] -
+		m[5]  * m[11] * m[14] -
+		m[9]  * m[6]  * m[15] +
+		m[9]  * m[7]  * m[14] +
+		m[13] * m[6]  * m[11] -
+		m[13] * m[7]  * m[10];
+		
+		inv[1] = -m[1]  * m[10] * m[15] +
+		m[1]  * m[11] * m[14] +
+		m[9]  * m[2] * m[15] -
+		m[9]  * m[3] * m[14] -
+		m[13] * m[2] * m[11] +
+		m[13] * m[3] * m[10];
+		
+		inv[2] = m[1]  * m[6] * m[15] -
+		m[1]  * m[7] * m[14] -
+		m[5]  * m[2] * m[15] +
+		m[5]  * m[3] * m[14] +
+		m[13] * m[2] * m[7] -
+		m[13] * m[3] * m[6];
+		
+		inv[3] = -m[1] * m[6] * m[11] +
+		m[1] * m[7] * m[10] +
+		m[5] * m[2] * m[11] -
+		m[5] * m[3] * m[10] -
+		m[9] * m[2] * m[7] +
+		m[9] * m[3] * m[6];
+    
+		inv[4] = -m[4]  * m[10] * m[15] +
+		m[4]  * m[11] * m[14] +
+		m[8]  * m[6]  * m[15] -
+		m[8]  * m[7]  * m[14] -
+		m[12] * m[6]  * m[11] +
+		m[12] * m[7]  * m[10];
+		
+		inv[5] = m[0]  * m[10] * m[15] -
+		m[0]  * m[11] * m[14] -
+		m[8]  * m[2] * m[15] +
+		m[8]  * m[3] * m[14] +
+		m[12] * m[2] * m[11] -
+		m[12] * m[3] * m[10];
+		
+		inv[6] = -m[0]  * m[6] * m[15] +
+		m[0]  * m[7] * m[14] +
+		m[4]  * m[2] * m[15] -
+		m[4]  * m[3] * m[14] -
+		m[12] * m[2] * m[7] +
+		m[12] * m[3] * m[6];
+		
+		inv[7] = m[0] * m[6] * m[11] -
+		m[0] * m[7] * m[10] -
+		m[4] * m[2] * m[11] +
+		m[4] * m[3] * m[10] +
+		m[8] * m[2] * m[7] -
+		m[8] * m[3] * m[6];
+		
+		inv[8] = m[4]  * m[9] * m[15] -
+		m[4]  * m[11] * m[13] -
+		m[8]  * m[5] * m[15] +
+		m[8]  * m[7] * m[13] +
+		m[12] * m[5] * m[11] -
+		m[12] * m[7] * m[9];
+		
+		inv[9] = -m[0]  * m[9] * m[15] +
+		m[0]  * m[11] * m[13] +
+		m[8]  * m[1] * m[15] -
+		m[8]  * m[3] * m[13] -
+		m[12] * m[1] * m[11] +
+		m[12] * m[3] * m[9];
+    
+		inv[10] = m[0]  * m[5] * m[15] -
+		m[0]  * m[7] * m[13] -
+		m[4]  * m[1] * m[15] +
+		m[4]  * m[3] * m[13] +
+		m[12] * m[1] * m[7] -
+		m[12] * m[3] * m[5];
+		
+		inv[11] = -m[0] * m[5] * m[11] +
+		m[0] * m[7] * m[9] +
+		m[4] * m[1] * m[11] -
+		m[4] * m[3] * m[9] -
+		m[8] * m[1] * m[7] +
+		m[8] * m[3] * m[5];
+		
+		inv[12] = -m[4]  * m[9] * m[14] +
+		m[4]  * m[10] * m[13] +
+		m[8]  * m[5] * m[14] -
+		m[8]  * m[6] * m[13] -
+		m[12] * m[5] * m[10] +
+		m[12] * m[6] * m[9];
+    
+		inv[13] = m[0]  * m[9] * m[14] -
+		m[0]  * m[10] * m[13] -
+		m[8]  * m[1] * m[14] +
+		m[8]  * m[2] * m[13] +
+		m[12] * m[1] * m[10] -
+		m[12] * m[2] * m[9];
+    
+		inv[14] = -m[0]  * m[5] * m[14] +
+		m[0]  * m[6] * m[13] +
+		m[4]  * m[1] * m[14] -
+		m[4]  * m[2] * m[13] -
+		m[12] * m[1] * m[6] +
+		m[12] * m[2] * m[5];
+    
+		inv[15] = m[0] * m[5] * m[10] -
+		m[0] * m[6] * m[9] -
+		m[4] * m[1] * m[10] +
+		m[4] * m[2] * m[9] +
+		m[8] * m[1] * m[6] -
+		m[8] * m[2] * m[5];
+   
+
+		det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+    
+		det = 1.0/det;
+    
+		for (i = 0; i <16; i++) {
+			invOut[i] = inv[i] * det;
+		}
+    	
+		// get solution
+		bCpy[0] = b[0];
+		bCpy[1] = b[1];
+		bCpy[2] = b[2];
+		bCpy[3] = b[3];
+		
+		b[0] = invOut[0]*bCpy[0] + invOut[1]*bCpy[1] + invOut[2]*bCpy[2] + invOut[3]*bCpy[3];
+		b[1] = invOut[4]*bCpy[0] + invOut[5]*bCpy[1] + invOut[6]*bCpy[2] + invOut[7]*bCpy[3];
+		b[2] = invOut[8]*bCpy[0] + invOut[9]*bCpy[1] + invOut[10]*bCpy[2] + invOut[11]*bCpy[3];
+		b[3] = invOut[12]*bCpy[0] + invOut[13]*bCpy[1] + invOut[14]*bCpy[2] + invOut[15]*bCpy[3];
+	}
+
+
+	else if (flag == 2) { // GAUSSIAN-NO PIVOT
+
+		const int n = 4;
+	
+		// Gaussian Elimination
+		for (int col = 0; col < n-1; ++col) {
+			for (int row = col+1; row < n; ++row) {
+				A[row][col] = A[row][col]/A[col][col];
+				for (int j = col+1; j < n; ++j) {
+					A[row][j] -= A[row][col]*A[col][j];
+				}
+			}
+		}
+
+		// Forward Elimination
+		for (int col = 0; col < n-1; ++col) {
+			for (int row = col+1; row < n; ++row) {
+				b[row] -= A[row][col]*b[col];
+			}
+		}
+	
+		// Backward Solve
+		for (int row = n-1; row >= 0; --row) {
+			for (int j = row+1; j < n; ++j) {
+				b[row] -= A[row][j]*b[j];
+			}
+			b[row] = b[row]/A[row][row];
+		}
+	
+		b[3] = b[3]/A[3][3];
+		b[2] = (b[2] - A[2][3]*b[3])/A[2][2];
+		b[1] = (b[1] - A[1][3]*b[3] - A[1][2]*b[2])/A[1][1];
+		b[0] = (b[0] - A[0][3]*b[3] - A[0][2]*b[2] - A[0][1]*b[1])/A[0][0]; 
+
+	}
+
+
+	
+	else { // ORIGINAL GAUSSIAN
+    	const int n = 4;
+    
+		for (int column = 0; column < n-1; ++column) {
+			int rowmax = column;
+			double colmax = fabs(A[column][column]);
+			for (int row = column+1; row < n; ++row) {
+				double temp = fabs(A[row][column]);
+				if (temp > colmax)  {
+					rowmax = row;
+					colmax = temp;
+				}
+			}
+
+			if (rowmax != column) {
+				for (int column2 = 0; column2 < n; ++column2) {
+					double temp = A[rowmax][column2];
+					A[rowmax][column2] = A[column][column2];
+					A[column][column2] = temp;
+				}
+				double temp = b[rowmax];
+				b[rowmax] = b[column];
+				b[column] = temp;
+			}
+
+			Assert(A[column][column] != 0.);
+			A[column][column] = 1./A[column][column];
+
+			for (int row = column+1; row < n; ++row)
+				A[row][column] *= A[column][column];
+
+			for (int column2 = 0; column2 <= column; ++column2) {
+			for (int row = column2+1; row < n; ++row) {
+				A[row][column+1] -= A[row][column2]*A[column2][column+1];
+			}}
+		}
+
+    	Assert(A[n-1][n-1] != 0.);
+    	A[n-1][n-1] = 1./A[n-1][n-1];
+
+		for (int column = 0; column < n-1; ++column) {
+		for (int row = column+1; row < n; ++row) {
+			b[row] -= A[row][column]*b[column];
+		}}
+
+		for (int column = n-1; column >= 0; --column) {
+			b[column] *= A[column][column];
+			for (int row = column-1; row >= 0; --row)
+				b[row] -= A[row][column]*b[column];
+		}
+	} 
+}
 
 
 // Global functions
