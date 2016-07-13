@@ -180,56 +180,86 @@ void faceDependence(const UINT cell, const UINT angle,
 static 
 void gaussElim4(double A[4][4], double b[4])
 {
-    const int n = 4;
-    
-    for (int column = 0; column < n-1; ++column) {
-        int rowmax = column;
-        double colmax = fabs(A[column][column]);
-        for (int row = column+1; row < n; ++row) {
-            double temp = fabs(A[row][column]);
-            if (temp > colmax)  {
-                rowmax = row;
-                colmax = temp;
-            }
+	const int n = 4;
+	
+	// Gaussian Elimination
+	for (int col = 0; col < n-1; ++col) {
+		for (int row = col+1; row < n; ++row) {
+			A[row][col] = A[row][col]/A[col][col];
+			for (int j = col+1; j < n; ++j) {
+				A[row][j] -= A[row][col]*A[col][j];
+			}
+		}
+	}
+
+	// Forward Elimination
+	for (int col = 0; col < n-1; ++col) {
+        for (int row = col+1; row < n; ++row) {
+            b[row] -= A[row][col]*b[col];
         }
-
-        if (rowmax != column) {
-            for (int column2 = 0; column2 < n; ++column2) {
-                double temp = A[rowmax][column2];
-                A[rowmax][column2] = A[column][column2];
-                A[column][column2] = temp;
-            }
-            double temp = b[rowmax];
-            b[rowmax] = b[column];
-            b[column] = temp;
-        }
-
-        Assert(A[column][column] != 0.);
-        A[column][column] = 1./A[column][column];
-
-        for (int row = column+1; row < n; ++row)
-            A[row][column] *= A[column][column];
-
-        for (int column2 = 0; column2 <= column; ++column2) {
-        for (int row = column2+1; row < n; ++row) {
-            A[row][column+1] -= A[row][column2]*A[column2][column+1];
-        }}
     }
-
-    Assert(A[n-1][n-1] != 0.);
-    A[n-1][n-1] = 1./A[n-1][n-1];
-
-    for (int column = 0; column < n-1; ++column) {
-    for (int row = column+1; row < n; ++row) {
-        b[row] -= A[row][column]*b[column];
-    }}
-
-    for (int column = n-1; column >= 0; --column) {
-        b[column] *= A[column][column];
-        for (int row = column-1; row >= 0; --row)
-            b[row] -= A[row][column]*b[column];
+	
+	// Backward Solve
+	for (int row = n-1; row >= 0; --row) {
+		double s = b[row];
+        for (int j = row+1; j < n; ++j) {
+            s -= A[row][j]*b[j];
+        }
+        b[row] = s/A[row][row];
     }
 }
+
+//{
+//    const int n = 4;
+//    
+//    for (int column = 0; column < n-1; ++column) {
+//        int rowmax = column;
+//        double colmax = fabs(A[column][column]);
+//        for (int row = column+1; row < n; ++row) {
+//            double temp = fabs(A[row][column]);
+//            if (temp > colmax)  {
+//                rowmax = row;
+//                colmax = temp;
+//            }
+//        }
+//
+//        if (rowmax != column) {
+//            for (int column2 = 0; column2 < n; ++column2) {
+//                double temp = A[rowmax][column2];
+//                A[rowmax][column2] = A[column][column2];
+//                A[column][column2] = temp;
+//            }
+//            double temp = b[rowmax];
+//            b[rowmax] = b[column];
+//            b[column] = temp;
+//        }
+//
+//        Assert(A[column][column] != 0.);
+//        A[column][column] = 1./A[column][column];
+//
+//        for (int row = column+1; row < n; ++row)
+//            A[row][column] *= A[column][column];
+//
+//        for (int column2 = 0; column2 <= column; ++column2) {
+//        for (int row = column2+1; row < n; ++row) {
+//            A[row][column+1] -= A[row][column2]*A[column2][column+1];
+//        }}
+//    }
+//
+//    Assert(A[n-1][n-1] != 0.);
+//    A[n-1][n-1] = 1./A[n-1][n-1];
+//
+//    for (int column = 0; column < n-1; ++column) {
+//    for (int row = column+1; row < n; ++row) {
+//        b[row] -= A[row][column]*b[column];
+//    }}
+//
+//    for (int column = n-1; column >= 0; --column) {
+//        b[column] *= A[column][column];
+//        for (int row = column-1; row >= 0; --row)
+//            b[row] -= A[row][column]*b[column];
+//    }
+//}
 
 
 // Global functions
