@@ -310,8 +310,8 @@ void gaussElim4(double A[4][4], double b[4])
 		
 		double inv[16], invOut[16], bCpy[4], det;    
     
-    	// 1d array
-    	double* m = &(A[0][0]);
+		// 1d array
+		double* m = &(A[0][0]);
     
 		inv[0] = m[5]  * m[10] * m[15] -
 		m[5]  * m[11] * m[14] -
@@ -468,14 +468,7 @@ void gaussElim4(double A[4][4], double b[4])
 			}
 		}
 	
-		// Backward Solve
-		for (int row = n-1; row >= 0; --row) {
-			for (int j = row+1; j < n; ++j) {
-				b[row] -= A[row][j]*b[j];
-			}
-			b[row] = b[row]/A[row][row];
-		}
-	
+		// Backward Solve	
 		b[3] = b[3]/A[3][3];
 		b[2] = (b[2] - A[2][3]*b[3])/A[2][2];
 		b[1] = (b[1] - A[1][3]*b[3] - A[1][2]*b[2])/A[1][1];
