@@ -59,6 +59,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <petscmat.h>
 #include <petscvec.h>
 #include <petscksp.h>
+#include <functional>
+
 
 
 PetscErrorCode PassFunc(Mat A, Vec x, Vec b, MPI_Comm mpiComm, const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData, const std::vector<UINT> &numSendPackets,const std::vector<UINT> &numRecvPackets, SweepDataSchur &sweepData, PsiData &psi)
@@ -113,7 +115,7 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     SweepDataSchur sweepData(psi, source, psiBound, c_sigmaTotal);                    
     
     //Get adjacent ranks
-    vector<UINT> adjRanks;
+    std::vector<UINT> adjRanks;
     for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         
@@ -130,9 +132,9 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     
     
     // Populate sendMetaData, numSendPackets, and numRecvPackets
-    vector<vector<MetaData>> sendMetaData(adjRanks.size());
-    vector<UINT> numSendPackets(adjRanks.size());
-    vector<UINT> numRecvPackets(adjRanks.size());
+    std::vector<std::vector<MetaData>> sendMetaData(adjRanks.size());
+    std::vector<UINT> numSendPackets(adjRanks.size());
+    std::vector<UINT> numRecvPackets(adjRanks.size());
     
     for (UINT rankIndex = 0; rankIndex < adjRanks.size(); rankIndex++) {
         
@@ -189,16 +191,14 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
         
 
     //Create an operator from Operator.cc for the matrix-free method
-    //PassFunc(std::placeholders::_3,MPI_COMM_WORLD, adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi); 
-    //auto lambda = [](Mat A, Vec x, Vec b, MPI_Comm mpiComm, const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData, const std::vector<UINT> &numSendPackets,const std::vector<UINT> &numRecvPackets, SweepDataSchur &sweepData, PsiData &psi) -> PetscErrorCode {return PassFunc(A,x,b,mpiComm, adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi);};
-    //auto CurriedPassFunc = std::bind(lambda, std::placeholders::_3, MPI_COMM_WORLD, adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi);
-    //std::function<PetscErrorCode(Mat A, Vec x, Vec b)> Final;     
-
+    PetscErrorCode (Operator::*ptrtry)(Mat, Vec, Vec) = NULL;
+    ptrtry = &Operator::Schur;
+    Operator Op(MPI_COMM_WORLD, adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi);
 
     //Create matrix shell and define it as the operator
     MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,(void*)(NULL),&A);
     //MatSetType(A, MATMPIAIJ);
-    MatShellSetOperation(A, MATOP_MULT, (void(*)(void))PassFunc);
+    MatShellSetOperation(A, MATOP_MULT, (void(*)(void))(Op.*ptrtry));
     //MatShellSetOperation(A, MATOP_MULT, (void(*)(void))PassFunc(A, x, b, MPI_COMM_WORLD,adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi));
    
 
@@ -252,27 +252,27 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     VecAssemblyEnd(x);
     
     //Input source into tempb !!Check below
-    //count = 0;
-    //PetscScalar *tempb, pb;
-    //VecGetArray(b,&tempb);    //Gets tempb to correct size
-   // for (UINT group = 0; group < g_nGroups; ++group) {
-   // for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-   // for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-   // for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-   //     pb = source(vertex, angle, cell, group);
-//	tempb[count] = pb;
-   //     count += 1;
-    //}}}}//!!!!!!!!!!!!!!!!!!!!!!THIS ONLY NEEDS TO HAPPEN ON THE FIRST RUN THROUGH -> WOULD SAVE TIME TO ELIMINATE
+    count = 0;
+    PetscScalar *tempb, pb;
+    VecGetArray(b,&tempb);    //Gets tempb to correct size
+    for (UINT group = 0; group < g_nGroups; ++group) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+       pb = source(vertex, angle, cell, group);
+       tempb[count] = pb;
+       count += 1;
+    }}}}//!!!!!!!!!!!!!!!!!!!!!!THIS ONLY NEEDS TO HAPPEN ON THE FIRST RUN THROUGH -> WOULD SAVE TIME TO ELIMINATE
     
 
     //Input tempb into b
     //VecSetValues(x, count, ind, temp, INSERT_VALUES);
-    //VecRestoreArray(b,&tempb);
+    VecRestoreArray(b,&tempb);
     
 
     //Assemble vectors
-    //VecAssemblyBegin(b); !!!!!
-    //VecAssemblyEnd(b); !!!!
+    VecAssemblyBegin(b);
+    VecAssemblyEnd(b);
     //MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY); !!!!
     //MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY); !!!!
     
