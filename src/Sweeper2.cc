@@ -49,6 +49,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include <omp.h>
 #include <vector>
+#include <fstream>
+#include <iostream>
 
 using namespace std;
 
@@ -261,3 +263,27 @@ void Sweeper2::sweep(PsiData &psi, const PsiData &source)
                   Direction_Forward);
 }
 
+
+
+/*
+    Sweeper2::write
+
+    writes psi to a file
+ 
+ */
+
+void Sweeper2::write(PsiData &psi, const PsiData &source)
+{
+    ofstream outputfile ("tests/testSweeper2.txt");
+    
+    for (UINT group = 0; group < g_nGroups; ++group) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+       outputfile << psi(vertex, angle, cell, group) << '\n' ;
+
+	
+    }}}}
+
+    outputfile.close();
+}

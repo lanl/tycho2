@@ -9,5 +9,5 @@ intraAngleP     3
 interAngleP     1
 nGroups         2
 
-# Types: OriginalTycho1, OriginalTycho2, TraverseGraph
-SweepType TraverseGraph
+# Types: OriginalTycho1, OriginalTycho2, TraverseGraph, PBJ, Schur
+SweepType PBJ

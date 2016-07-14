@@ -42,6 +42,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include "Sweeper.hh"
 #include "Sweeper2.hh"
+#include "SweeperPBJ.hh"
+#include "SweeperSchurBoundary.hh"
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "Timer.hh"
@@ -372,13 +374,29 @@ void solve(const double sigmaTotal, const double sigmaScat,
     }
     
     
+    // Solver PBJ class
+    SweeperPBJ *sweeperPBJ = NULL;
+    if (g_sweepType == SweepType_PBJ) {
+        vector<vector<UINT>> anglesVector(g_nAngleGroups);
+        splitAnglesAcrossThreads(anglesVector);
+        sweeperPBJ = new SweeperPBJ(sigmaTotal);
+    }
+
     // Solver 2 class
-    Sweeper2 *sweeper2 = NULL;
+       Sweeper2 *sweeper2 = NULL;
     if (g_sweepType == SweepType_TraverseGraph) {
         vector<vector<UINT>> anglesVector(g_nAngleGroups);
         splitAnglesAcrossThreads(anglesVector);
         sweeper2 = new Sweeper2(g_maxCellsPerStep,
                                 g_intraAngleP, g_interAngleP, sigmaTotal);
+    }
+
+    //Solver Schur Boundary class
+    SweeperSchurBoundary *sweeperSchurBoundary = NULL;
+    if (g_sweepType == SweepType_Schur) {
+        vector<vector<UINT>> anglesVector(g_nAngleGroups);
+        splitAnglesAcrossThreads(anglesVector);
+        sweeperSchurBoundary = new SweeperSchurBoundary(sigmaTotal);
     }
     
     
@@ -421,8 +439,14 @@ void solve(const double sigmaTotal, const double sigmaScat,
                 Sweeper::sweep(psi, totalSource, sigmaTotal);
                 break;
             case SweepType_TraverseGraph:
-                sweeper2->sweep(psi, totalSource);
-                break;
+	        sweeper2->sweep(psi, totalSource);
+		break;
+	    case SweepType_Schur:
+                sweeperSchurBoundary->sweep(psi, totalSource);
+		break;
+	    case SweepType_PBJ:
+	        sweeperPBJ->sweep(psi, totalSource);
+	        break;
             default:
                 Insist(false, "Sweep type not recognized.");
                 break;
@@ -473,6 +497,23 @@ void solve(const double sigmaTotal, const double sigmaScat,
         printf("Mass of psi: %e\n", mass);
         printf("L2 Relative Error: %e\n", psiError);
         printf("Diff between groups: %e\n", diffGroups);
+	switch (g_sweepType){
+	    case SweepType_OriginalTycho1:
+            case SweepType_OriginalTycho2:
+                break;
+            case SweepType_TraverseGraph:
+	        sweeper2->write(psi, totalSource);
+		break;
+	    //case SweepType_Schur:
+            //    sweeperSchurBoundary->write(psi, totalSource);
+	    //	break;
+	    case SweepType_PBJ:
+	        sweeperPBJ->write(psi, totalSource);
+	        break;
+            default:
+                //Insist(false, "Sweep type not recognized.");
+                break;
+	}
     }
 }
 

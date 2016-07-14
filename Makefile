@@ -5,7 +5,9 @@ include make.inc
 MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_MPI
 
 # Include directories
-INC = -Isrc
+INC = -Isrc -I../lib/moonlight/PETSC/include 
+
+LIBS = -L../lib/moonlight/PETSC/lib -lpetsc -Wl,-rpath,../lib/moonlight/PETSC/lib
 
 
 # List of sources, header files, and object files
@@ -17,7 +19,7 @@ OBJECTS = $(patsubst src%.cc, build%.o, $(SOURCE))
 # Link object files
 sweep.x: $(OBJECTS)
 	@echo Linking $@
-	$(MPICC) $(OBJECTS) -o sweep.x
+	$(MPICC) $(OBJECTS) -o sweep.x ${LIBS}
 	@echo " "
 
 # Make object files

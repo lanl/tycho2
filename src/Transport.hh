@@ -64,6 +64,10 @@ namespace Transport
                const Mat3<double> &localPsiBound, 
                const Mat2<double> &localSource,
                Mat2<double> &localPsi);
+
+    void populateLocalPsiBound(const UINT angle, const UINT cell, 
+                               const PsiData &psi, const PsiData &psiBound,
+                               Mat3<double> &localPsiBound);
 } // End namespace Transport
 
 #endif

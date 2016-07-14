@@ -305,7 +305,7 @@ void KeyValueReader::readFile(const string &filename)
     }
     
     
-    // Open file
+    // Open file   
     file.open(filename);
     if (!file.is_open()) {
         c_data->printMessage("Could not open file");

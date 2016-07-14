@@ -126,10 +126,10 @@ public:
     
     
     // Arbitrary value to mark any face that lies on a boundary.
-    static const UINT BOUNDARY_FACE = UINT64_MAX;
-    static const UINT NOT_BOUNDARY_FACE = UINT64_MAX;
-    static const UINT BAD_RANK = UINT64_MAX;
-    
+    static const UINT BOUNDARY_FACE = std::numeric_limits<uint64_t>::max(); //UINT_MAX;  
+    static const UINT NOT_BOUNDARY_FACE = std::numeric_limits<uint64_t>::max(); //UINT_MAX;
+    static const UINT BAD_RANK =  std::numeric_limits<uint64_t>::max(); //UINT_MAX;
+    //Kevin - not sure why the above was causing an error
     
 private:
     void readTychoMesh(const std::string &filename);

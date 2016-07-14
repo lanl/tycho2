@@ -48,6 +48,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 typedef uint64_t UINT;
-const UINT UINT_MAX = std::numeric_limits<uint64_t>::max();
+//const UINT UINT_MAX = std::numeric_limits<uint64_t>::max();
 
 #endif

@@ -1,7 +1,12 @@
 /*
+    SweeperPBJ.cc
+    
+    Implements parallel block Jacobi solver.
+*/
+
+/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
-
 Copyright 2016. Los Alamos National Security, LLC. This software was produced 
 under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
 Laboratory (LANL), which is operated by Los Alamos National Security, LLC for 
@@ -11,7 +16,6 @@ ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR
 ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified 
 to produce derivative works, such modified software should be clearly marked, 
 so as not to confuse it with the version available from LANL.
-
 Additionally, redistribution and use in source and binary forms, with or 
 without modification, are permitted provided that the following conditions 
 are met:
@@ -43,56 +47,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Priorities.hh"
 #include "Transport.hh"
 #include "PsiData.hh"
+#include "Comm.hh"
 #include <omp.h>
 #include <vector>
 #include <math.h>
 #include <string.h>
+#include <fstream>
+#include <iostream>
 
 
 using namespace std;
-
-
-/*
-    populateLocalPsiBound
-    
-    Put data from neighboring cells into localPsiBound(fvrtx, face, group).
-*/
-static
-void populateLocalPsiBound(const UINT angle, const UINT cell, 
-                           const PsiData &psi, const PsiData &psiBound,
-                           Mat3<double> &localPsiBound)
-{
-    // Default to 0.0
-    localPsiBound = 0.0;
-    
-    // Populate if incoming flux
-    for (UINT group = 0; group < g_nGroups; group++) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
-            UINT neighborCell = g_spTychoMesh->getAdjCell(cell, face);
-            
-            // In local mesh
-            if (neighborCell != TychoMesh::BOUNDARY_FACE) {
-                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    UINT neighborVrtx = 
-                        g_spTychoMesh->getNeighborVrtx(cell, face, fvrtx);
-                    localPsiBound(fvrtx, face, group) = 
-                        psi(neighborVrtx, angle, neighborCell, group);
-                }
-            }
-            
-            // Not in local mesh
-            else if (g_spTychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
-                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    UINT side = g_spTychoMesh->getSide(cell, face);
-                    localPsiBound(fvrtx, face, group) = 
-                        psiBound(side, angle, fvrtx, group);
-                }
-            }
-        }
-    }}
-}
-
 
 
 /*
@@ -100,18 +64,23 @@ void populateLocalPsiBound(const UINT angle, const UINT cell,
     
     Holds psi and other data for the sweep.
 */
-class SweepData : public TraverseData
+class SweepDataPBJ : public TraverseData
 {
 public:
     
     /*
         Constructor
     */
-    SweepData(PsiData &psi, const PsiData &source, PsiData &psiBound, 
+    SweepDataPBJ(PsiData &psi, const PsiData &source, PsiData &psiBound, 
               const double sigmaTotal)
     : c_psi(psi), c_psiBound(psiBound), 
-      c_source(source), c_sigmaTotal(sigmaTotal)
-    { }
+      c_source(source), c_sigmaTotal(sigmaTotal),
+      c_localFaceData(g_nThreads)
+    {
+        for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
+            c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
+        }
+    }
     
     
     /*
@@ -121,7 +90,7 @@ public:
     */
     virtual const char* getData(UINT cell, UINT face, UINT angle)
     {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
+        Mat2<double> &localFaceData = c_localFaceData[omp_get_thread_num()];
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
@@ -197,7 +166,8 @@ public:
         
         
         // Populate localPsiBound
-        populateLocalPsiBound(angle, cell, c_psi, c_psiBound, localPsiBound);
+        Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound, 
+                                         localPsiBound);
         
         
         // Transport solve
@@ -217,6 +187,7 @@ private:
     PsiData &c_psiBound;
     const PsiData &c_source;
     const double c_sigmaTotal;
+    vector<Mat2<double>> c_localFaceData;
 };
 
 
@@ -231,7 +202,6 @@ struct MetaData
     UINT face;
 };
 
-
 /*
     commSides
 */
@@ -239,11 +209,12 @@ void commSides(const vector<UINT> &adjRanks,
                const vector<vector<MetaData>> &sendMetaData,
                const vector<UINT> &numSendPackets,
                const vector<UINT> &numRecvPackets,
-               SweepData &sweepData)
+               SweepDataPBJ &sweepData)
 {
     int mpiError;
     UINT numToRecv;
     UINT numAdjRanks = adjRanks.size();
+    UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
     vector<MPI_Request> mpiRecvRequests(numAdjRanks);
     vector<MPI_Request> mpiSendRequests(numAdjRanks);
     vector<vector<char>> dataToSend(numAdjRanks);
@@ -252,7 +223,6 @@ void commSides(const vector<UINT> &adjRanks,
     
     // Data structures to send/recv packets
     for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
         dataToSend[rankIndex].resize(packetSize * numSendPackets[rankIndex]);
         dataToRecv[rankIndex].resize(packetSize * numRecvPackets[rankIndex]);
     }
@@ -294,8 +264,8 @@ void commSides(const vector<UINT> &adjRanks,
                 UINT cell  = sendMetaData[rankIndex][metaDataIndex].cell;
                 UINT face  = sendMetaData[rankIndex][metaDataIndex].face;
                 const char *data = sweepData.getData(cell, face, angle);
-            
-                char *ptr = &dataToSend[rankIndex][metaDataIndex];
+                
+                char *ptr = &dataToSend[rankIndex][metaDataIndex * packetSize];
                 memcpy(ptr, &gSide, sizeof(UINT));
                 ptr += sizeof(UINT);
                 memcpy(ptr, &angle, sizeof(UINT));
@@ -331,7 +301,6 @@ void commSides(const vector<UINT> &adjRanks,
         
         
         // Process Data
-        UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
         UINT numPackets = dataToRecv[rankIndex].size() / packetSize;
         for (UINT packetIndex = 0; packetIndex < numPackets; packetIndex++) {
             char *ptr = &dataToRecv[rankIndex][packetIndex * packetSize];
@@ -355,7 +324,6 @@ void commSides(const vector<UINT> &adjRanks,
     }
 }
 
-
 /*
     Constructor
 */
@@ -371,7 +339,7 @@ SweeperPBJ::SweeperPBJ(const double sigmaTotal)
 void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
 {
     const bool doComm = false;
-    const UINT maxComputePerStep = UINT_MAX;
+    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max(); ;
     const UINT maxIter = 100;
     const double tolerance = 1e-5;
     
@@ -395,7 +363,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     
     // Create SweepData for traversal
-    SweepData sweepData(psi, source, psiBound, c_sigmaTotal);
+    SweepDataPBJ sweepData(psi, source, psiBound, c_sigmaTotal);
     
     
     // Get adjacent ranks
@@ -459,7 +427,8 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
                       Direction_Forward);
         
-        // Check tolerance and psi0 = psi1
+        
+        // Check tolerance and set psi0 = psi1
         double errL1 = 0.0;
         double normL1 = 0.0;
         for (UINT group = 0; group < g_nGroups; ++group) {
@@ -468,20 +437,64 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
             double p0 = psi0(vertex, angle, cell, group);
             double p1 = psi(vertex, angle, cell, group);
-            
+             
             errL1  += fabs(p0 - p1);
             normL1 += fabs(p1);
             
             psi0(vertex, angle, cell, group) = p1;
         }}}}
         
-        if (errL1 / normL1 < tolerance)
+        Comm::gsum(errL1);
+        Comm::gsum(normL1);
+	
+	int rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	if(rank==0){
+	printf("	Total errL1: %f \n", errL1);
+	printf("	Total normL1: %f \n", normL1);
+	printf("	errL1/normL1: %f \n", errL1/normL1);
+	
+	}
+	if (errL1 / normL1 < tolerance)
             break;
         
         
         // Communicate
         commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, 
                   sweepData);
+        
+        
+        // Increment iter
+        iter++;
     }
+    
+    
+    // Print statistics
+    if (Comm::rank() == 0) {
+        printf("      PBJ Iters: %" PRIu64 "\n", iter);
+    }
+}
+
+/*
+    SweeperPBJ::write
+
+    writes psi to a file
+ 
+ */
+
+void SweeperPBJ::write(PsiData &psi, const PsiData &source)
+{
+    ofstream outputfile ("tests/testPBJ.txt");
+    
+    for (UINT group = 0; group < g_nGroups; ++group) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+       outputfile << psi(vertex, angle, cell, group) << '\n' ;
+
+	
+    }}}}
+
+    outputfile.close();
 }
 
