@@ -185,7 +185,7 @@ void gaussElim4(double A[4][4], double b[4])
 	// 1=MESA implementation of GLU library
 	// 2=Gaussian No Pivot 
 	// >2=original gaussian
-	int flag = 0;
+	int flag = 2;
 
 	if (flag == 0) { // CRAMER'S RULE
 		
@@ -449,25 +449,70 @@ void gaussElim4(double A[4][4], double b[4])
 
 	else if (flag == 2) { // GAUSSIAN-NO PIVOT
 
-		const int n = 4;
-	
-		// Gaussian Elimination
-		for (int col = 0; col < n-1; ++col) {
-			for (int row = col+1; row < n; ++row) {
-				A[row][col] = A[row][col]/A[col][col];
-				for (int j = col+1; j < n; ++j) {
-					A[row][j] -= A[row][col]*A[col][j];
-				}
-			}
-		}
+		double tmp;
+		
+		// Normalize first row
+		tmp = 1.0/A[0][0];
+		A[0][0] = 1.0;
+		A[0][1] = A[0][1] * tmp;
+		A[0][2] = A[0][2] * tmp;
+		A[0][3] = A[0][3] * tmp;
+		b[0] = b[0] * tmp;
 
-		// Forward Elimination
-		for (int col = 0; col < n-1; ++col) {
-			for (int row = col+1; row < n; ++row) {
-				b[row] -= A[row][col]*b[col];
-			}
-		}
-	
+		// Set column zero to 0.0
+		tmp = A[1][0];
+		A[1][0] = 0.0;
+		A[1][1] = A[1][1] - A[0][1] * tmp;
+		A[1][2] = A[1][2] - A[0][2] * tmp;
+		A[1][3] = A[1][3] - A[0][3] * tmp;
+		b[1] = b[1] - b[0] * tmp;	
+
+		tmp = A[2][0];
+		A[2][0] = 0.0;
+		A[2][1] = A[2][1] - A[0][1] * tmp;
+		A[2][2] = A[2][2] - A[0][2] * tmp;
+		A[2][3] = A[2][3] - A[0][3] * tmp;
+		b[2] = b[2] - b[0] * tmp;
+		
+		tmp = A[3][0];
+		A[3][0] = 0.0;
+		A[3][1] = A[3][1] - A[0][1] * tmp;
+		A[3][2] = A[3][2] - A[0][2] * tmp;
+		A[3][3] = A[3][3] - A[0][3] * tmp;
+		b[3] = b[3] - b[0] * tmp;
+		
+		// Normalize second row
+		tmp = 1.0/A[1][1];
+		A[1][1] = 1.0;
+		A[1][2] = A[1][2] * tmp;
+		A[1][3] = A[1][3] * tmp;
+		b[1] = b[1] * tmp;
+		
+		// Set column one to 0.0
+		tmp = A[2][1];
+		A[2][1] = 0.0;
+		A[2][2] = A[2][2] - A[1][2] * tmp;
+		A[2][3] = A[2][3] - A[1][3] * tmp;
+		b[2] = b[2] - b[1] * tmp;
+		
+		tmp = A[3][1];
+		A[3][1] = 0.0;
+		A[3][2] = A[3][2] - A[1][2] * tmp;
+		A[3][3] = A[3][3] - A[1][3] * tmp;
+		b[3] = b[3] - b[1] * tmp;
+		
+		// Normalize third row
+		tmp = 1.0/A[2][2];
+		A[2][2] = 1.0;
+		A[2][3] = A[2][3] * tmp;
+		b[2] = b[2] * tmp;
+		
+		// Set column two to 0.0
+		tmp = A[3][2];
+		A[3][2] = 0.0;
+		A[3][3] = A[3][3] - A[2][3] * tmp;
+		b[3] = b[3] - b[2] * tmp;
+
 		// Backward Solve	
 		b[3] = b[3]/A[3][3];
 		b[2] = (b[2] - A[2][3]*b[3])/A[2][2];
