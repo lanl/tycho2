@@ -48,7 +48,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Transport.hh"
 #include "PsiData.hh"
 #include "Comm.hh"
-#include "Operator.hh"
 #include "Typedef.hh"
 #include <omp.h>
 #include <vector>
@@ -59,14 +58,36 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <petscmat.h>
 #include <petscvec.h>
 #include <petscksp.h>
-#include <functional>
+#include "SweepDataSchur.hh"
+#include "Operator.hh"
 
 
+//static PsiData s_psi(g_nVrtxPerCell, g_quadrature->getNumAngles(), g_spTychoMesh->getNCells(), g_nGroups);
+//static PsiData s_psiBound(g_nVrtxPerCell, g_quadrature->getNumAngles(), g_spTychoMesh->getNCells(), g_nGroups);
+//static PsiData s_psiSource(g_nVrtxPerCell, g_quadrature->getNumAngles(), g_spTychoMesh->getNCells(), g_nGroups);
+//static double s_sigmaTotal;
+//static MPI_Comm mpiComm;
+//static const std::vector<UINT> adjRanks;
+//static const std::vector<std::vector<MetaData>> sendMetaData;
+//static const std::vector<UINT> numSendPackets;
+//static const std::vector<UINT> numRecvPackets;
+//static SweepDataSchur s_sweepData(s_psi, s_psiBound, s_psiSource, s_sigmaTotal);
 
-PetscErrorCode PassFunc(Mat A, Vec x, Vec b, MPI_Comm mpiComm, const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData, const std::vector<UINT> &numSendPackets,const std::vector<UINT> &numRecvPackets, SweepDataSchur &sweepData, PsiData &psi)
-{Operator OpGlobal(mpiComm, adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi);
-return OpGlobal.Schur(A,x,b);
-};
+std::vector<UINT> Operator::c_adjRanks = {0};
+std::vector<std::vector<MetaData>> Operator::c_sendMetaData = {{{0,0,0,0}}};
+std::vector<UINT> Operator::c_numSendPackets = {0};
+std::vector<UINT> Operator::c_numRecvPackets = {0};  
+PsiData Operator::c_psi(0,0,0,0);
+PsiData Operator::c_psiBound(0,0,0,0);
+PsiData Operator::c_psiSource(0,0,0,0);
+double Operator::c_sigmaTotal = 0;
+MPI_Comm Operator::c_mpiComm = NULL;
+
+
+//PetscErrorCode PassFunc(Mat A, Vec x, Vec b, MPI_Comm mpiComm, const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData, const std::vector<UINT> &numSendPackets,const std::vector<UINT> &numRecvPackets, SweepDataSchur &sweepData, PsiData &psi)
+//{Operator OpGlobal(mpiComm, adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi);
+//return OpGlobal.Schur(A,x,b);
+//};
 
 
 /*
@@ -76,6 +97,207 @@ SweeperSchurBoundary::SweeperSchurBoundary(const double sigmaTotal)
 {
     c_sigmaTotal = sigmaTotal;
 }
+
+/*
+    commSides
+*/
+void commSides(const std::vector<UINT> &adjRanks,
+               const std::vector<std::vector<MetaData>> &sendMetaData,
+               const std::vector<UINT> &numSendPackets,
+               const std::vector<UINT> &numRecvPackets,
+               SweepDataSchur &sweepData)
+{
+    int mpiError;
+    UINT numToRecv;
+    UINT numAdjRanks = adjRanks.size();
+    UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
+    std::vector<MPI_Request> mpiRecvRequests(numAdjRanks);
+    std::vector<MPI_Request> mpiSendRequests(numAdjRanks);
+    std::vector<std::vector<char>> dataToSend(numAdjRanks);
+    std::vector<std::vector<char>> dataToRecv(numAdjRanks);
+    
+    
+    // Data structures to send/recv packets
+    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
+        dataToSend[rankIndex].resize(packetSize * numSendPackets[rankIndex]);
+        dataToRecv[rankIndex].resize(packetSize * numRecvPackets[rankIndex]);
+    }
+    
+    
+    // Irecv data
+    numToRecv = 0;
+    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
+        
+        if (dataToRecv[rankIndex].size() > 0) {
+            int tag = 0;
+            int adjRank = adjRanks[rankIndex];
+            MPI_Request request;
+            mpiError = MPI_Irecv(dataToRecv[rankIndex].data(), 
+                                 dataToRecv[rankIndex].size(), 
+                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD,
+                                 &request);
+            Insist(mpiError == MPI_SUCCESS, "");
+            mpiRecvRequests[rankIndex] = request;
+            numToRecv++;
+        }
+        
+        else {
+            mpiRecvRequests[rankIndex] = MPI_REQUEST_NULL;
+        }
+    }
+    
+    
+    // Update data to send and Isend it
+    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
+        
+        if (dataToSend[rankIndex].size() > 0) {
+            for (UINT metaDataIndex = 0; 
+                 metaDataIndex < sendMetaData[rankIndex].size(); 
+                 metaDataIndex++)
+            {
+                UINT gSide = sendMetaData[rankIndex][metaDataIndex].gSide;
+                UINT angle = sendMetaData[rankIndex][metaDataIndex].angle;
+                UINT cell  = sendMetaData[rankIndex][metaDataIndex].cell;
+                UINT face  = sendMetaData[rankIndex][metaDataIndex].face;
+                const char *data = sweepData.getData(cell, face, angle);
+                
+                char *ptr = &dataToSend[rankIndex][metaDataIndex * packetSize];
+                memcpy(ptr, &gSide, sizeof(UINT));
+                ptr += sizeof(UINT);
+                memcpy(ptr, &angle, sizeof(UINT));
+                ptr += sizeof(UINT);
+                memcpy(ptr, data, sweepData.getDataSize());
+            }
+            
+            int tag = 0;
+	    int adjRank = adjRanks[rankIndex];
+            MPI_Request request;
+            mpiError = MPI_Isend(dataToSend[rankIndex].data(), 
+                                 dataToSend[rankIndex].size(), 
+                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD, 
+                                 &request);
+            Insist(mpiError == MPI_SUCCESS, "");
+            mpiSendRequests[rankIndex] = request;
+        }
+        
+        else {
+            mpiSendRequests[rankIndex] = MPI_REQUEST_NULL;
+        }
+    }
+    
+    
+    // Get data from Irecv
+    for (UINT numWaits = 0; numWaits < numToRecv; numWaits++) {
+        
+        // Wait for a data packet to arrive
+        int rankIndex;
+        mpiError = MPI_Waitany(mpiRecvRequests.size(), mpiRecvRequests.data(), 
+                               &rankIndex, MPI_STATUS_IGNORE);
+        Insist(mpiError == MPI_SUCCESS, "");
+        
+        
+        // Process Data
+        UINT numPackets = dataToRecv[rankIndex].size() / packetSize;
+        for (UINT packetIndex = 0; packetIndex < numPackets; packetIndex++) {
+            char *ptr = &dataToRecv[rankIndex][packetIndex * packetSize];
+            UINT gSide = 0;
+            UINT angle = 0;
+            memcpy(&gSide, ptr, sizeof(UINT));
+            ptr += sizeof(UINT);
+            memcpy(&angle, ptr, sizeof(UINT));
+            ptr += sizeof(UINT);
+            UINT side = g_spTychoMesh->getGLSide(gSide);
+            sweepData.setSideData(side, angle, ptr);
+        }
+    }
+    
+    
+    // Wait on send to complete
+    if (mpiSendRequests.size() > 0) {
+        mpiError = MPI_Waitall(mpiSendRequests.size(), mpiSendRequests.data(), 
+                               MPI_STATUSES_IGNORE);
+        Insist(mpiError == MPI_SUCCESS, "");
+    }
+}
+
+
+
+
+/*Schur complement operator. This performs the sweep and returns the outgoing boundary */
+PetscErrorCode Schur(Mat mat, Vec x, Vec b){
+    
+    //Retrieve variables
+    Operator Op;
+    MPI_Comm mpiComm = Op.getmpiComm();
+    const std::vector<UINT> adjRanks = Op.getadjRanks();
+    const std::vector<std::vector<MetaData>> sendMetaData = Op.getsendMetaData();
+    const std::vector<UINT> numSendPackets = Op.getnumSendPackets();
+    const std::vector<UINT> numRecvPackets = Op.getnumRecvPackets();  
+    PsiData psi = Op.getpsi();
+    PsiData psiBound = Op.getpsiBound();
+    PsiData psiSource = Op.getpsiSource();
+    double sigmaTotal = Op.getsigmaTotal();
+    SweepDataSchur sweepData(psi, psiSource, psiBound, sigmaTotal);
+    
+    
+    //Declare variables
+    PetscErrorCode ierr;
+    const bool doComm = false;
+    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max(); ;
+    
+
+    
+    //Vector -> array
+    UINT arraySize = g_nGroups*(g_spTychoMesh->getNCells())*(g_quadrature->getNumAngles())*g_nVrtxPerCell;
+    PetscScalar *temp;
+    ierr = VecGetArray(x,&temp);
+    
+
+    //Take the array and put the values of Psi into psi for sweeping
+    PetscInt count = 0;    
+    for (UINT group = 0; group < g_nGroups; ++group) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex){
+        psi(vertex, angle, cell, group) = temp[count];
+	count += 1;
+    }}}}
+
+      
+    //Traverse the graph to get the values on the outward facing boundary
+    traverseGraph(maxComputePerStep, sweepData, doComm, mpiComm, Direction_Forward); //!!
+
+
+    //Takes outward facing boundary values and sets them into b
+    count = 0;
+    PetscScalar p1;
+    for (UINT group = 0; group < g_nGroups; ++group) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT face = 0; face < g_nFacePerCell; ++face) {
+	     UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
+	     UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
+             for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+		     if ((adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isOutgoing(angle, cell, face))||(adjCell == TychoMesh::BOUNDARY_FACE && adjRank == TychoMesh::BAD_RANK)){
+		             for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+		   		    p1 = psi(vertex, angle, cell, group);
+    				    //ierr = VecSetValues(b,1,&count,&p1,INSERT_VALUES); //n=1??!!!
+    				    temp[count] = p1;
+                                    count += 1;
+          
+	}}}}}}
+
+    //Set data back
+    VecRestoreArray(b,&temp);
+
+
+    //Calls commSides          	
+    commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData);//!!Check this	
+
+    return(0);
+
+
+}
+
 
 
 /*
@@ -110,9 +332,8 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     psiBound.setToValue(0.0);  // Change to something more reasonable.
     psi.setToValue(0.0);                               
                                        
-                                                                                                                                      
-    // Create SweepData for traversal
-    SweepDataSchur sweepData(psi, source, psiBound, c_sigmaTotal);                    
+                                                                                                                                   // Create SweepData for traversal
+    //SweepDataSchur sweepData(psi, source, psiBound, c_sigmaTotal);                    
     
     //Get adjacent ranks
     std::vector<UINT> adjRanks;
@@ -166,7 +387,18 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
             }
         }}
     }
-
+   
+    //Set variables
+    Operator Op;
+    Op.setmpiComm(MPI_COMM_WORLD);
+    Op.setadjRanks(adjRanks);
+    Op.setsendMetaData(sendMetaData);
+    Op.setnumSendPackets(numSendPackets);
+    Op.setnumRecvPackets(numRecvPackets); 
+    Op.setpsi(psi);
+    Op.setpsiBound(psiBound);
+    Op.setpsiSource(source);
+    Op.setsigmaTotal(c_sigmaTotal);
     
 
     /* Petsc setup:
@@ -191,14 +423,14 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
         
 
     //Create an operator from Operator.cc for the matrix-free method
-    PetscErrorCode (Operator::*ptrtry)(Mat, Vec, Vec) = NULL;
-    ptrtry = &Operator::Schur;
-    Operator Op(MPI_COMM_WORLD, adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi);
+    //PetscErrorCode (Operator::*ptrtry)(Mat, Vec, Vec) = NULL;
+    //ptrtry = &Operator::Schur;
+    //Operator Op(MPI_COMM_WORLD, adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi);
 
     //Create matrix shell and define it as the operator
     MatCreateShell(PETSC_COMM_WORLD,n,n,n,n,(void*)(NULL),&A);
     //MatSetType(A, MATMPIAIJ);
-    MatShellSetOperation(A, MATOP_MULT, (void(*)(void))(Op.*ptrtry));
+    MatShellSetOperation(A, MATOP_MULT, (void(*)(void))Schur);
     //MatShellSetOperation(A, MATOP_MULT, (void(*)(void))PassFunc(A, x, b, MPI_COMM_WORLD,adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData, psi));
    
 
@@ -303,12 +535,12 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     //Destroy vectors, ksp, and matrices to free work space
     VecDestroy(&x);
     VecDestroy(&b);
-    MatDestroy(&A);
-    KSPDestroy(&ksp);
+    //MatDestroy(&A);
+    //KSPDestroy(&ksp);
 
     
     //Destroy Petsc
-    PetscFinalize();
+    //PetscFinalize();
     
 
 }

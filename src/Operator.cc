@@ -49,35 +49,97 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #include "SweepDataSchur.hh"
 
-using namespace std;
+//using namespace std;
+
+
+
 
 /*
     Constructor
 */
-Operator::Operator(MPI_Comm mpiComm, const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData, const std::vector<UINT> &numSendPackets, const std::vector<UINT> &numRecvPackets, SweepDataSchur &sweepData, PsiData &psi)
-: c_mpiComm(mpiComm), c_adjRanks(adjRanks), c_sendMetaData(sendMetaData), c_numSendPackets(numSendPackets), c_numRecvPackets(numRecvPackets) ,c_sweepData(sweepData), c_psi(psi)
+Operator::Operator()//MPI_Comm mpiComm, const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData, const std::vector<UINT> &numSendPackets, const std::vector<UINT> &numRecvPackets, SweepDataSchur &sweepData, PsiData &psi)
+//: c_mpiComm(mpiComm), c_adjRanks(adjRanks), c_sendMetaData(sendMetaData), c_numSendPackets(numSendPackets), c_numRecvPackets(numRecvPackets) ,c_sweepData(sweepData), c_psi(psi)
 {
-	
+
 }
 
 
 /*
+   getData 
+*/
+MPI_Comm Operator::getmpiComm()
+{return Operator::c_mpiComm;}
+
+const std::vector<UINT> Operator::getadjRanks()
+{return Operator::c_adjRanks;}
+
+const std::vector<std::vector<MetaData>> Operator::getsendMetaData()
+{return Operator::c_sendMetaData;}
+
+const std::vector<UINT> Operator::getnumSendPackets()
+{return Operator::c_numSendPackets;}
+
+const std::vector<UINT> Operator::getnumRecvPackets()
+{return Operator::c_numRecvPackets;}
+    
+PsiData Operator::getpsi()
+{return Operator::c_psi;}
+
+PsiData Operator::getpsiBound()
+{return Operator::c_psiBound;}
+
+PsiData Operator::getpsiSource()
+{return Operator::c_psiSource;}
+
+double Operator::getsigmaTotal()
+{return Operator::c_sigmaTotal;}
+/*
+   setData 
+*/
+void Operator::setmpiComm(MPI_Comm MPI_IN)
+{Operator::c_mpiComm = MPI_IN;}
+
+void Operator::setadjRanks(const std::vector<UINT> RANKS_IN)
+{Operator::c_adjRanks = RANKS_IN;}
+
+void Operator::setsendMetaData(const std::vector<std::vector<MetaData>> META_IN)
+{Operator::c_sendMetaData = META_IN;}
+
+void Operator::setnumSendPackets(const std::vector<UINT> SEND_IN)
+{Operator::c_numSendPackets = SEND_IN;}
+
+void Operator::setnumRecvPackets(const std::vector<UINT> RECV_IN)
+{Operator::c_numRecvPackets = RECV_IN;}
+   
+void Operator::setpsi(PsiData PSI_IN)
+{Operator::c_psi = PSI_IN;}
+
+void Operator::setpsiBound(PsiData BOUND_IN)
+{Operator::c_psiBound = BOUND_IN;}
+
+void Operator::setpsiSource(PsiData SOURCE_IN)
+{Operator::c_psiSource = SOURCE_IN;}
+
+void Operator::setsigmaTotal(double SIGMA_IN)
+{Operator::c_sigmaTotal = SIGMA_IN;}
+
+/*
     commSides
 */
-void Operator::commSides(const vector<UINT> &adjRanks,
-               const vector<vector<MetaData>> &sendMetaData,
-               const vector<UINT> &numSendPackets,
-               const vector<UINT> &numRecvPackets,
+void Operator::commSides(const std::vector<UINT> &adjRanks,
+               const std::vector<std::vector<MetaData>> &sendMetaData,
+               const std::vector<UINT> &numSendPackets,
+               const std::vector<UINT> &numRecvPackets,
                SweepDataSchur &sweepData)
 {
     int mpiError;
     UINT numToRecv;
     UINT numAdjRanks = adjRanks.size();
     UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
-    vector<MPI_Request> mpiRecvRequests(numAdjRanks);
-    vector<MPI_Request> mpiSendRequests(numAdjRanks);
-    vector<vector<char>> dataToSend(numAdjRanks);
-    vector<vector<char>> dataToRecv(numAdjRanks);
+    std::vector<MPI_Request> mpiRecvRequests(numAdjRanks);
+    std::vector<MPI_Request> mpiSendRequests(numAdjRanks);
+    std::vector<std::vector<char>> dataToSend(numAdjRanks);
+    std::vector<std::vector<char>> dataToRecv(numAdjRanks);
     
     
     // Data structures to send/recv packets
@@ -184,67 +246,5 @@ void Operator::commSides(const vector<UINT> &adjRanks,
 }
 
 
-
-
-/*Schur complement operator. This performs the sweep and returns the outgoing boundary */
-PetscErrorCode Operator::Schur(Mat mat, Vec x, Vec b){
-
-
-    //Declare variables
-    PetscErrorCode ierr;
-    const bool doComm = false;
-    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max(); ;
-
-
-    //Vector -> array
-    UINT arraySize = g_nGroups*(g_spTychoMesh->getNCells())*(g_quadrature->getNumAngles())*g_nVrtxPerCell;
-    PetscScalar *temp;
-    ierr = VecGetArray(x,&temp);
-    
-
-    //Take the array and put the values of Psi into psi for sweeping
-    PetscInt count = 0;    
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex){
-        c_psi(vertex, angle, cell, group) = temp[count];
-	count += 1;
-    }}}}
-
-      
-    //Traverse the graph to get the values on the outward facing boundary
-    traverseGraph(maxComputePerStep, c_sweepData, doComm, c_mpiComm, Direction_Forward); //!!
-
-
-    //Takes outward facing boundary values and sets them into b
-    count = 0;
-    PetscScalar p1;
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT face = 0; face < g_nFacePerCell; ++face) {
-	     UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-	     UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-             for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-		     if ((adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isOutgoing(angle, cell, face))||(adjCell == TychoMesh::BOUNDARY_FACE && adjRank == TychoMesh::BAD_RANK)){
-		             for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-		   		    p1 = c_psi(vertex, angle, cell, group);
-    				    //ierr = VecSetValues(b,1,&count,&p1,INSERT_VALUES); //n=1??!!!
-    				    temp[count] = p1;
-                                    count += 1;
-          
-	}}}}}}
-
-    //Set data back
-    VecRestoreArray(b,&temp);
-
-
-    //Calls commSides          	
-    this->commSides(c_adjRanks, c_sendMetaData, c_numSendPackets, c_numRecvPackets, c_sweepData);//!!Check this	
-
-    return(0);
-
-
-}
 
 

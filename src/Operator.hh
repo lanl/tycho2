@@ -54,20 +54,45 @@ class Operator {
 
 public:
 
-    Operator(MPI_Comm mpiComm, const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData, const std::vector<UINT> &numSendPackets, const std::vector<UINT> &numRecvPackets, SweepDataSchur &sweepData, PsiData &psi); 
+    Operator();//MPI_Comm mpiComm, const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData, const std::vector<UINT> &numSendPackets, const std::vector<UINT> &numRecvPackets, SweepDataSchur &sweepData, PsiData &psi); 
     
-    PetscErrorCode Schur(Mat mat, Vec x, Vec y);
+    //PetscErrorCode Schur(Mat mat, Vec x, Vec y);
 
     void commSides(const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData,const std::vector<UINT> &numSendPackets,const std::vector<UINT> &numRecvPackets,SweepDataSchur &sweepData);
 
-    MPI_Comm c_mpiComm;
-    std::vector<UINT> c_adjRanks;
-    std::vector<std::vector<MetaData>> c_sendMetaData;
-    std::vector<UINT> c_numSendPackets;
-    std::vector<UINT> c_numRecvPackets;
-    SweepDataSchur c_sweepData;
-    PsiData c_psi;	
+    MPI_Comm getmpiComm();
+    const std::vector<UINT> getadjRanks();
+    const std::vector<std::vector<MetaData>> getsendMetaData();
+    const std::vector<UINT> getnumSendPackets();
+    const std::vector<UINT> getnumRecvPackets();  
+    PsiData getpsi();
+    PsiData getpsiBound();
+    PsiData getpsiSource();
+    double getsigmaTotal();
+        
+     
+    void setmpiComm(MPI_Comm MPI_IN);
+    void setadjRanks(const std::vector<UINT> RANKS_IN);
+    void setsendMetaData(const std::vector<std::vector<MetaData>> META_IN);
+    void setnumSendPackets(const std::vector<UINT> SEND_IN);
+    void setnumRecvPackets(const std::vector<UINT> RECV_IN); 
+    void setpsi(PsiData PSI_IN);
+    void setpsiBound(PsiData BOUND_IN);
+    void setpsiSource(PsiData SOURCE_IN);
+    void setsigmaTotal(double SIGMA_IN);
+    
+    
 
+    static MPI_Comm c_mpiComm;
+    static std::vector<UINT> c_adjRanks;
+    static std::vector<std::vector<MetaData>> c_sendMetaData;
+    static std::vector<UINT> c_numSendPackets;
+    static std::vector<UINT> c_numRecvPackets;  
+    static PsiData c_psi;
+    static PsiData c_psiBound;
+    static PsiData c_psiSource;
+    static double c_sigmaTotal;
+    
 };
 
 #endif
