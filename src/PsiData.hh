@@ -85,16 +85,16 @@ public:
         c_data = new double[size()];
         setToValue(initValue);
     }
-
+    
 
     // Destructor
-    ~PsiData()
-    {
-        if (c_data != NULL) {
-            delete[] c_data;
-            c_data = NULL;
-        }
-    }
+    //~PsiData()
+    //{
+      //  if (c_data != NULL) {
+        //    delete[] c_data;
+          //  c_data = NULL;
+        //}
+    //}
     
     
     void setToValue(double value)

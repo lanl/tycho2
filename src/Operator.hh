@@ -58,7 +58,7 @@ public:
     
     //PetscErrorCode Schur(Mat mat, Vec x, Vec y);
 
-    void commSides(const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData,const std::vector<UINT> &numSendPackets,const std::vector<UINT> &numRecvPackets,SweepDataSchur &sweepData);
+    //void commSides(const std::vector<UINT> &adjRanks, const std::vector<std::vector<MetaData>> &sendMetaData,const std::vector<UINT> &numSendPackets,const std::vector<UINT> &numRecvPackets,SweepDataSchur &sweepData);
 
     MPI_Comm getmpiComm();
     const std::vector<UINT> getadjRanks();
