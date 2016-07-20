@@ -69,7 +69,7 @@ public:
     /*
         Constructor
     */
-    SweepDataSchur(PsiData &psi, const PsiData &source, PsiData &psiBound, 
+    SweepDataSchur(PsiData &psi, PsiData &source, PsiData &psiBound, 
               const double sigmaTotal)
     : c_psi(psi), c_psiBound(psiBound), 
       c_source(source), c_sigmaTotal(sigmaTotal),

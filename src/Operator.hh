@@ -72,10 +72,10 @@ public:
         
      
     void setmpiComm(MPI_Comm MPI_IN);
-    void setadjRanks(const std::vector<UINT> RANKS_IN);
-    void setsendMetaData(const std::vector<std::vector<MetaData>> META_IN);
-    void setnumSendPackets(const std::vector<UINT> SEND_IN);
-    void setnumRecvPackets(const std::vector<UINT> RECV_IN); 
+    void setadjRanks(std::vector<UINT> RANKS_IN);
+    void setsendMetaData(std::vector<std::vector<MetaData>> META_IN);
+    void setnumSendPackets(std::vector<UINT> SEND_IN);
+    void setnumRecvPackets(std::vector<UINT> RECV_IN); 
     void setpsi(PsiData PSI_IN);
     void setpsiBound(PsiData BOUND_IN);
     void setpsiSource(PsiData SOURCE_IN);
