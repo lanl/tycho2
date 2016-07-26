@@ -504,9 +504,9 @@ void solve(const double sigmaTotal, const double sigmaScat,
             case SweepType_TraverseGraph:
 	        sweeper2->write(psi, totalSource);
 		break;
-	    //case SweepType_Schur:
-            //    sweeperSchurBoundary->write(psi, totalSource);
-	    //	break;
+	    case SweepType_Schur:
+                sweeperSchurBoundary->write(psi, totalSource);
+	    	break;
 	    case SweepType_PBJ:
 	        sweeperPBJ->write(psi, totalSource);
 	        break;

@@ -86,15 +86,17 @@ public:
         setToValue(initValue);
     }
     
+    //Where is copy construcotr?
+     
 
-    // Destructor
-    //~PsiData()
-    //{
-      //  if (c_data != NULL) {
-        //    delete[] c_data;
-          //  c_data = NULL;
-        //}
-    //}
+     //Destructor
+     //~PsiData()
+     //{
+    //   if (c_data != NULL) {
+    //   delete[] c_data;
+   //    c_data = NULL;
+   //    }
+   // }
     
     
     void setToValue(double value)
