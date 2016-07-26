@@ -185,7 +185,7 @@ void gaussElim4(double A[4][4], double b[4])
 	// 1=MESA implementation of GLU library
 	// 2=Gaussian No Pivot 
 	// >2=original gaussian
-	int flag = 2;
+	int flag = 3;
 
 	if (flag == 0) { // CRAMER'S RULE
 		
@@ -514,10 +514,9 @@ void gaussElim4(double A[4][4], double b[4])
 		b[3] = b[3] - b[2] * tmp;
 
 		// Backward Solve	
-		b[3] = b[3]/A[3][3];
-		b[2] = (b[2] - A[2][3]*b[3])/A[2][2];
-		b[1] = (b[1] - A[1][3]*b[3] - A[1][2]*b[2])/A[1][1];
-		b[0] = (b[0] - A[0][3]*b[3] - A[0][2]*b[2] - A[0][1]*b[1])/A[0][0]; 
+		b[2] = b[2] - A[2][3]*b[3];
+		b[1] = b[1] - A[1][3]*b[3] - A[1][2]*b[2];
+		b[0] = b[0] - A[0][3]*b[3] - A[0][2]*b[2] - A[0][1]*b[1]; 
 
 	}
 
