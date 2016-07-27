@@ -86,17 +86,46 @@ public:
         setToValue(initValue);
     }
     
-    //Where is copy construcotr?
-     
+
+    PsiData(const PsiData &other)
+    {
+        c_len1=other.c_len1;
+        c_len2=other.c_len2;
+        c_len3=other.c_len3;
+        c_len4=other.c_len4;
+        c_data = new double[size()];
+        for (size_t i=0; i<size(); i++)
+            {c_data[i] = other.c_data[i];}
+    }
+
+    //Assignment Operator
+    PsiData & operator= (const PsiData &other) //= delete;
+    {
+        if (this != &other)
+        {
+            if (c_data != NULL) {
+               delete[] c_data;
+            }
+            c_len1=other.c_len1;
+            c_len2=other.c_len2;
+            c_len3=other.c_len3;
+            c_len4=other.c_len4;
+            c_data = new double[size()];
+            for (size_t i=0; i<size(); i++)
+                {c_data[i] = other.c_data[i];}
+
+        }    
+    }
+
 
      //Destructor
-     //~PsiData()
-     //{
-    //   if (c_data != NULL) {
-    //   delete[] c_data;
-   //    c_data = NULL;
-   //    }
-   // }
+     ~PsiData()
+     {
+       if (c_data != NULL) {
+       delete[] c_data;
+       c_data = NULL;
+       }
+      }
     
     
     void setToValue(double value)

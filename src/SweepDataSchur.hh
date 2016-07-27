@@ -130,7 +130,9 @@ public:
             c_psiBound(side, angle, fvrtx, group) = localFaceData(fvrtx, group);
         }}
     }
-    
+
+    PsiData getSideData()
+    {return c_psiBound;};
     
     /*
         getPriority
