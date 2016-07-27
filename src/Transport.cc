@@ -63,20 +63,22 @@ using namespace std;
 static
 void calcLocalSource(const UINT cell,
                      const Mat2<double> &localSource,
-                     double cellSource[g_nVrtxPerCell],
-                     const UINT group) 
+                     Mat2<double> &cellSource)//,
+                     //const UINT group) 
 {
     double volume = g_spTychoMesh->getCellVolume(cell);
     
-    double q0 = localSource(0, group);
-    double q1 = localSource(1, group);
-    double q2 = localSource(2, group);
-    double q3 = localSource(3, group);
+	for (UINT group = 0; group < g_nGroups; group++) {
+    	double q0 = localSource(0, group);
+    	double q1 = localSource(1, group);
+    	double q2 = localSource(2, group);
+    	double q3 = localSource(3, group);
     
-    cellSource[0] = volume / 20.0 * (2.0 * q0 + q1 + q2 + q3);
-    cellSource[1] = volume / 20.0 * (q0 + 2.0 * q1 + q2 + q3);
-    cellSource[2] = volume / 20.0 * (q0 + q1 + 2.0 * q2 + q3);
-    cellSource[3] = volume / 20.0 * (q0 + q1 + q2 + 2.0 * q3);
+    	cellSource(0, group) = volume / 20.0 * (2.0 * q0 + q1 + q2 + q3);
+    	cellSource(1, group) = volume / 20.0 * (q0 + 2.0 * q1 + q2 + q3);
+    	cellSource(2, group) = volume / 20.0 * (q0 + q1 + 2.0 * q2 + q3);
+    	cellSource(3, group) = volume / 20.0 * (q0 + q1 + q2 + 2.0 * q3);
+	}
 }
 
 
@@ -113,9 +115,9 @@ void streamPlusColl(const UINT cell, const UINT angle,
 */
 static
 void faceDependence(const UINT cell, const UINT angle,
-                    double matrix[g_nVrtxPerCell][g_nVrtxPerCell],
-                    const Mat3<double> &localPsiBound, 
-                    double cellSource[g_nVrtxPerCell], const UINT group) 
+                    double matrix[g_nVrtxPerCell][g_nVrtxPerCell])//,
+                    //const Mat3<double> &localPsiBound, 
+                    //double cellSource[g_nVrtxPerCell], const UINT group) 
 {
     double area[4];
     UINT cellToFaceVrtx[4][4];
@@ -160,17 +162,85 @@ void faceDependence(const UINT cell, const UINT angle,
         
         // Incoming flux
         else {
-            for(UINT rowIndex = 0; rowIndex < 3; rowIndex++) {
+            /*for(UINT rowIndex = 0; rowIndex < 3; rowIndex++) {
             for(UINT colIndex = 0; colIndex < 3; colIndex++) {
                 UINT row = indices[face][rowIndex];
                 UINT col = indices[face][colIndex];
                 double factor = (row == col) ? 2.0 : 1.0;
                 UINT faceVertex = cellToFaceVrtx[face][col];
-                double psiNeighbor = localPsiBound(faceVertex, face, group);
-                cellSource[row] -= area[face] / 12.0 * psiNeighbor * factor;
-            }}
+                for (UINT group = 0; group < g_nGroups; group++) {
+				double psiNeighbor = localPsiBound(faceVertex, face, group);
+                cellSource(row, group) -= area[face] / 12.0 * psiNeighbor * factor;
+				}
+            }}*/
         }
     }
+}
+
+
+/*
+	faceDependence
+*/
+static
+void faceDependence1(const UINT cell, const UINT angle,
+					const Mat3<double> &localPsiBound,
+					Mat2<double> &cellSource)
+{
+	double area[4];
+	UINT cellToFaceVrtx[4][4];
+	UINT indices[4][3];
+
+	// Get face areas
+	for(UINT face = 0; face < 4; face++) {
+		area[face] = g_spTychoMesh->getFaceArea(cell, face) * 
+					g_spTychoMesh->getOmegaDotN(angle, cell, face);
+	}
+
+
+	// Populate cellToFaceVrtx
+	for(UINT face = 0; face < 4; face++) {
+	for(UINT col = 0; col < 4; col++) {
+		if(face != col)
+			cellToFaceVrtx[face][col] = g_spTychoMesh->getCellToFaceVrtx(cell, face, col);
+	}}
+	
+
+	// Populate indices
+	indices[0][0] = 1; indices[0][1] = 2; indices[0][2] = 3;
+    indices[1][0] = 0; indices[1][1] = 2; indices[1][2] = 3;
+    indices[2][0] = 0; indices[2][1] = 1; indices[2][2] = 3;
+    indices[3][0] = 0; indices[3][1] = 1; indices[3][2] = 2;
+
+
+	// Update for fluxes
+	for (UINT face = 0; face < 4; face++) {
+
+		// Outgoing flux
+		if(area[face] > 0) {
+			/*for(UINT rowIndex = 0; rowIndex < 3; rowIndex++) {
+			for(UINT colIndex = 0; colIndex < 3; colIndex++) {
+				UINT row = indices[face][rowIndex];
+				UINT col = indices[face][colIndex];
+				double factor = (row == col) ? 2.0 : 1.0;
+				matrix[row][col] += area[face] / 12.0 * factor;
+			}}*/
+		}
+
+	// Incoming flux
+		else {
+			for(UINT rowIndex = 0; rowIndex < 3; rowIndex++) {
+			for(UINT colIndex = 0; colIndex < 3; colIndex++) {
+				UINT row = indices[face][rowIndex];
+				UINT col = indices[face][colIndex];
+				double factor = (row == col) ? 2.0 : 1.0;
+				UINT faceVertex = cellToFaceVrtx[face][col];
+				for (UINT group = 0; group < g_nGroups; group++) {
+					double psiNeighbor = localPsiBound(faceVertex, face, group);
+					cellSource(row, group) -= area[face] / 12.0 * psiNeighbor * factor;
+				}
+			}}
+		}
+	}
 }
 
 
@@ -185,7 +255,7 @@ void gaussElim4(double A[4][4], double b[4])
 	// 1=MESA implementation of GLU library
 	// 2=Gaussian No Pivot 
 	// >2=original gaussian
-	int flag = 3;
+	const int flag = 2;
 
 	if (flag == 0) { // CRAMER'S RULE
 		
@@ -513,7 +583,8 @@ void gaussElim4(double A[4][4], double b[4])
 		A[3][3] = A[3][3] - A[2][3] * tmp;
 		b[3] = b[3] - b[2] * tmp;
 
-		// Backward Solve	
+		// Backward Solve
+		b[3] = b[3]/A[3][3];	
 		b[2] = b[2] - A[2][3]*b[3];
 		b[1] = b[1] - A[1][3]*b[3] - A[1][2]*b[2];
 		b[0] = b[0] - A[0][3]*b[3] - A[0][2]*b[2] - A[0][1]*b[1]; 
@@ -587,24 +658,35 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
            const Mat3<double> &localPsiBound, const Mat2<double> &localSource,
            Mat2<double> &localPsi)
 {
-    for(UINT group = 0; group < g_nGroups; group++) {
-        double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
-        double cellSource[g_nVrtxPerCell] = {0.0};
-        double solution[g_nVrtxPerCell];
+	Mat2<double> cellSource(g_nVrtxPerCell, g_nGroups, 0.0);
+	double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
+	double matrix2[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
+	double solution[g_nVrtxPerCell];
+	
+    //for(UINT group = 0; group < g_nGroups; group++) {
+        //double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
+        //double cellSource[g_nVrtxPerCell] = {0.0};
+        //double solution[g_nVrtxPerCell];
         
         // form local source term
-        calcLocalSource(cell, localSource, cellSource, group);
+        calcLocalSource(cell, localSource, cellSource);//, group);
         
         // form streaming-plus-collision portion of matrix
         streamPlusColl(cell, angle, sigmaTotal, matrix);
         
         // form dependencies on incoming (outgoing) faces
-        faceDependence(cell, angle, matrix, localPsiBound, cellSource, group);
+        faceDependence(cell, angle, matrix);//, localPsiBound, cellSource, group);
+		faceDependence1(cell, angle, localPsiBound, cellSource);
         
+	for (UINT group = 0; group < g_nGroups; group++) {
         // solve matrix
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
-            solution[vertex] = cellSource[vertex];
-        gaussElim4(matrix, solution);
+            solution[vertex] = cellSource(vertex, group);
+		for (UINT i = 0; i < 4; i++) {
+		for (UINT j = 0; j < 4; j++) {
+			matrix2[i][j] = matrix[i][j];
+		}}
+        gaussElim4(matrix2, solution);
         
         // put local solution onto global solution
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
@@ -619,13 +701,15 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
     Put data from neighboring cells into localPsiBound(fvrtx, face, group).
 */
 void populateLocalPsiBound(const UINT angle, const UINT cell, 
-                           const PsiData &psi, const PsiData &psiBound,
-                           Mat3<double> &localPsiBound)
+                           const PsiData &__restrict psi, const PsiData & __restrict psiBound,
+                           Mat3<double> &__restrict localPsiBound)
 {
     // Default to 0.0
-    localPsiBound = 0.0;
+    for (UINT i = 0; i < localPsiBound.size(); i++)
+		localPsiBound[i] = 0.0;
     
     // Populate if incoming flux
+    #pragma ivdep
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         if (g_spTychoMesh->isIncoming(angle, cell, face)) {
