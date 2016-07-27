@@ -82,6 +82,115 @@ SweeperSchurBoundary::SweeperSchurBoundary(const double sigmaTotal)
     c_sigmaTotal = sigmaTotal;
 }
 
+//Returns an array of the local boundary values 
+void GetLocalBoundary(PetscScalar Array[], const PsiData &psi, const PsiData &psiBound)
+{
+    //Start an array index
+    int ArrayIndex = 0;
+    // Default to 0.0
+    //Array[ArrayIndex] = 0.0;
+      
+    // Populate if incoming flux
+    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT face = 0; face < g_nFacePerCell; face++) {
+        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
+            UINT neighborCell = g_spTychoMesh->getAdjCell(cell, face);
+            
+            // In local mesh
+            if (neighborCell != TychoMesh::BOUNDARY_FACE) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    UINT neighborVrtx = 
+                        g_spTychoMesh->getNeighborVrtx(cell, face, fvrtx);
+                    Array[ArrayIndex] = 
+                        psi(neighborVrtx, angle, neighborCell, group);
+                    ArrayIndex++;
+                }
+            }
+            
+            // Not in local mesh
+            else if (g_spTychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    UINT side = g_spTychoMesh->getSide(cell, face);
+                    Array[ArrayIndex] = 
+                        psiBound(side, angle, fvrtx, group);
+                    ArrayIndex++;
+                }
+            }
+        }
+    }}}}
+}
+
+//Sets local boundary values to the values in array
+void SetLocalBoundary(const PetscScalar Array[], PsiData &psi, PsiData &psiBound)
+{
+    //Start an array index
+    int ArrayIndex = 0;
+      
+    // Populate if incoming flux
+    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT face = 0; face < g_nFacePerCell; face++) {
+        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
+            UINT neighborCell = g_spTychoMesh->getAdjCell(cell, face);
+            
+            // In local mesh
+            if (neighborCell != TychoMesh::BOUNDARY_FACE) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    UINT neighborVrtx = 
+                        g_spTychoMesh->getNeighborVrtx(cell, face, fvrtx);
+                        psi(neighborVrtx, angle, neighborCell, group) = Array[ArrayIndex];
+                    ArrayIndex++;
+                }
+            }
+            
+            // Not in local mesh
+            else if (g_spTychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    UINT side = g_spTychoMesh->getSide(cell, face);
+                        psiBound(side, angle, fvrtx, group) = Array[ArrayIndex];
+                    ArrayIndex++;
+                }
+            }
+        }
+    }}}}
+}
+
+//Returns the Vector Size for a Psi and psiData
+int GetVecSize(PsiData &psi, PsiData &psiBound)
+{
+    //Start an array index
+    int ArrayIndex = 0;
+      
+    // Populate if incoming flux
+    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT face = 0; face < g_nFacePerCell; face++) {
+        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
+            UINT neighborCell = g_spTychoMesh->getAdjCell(cell, face);
+            
+            // In local mesh
+            if (neighborCell != TychoMesh::BOUNDARY_FACE) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    ArrayIndex++;
+                }
+            }
+            
+            // Not in local mesh
+            else if (g_spTychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    ArrayIndex++;
+                }
+            }
+        }
+    }}}}
+
+    return(ArrayIndex);
+}
+
 
 /*
     commSides
@@ -213,20 +322,12 @@ void commSides(const std::vector<UINT> &adjRanks,
 /*Schur complement operator. This performs the sweep and returns the boundary */
 PetscErrorCode Schur(Mat mat, Vec x, Vec b){
 
-    //Retrieve variables
- //   Operator Op;
- //   MPI_Comm s_mpiComm = Op.getmpiComm();
-  //  const std::vector<UINT> &s_adjRanks = Op.getadjRanks();
-  //  const std::vector<std::vector<MetaData>> s_sendMetaData = Op.getsendMetaData();
-  //  const std::vector<UINT> s_numSendPackets = Op.getnumSendPackets();
-  //  const std::vector<UINT> s_numRecvPackets = Op.getnumRecvPackets();  
-    //PsiData s_psi = Op.getpsi();
- //   PsiData s_psiBound = Op.getpsiBound();
-   // PsiData s_psiSource = Op.getpsiSource();
-  //  double s_sigmaTotal = Op.getsigmaTotal();
-    SweepDataSchur s_sweepData(s_psi, s_psiSource, s_psiBound, s_sigmaTotal);
-    
-    //const PsiData psiOld = Op.getpsi();//!!!!!!!
+    PsiData ZeroSource = s_psiSource;
+    ZeroSource.setToValue(0.0);    
+    //s_psiSource.setToValue(0.0);
+  
+    //Create a sweepData
+    SweepDataSchur s_sweepData(s_psi, ZeroSource, s_psiBound, s_sigmaTotal);
     
 
     //Declare variables
@@ -243,36 +344,18 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b){
 
       
     //Traverse the graph to get the values on the outward facing boundary, call commSides to transfer boundary data
-    traverseGraph(maxComputePerStep, s_sweepData, doComm, s_mpiComm, Direction_Forward); 
-    Comm::barrier();     	
+    traverseGraph(maxComputePerStep, s_sweepData, doComm, s_mpiComm, Direction_Forward);    	
     commSides(s_adjRanks, s_sendMetaData, s_numSendPackets, s_numRecvPackets, s_sweepData);	
-    Comm::barrier(); 
+
 
     //Initialize an array to put into b
     PetscScalar *Out = (PetscScalar *) malloc(size*sizeof(PetscScalar));
-    //PetscScalar *Out;
 
 
-    //Take the values of s_psi from the sweep and put them in b !!! DO ONLY ONCE???
-    PetscInt count = 0;    
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-         UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-         UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-         for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-     //    if ((adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isOutgoing(angle, cell, face))||(adjCell == TychoMesh::BOUNDARY_FACE && adjRank == TychoMesh::BAD_RANK)){
-   //          for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex){
-   //               Out[count] = s_psi(vertex, angle, cell, group);
-//	          count += 1;  
-   //               }}           
-         if (adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isIncoming(angle, cell, face)){
-             for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex){
-                  Out[count] = s_psi(vertex, angle, cell, group);
-	          count += 1;
-                  }}
-     }}}}
-     
+    //Take the values of s_psi from the sweep and put them in Out 
+    GetLocalBoundary(Out, s_psi, s_psiBound);
+    PetscInt count = GetVecSize(s_psi, s_psiBound);
+
   
     //Produce b_guess
     PetscInt ind;
@@ -288,65 +371,7 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b){
 
     //Set data back
     VecRestoreArrayRead(x,&In);
-
-    //Set values back into Op
-   // Op.setmpiComm(s_mpiComm);
-   // Op.setadjRanks(s_adjRanks);
-   // Op.setsendMetaData(s_sendMetaData);
-   // Op.setnumSendPackets(s_numSendPackets);
-   // Op.setnumRecvPackets(s_numRecvPackets);  
-    //Op.setpsi(s_psi);
-   // Op.setpsiBound(s_psiBound);
-   // Op.setpsiSource(s_psiSource);
-   // Op.setsigmaTotal(s_sigmaTotal);
-
-
-
     free(Out);
-
-//!!!BELOW: Stuff to troubleshoot
-        // Check tolerance
-  //      double errL1 = 0.0;
-   //     double normL1 = 0.0;
-   //     count = 0;
-   //     for (UINT group = 0; group < g_nGroups; ++group) {
-   //     for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-   //     for (UINT face = 0; face < g_nFacePerCell; face++) {
-   //         UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-   //         UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-   //     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-   //     if ((adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isOutgoing(angle, cell, face))||(adjCell == TychoMesh::BOUNDARY_FACE && adjRank == TychoMesh::BAD_RANK)){
-   //     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-   //         double p0 = s_psi(vertex, angle, cell, group);
-   //         double p1 = psiOld(vertex, angle, cell, group);
-             
-   //         errL1  += fabs(p0 - p1);
-    //        normL1 += fabs(p1);
-//}}
-  //      else if (adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isIncoming(angle, cell, face)){
-   //     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-   //         double p0 = s_psi(vertex, angle, cell, group);
-    //        double p1 = psiOld(vertex, angle, cell, group);
-             
-   //         errL1  += fabs(p0 - p1);
-   //         normL1 += fabs(p1);
-//}}
-
-  //      }}}}
-        
-        //Comm::gsum(errL1);
-        //Comm::gsum(normL1);
-  
-	//int rank;
-	//MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	//if(rank==0){
-	//printf("	Total errL1: %f \n", errL1);
-	//printf("	Total normL1: %f \n", normL1);
-	//printf("	errL1/normL1: %f \n", errL1/normL1);
-        //}
-        //else {
-        //printf("        Rank Check:  %u \n", rank);
-        //}
    
     return(0);
 }
@@ -358,7 +383,7 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b){
  Run the Krylov solver
  
 */
-void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
+void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
 {
 
 
@@ -372,8 +397,13 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     PetscBool  nonzeroguess = PETSC_FALSE;
     int argc = 0;
     char **args = NULL;
-    //const UINT maxIter = 100;
-    //const double tolerance = 1e-5; //Equivalent below
+    const bool doComm = false;
+    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
+
+    //Get rank numbers
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    
      
       
  /* 
@@ -383,7 +413,11 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     PsiData psiBound(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
                      g_nVrtxPerFace, g_nGroups);
     psiBound.setToValue(0.0);  // Change to something more reasonable.
-    //psi.setToValue(0.0);                               
+
+    //Make psiData with all zeroes
+    PsiData ZeroPsi(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
+                     g_nVrtxPerFace, g_nGroups);
+    ZeroPsi.setToValue(0.0);
                                                        
     
     //Get adjacent ranks
@@ -454,33 +488,15 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
       Set up petsc for the Krylov solve. In this section, the vectors are x and b are intialized so that 
       they can be used in the Krylov solve, and a matrix shell A is set up so that it runs a matrix free method from the Operator.cc file.     */
 
+  
+    PetscInt VecSize = GetVecSize(psi, psiBound);   
+    PetscInt g_VecSize = VecSize;
+    Comm::gsum(g_VecSize);
 
-    //Get vec size (would save time to eliminate this step somehow, or could do it once for each rank)
-    PetscInt VecSize = 0;
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-        UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-        UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-        for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-//        if ((adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isOutgoing(angle, cell, face))||(adjCell == TychoMesh::BOUNDARY_FACE && adjRank == TychoMesh::BAD_RANK)){
- //            for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
- //            VecSize += 1;
- //            }}
-        if (adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isIncoming(angle, cell, face)){
-             for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-             VecSize += 1;
-             }}
-    }}}}
-   
-   PetscInt g_VecSize = VecSize;
-   Comm::gsum(g_VecSize);
 
     //Start up petsc
     PetscInitialize(&argc,&args,(char*)0, help); //argc and args were removed!!!!!!
     MPI_Comm_size(MPI_COMM_WORLD,&size);
-    //PetscOptionsGetInt(NULL,NULL,"-n",&VecSize,NULL); 
-   // PetscOptionsGetBool(NULL,NULL,"-nonzero_guess",&nonzeroguess,NULL);
 
   
     //Create vectors
@@ -492,7 +508,6 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
 
     //Create matrix shell and define it as the operator
     MatCreateShell(PETSC_COMM_WORLD,VecSize,VecSize,g_VecSize,g_VecSize,(void*)(NULL),&A);
-    //MatSetType(A, MATMPIAIJ);
     MatShellSetOperation(A, MATOP_MULT, (void(*)(void))Schur);
     
 
@@ -505,163 +520,64 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     KSPSetOperators(ksp,A,A);
     KSPGetPC(ksp,&pc);
     PCSetType(pc,PCNONE);
-    KSPSetTolerances(ksp,1.e-5,PETSC_DEFAULT,PETSC_DEFAULT,5);
-
-    //
-    //KSPSetFromOptions(ksp); //CHECK ON THIS!!!!!
-    //if (nonzeroguess) {
-    //    PetscScalar p = .5;
-    //    VecSet(x,p);
-     //    KSPSetInitialGuessNonzero(ksp,PETSC_TRUE);
-     //    }
-                 
+    KSPSetTolerances(ksp,1.e-5,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT);
+                
 
     //Input psi into XIn
-    PetscInt count = 0;
-    PetscScalar *XIn;// = (PetscScalar *) malloc(VecSize*sizeof(PetscScalar));
-    PetscScalar p;
+    PetscScalar *XIn;
     VecGetArray(x,&XIn);  
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-        UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-        UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-        for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-        //if ((adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isOutgoing(angle, cell, face))||(adjCell == TychoMesh::BOUNDARY_FACE && adjRank == TychoMesh::BAD_RANK)){
-        //     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex){
-        //          XIn[count] = psi(vertex, angle, cell, group);
-	//          count += 1;  
-        //          }}           
-        if (adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isIncoming(angle, cell, face)){
-            for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-                 p = psi(vertex, angle, cell, group);
-	         XIn[count] = p;
-                 count += 1;
-                 }}
-     }}}}
+    GetLocalBoundary(XIn, psi, psiBound);
     VecRestoreArray(x, &XIn);
 
-    //Input temp into x- Put in multiple values at once!!!!!!!!!
-    //VecSetValues(x, count, ind, temp, INSERT_VALUES);
-    //VecRestoreArray(x,&temp);
-    //Produce x
-   // PetscScalar tempIn;
-   // for (PetscInt ind=0; ind<VecSize; ind++){
-   //     tempIn = XIn[ind];
-        //if (tempIn>0.00001){printf("ind: %u x:%lf \n",ind,tempIn);};
-   //     VecSetValue(x, ind, tempIn, INSERT_VALUES);
-   // }
- 
-                                               
-    //Assemble vector x
-    //VecAssemblyBegin(x);
-    //VecAssemblyEnd(x);
-    
 
+    //Do a sweep on the source
+    SweepDataSchur sourceData(source, source, psiBound, c_sigmaTotal);
+    if (rank==0){
+    printf("    Sweeping Source\n");
+    }
+    traverseGraph(maxComputePerStep, sourceData, doComm, MPI_COMM_WORLD, Direction_Forward);
+    if (rank == 0){
+    printf("    Source Swept\n");  
+    }
 
-    //Take the values of s_psi from the sweep and put them in b
-    //PetscInt count = 0;    
-    //for (UINT group = 0; group < g_nGroups; ++group) {
-    //for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    //for (UINT face = 0; face < g_nFacePerCell; face++) {
-     //    UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-     //    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-     //    if (adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isIncoming(angle, cell, face)){
-     //        for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex){
-     //             Out[count] = s_psi(vertex, angle, cell, group);
-//	          count += 1;
-  //  }}}}}}
-
-
-
-    //Input source into tempb- Note: this could be eliminated after run through, as is constant
-    count = 0;
-    PetscScalar *BIn; //= (PetscScalar *) malloc(VecSize*sizeof(PetscScalar));
-    PetscScalar pb;
-    VecGetArray(b,&BIn);    
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-        UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-        UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-        for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-       // if ((adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isOutgoing(angle, cell, face))||(adjCell == TychoMesh::BOUNDARY_FACE && adjRank == TychoMesh::BAD_RANK)){
-        //     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex){
-       //           BIn[count] = source(vertex, angle, cell, group);
-//	          count += 1;  
-        //          }}                 
-        if (adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isIncoming(angle, cell, face)){
-             for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-                  pb = source(vertex, angle, cell, group);
-                  BIn[count] = pb;
-                  count += 1;
-                  }}
-    }}}}    
+    //Input source into BIn
+    PetscScalar *BIn; 
+    VecGetArray(b,&BIn);     
+    GetLocalBoundary(BIn, source, psiBound);   
     VecRestoreArray(b,&BIn);
-    //Input tempb into b
-    //VecSetValues(x, count, ind, temp, INSERT_VALUES);
-    //VecRestoreArray(b,&BIn);
-    //for (PetscInt ind=0; ind<VecSize; ind++){
-     //   tempIn = BIn[ind];
-     //   //if (tempIn>0.00001){printf("ind: %u d:%lf \n",ind, tempIn);};
-     //   VecSetValue(b, ind, tempIn, INSERT_VALUES);
-   // }
-    
-
-    //Assemble vectors
-   // VecAssemblyBegin(b);
-   // VecAssemblyEnd(b);
-    
+      
    
     //Solve the system (x is the solution, b is the RHS)
+    if (rank==0){
+    printf("    Starting Krylov Solve on Boundary\n");
+    }    
     KSPSolve(ksp,b,x);
     
-    
-    //Get number of iterations
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    //if(rank==1){ 
-        PetscInt its;
-        KSPGetIterationNumber(ksp, &its); 
-        printf("Krylov iterations: %u for Rank: %u\n", its,rank);//its - 1? its? its + 1?
-    //}
+
+    //Print some stats
+    PetscReal rnorm;    
+    PetscInt its;
+    KSPGetIterationNumber(ksp, &its); 
+    KSPGetResidualNorm(ksp,&rnorm);
+    printf("    Krylov iterations: %u for Rank: %u with Rnorm: %lf\n", its, rank, rnorm);
+
 
     //Put x in XOut
-    PetscScalar *XOut ;//= (PetscScalar *) malloc(VecSize*sizeof(PetscScalar));
+    PetscScalar *XOut ;
     VecGetArray(x,&XOut);
 
 
-    //Output the answer from temp to psi   
-    count = 0; 
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-         UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-         UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-         for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-   //      if ((adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isOutgoing(angle, cell, face))||(adjCell == TychoMesh::BOUNDARY_FACE && adjRank == TychoMesh::BAD_RANK)){
-   //          for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex){
-    //              psi(vertex, angle, cell, group) = XOut[count];
-//	          count += 1;  
-  //                }}           
-         if (adjCell == TychoMesh::BOUNDARY_FACE && g_spTychoMesh->isIncoming(angle, cell, face)){
-              for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-                  psi(vertex, angle, cell, group) = XOut[count];
-                  count += 1;
-                  }}
-    }}}}
-    
-    //Sweep to solve for the non-boundary values
-    const bool doComm = false;
-    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max(); ;
-    SweepDataSchur sweepData(psi, source, psiBound, c_sigmaTotal);
-    traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	
-    //commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sweepData);	
+    //Output the answer from XOut to psi      
+    SetLocalBoundary(XOut, psi, psiBound);
     
 
-    //View solver info; we could instead use the option -ksp_view to
-    // print this info to the screen at the conclusion of KSPSolve().
-    //KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD);
+    //Sweep to solve for the non-boundary values
+    if (rank==0){
+    printf("    Sweeping to solver non-boundary values\n");
+    }
+    SweepDataSchur sweepData(psi, source, psiBound, c_sigmaTotal);
+    traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	   
+    
 
     //Destroy vectors, ksp, and matrices to free work space
     VecRestoreArray(x,&XOut);
@@ -674,20 +590,7 @@ void SweeperSchurBoundary::sweep(PsiData &psi, const PsiData &source)
     //Destroy Petsc
     PetscFinalize();
     
-    //if (rank == 0){
-    //free(XIn);
-    //free(XOut);
-    //free(BIn);
-    //}
 
-    //Retrieve variables
-    //adjRanks = Op.getadjRanks();
-    //sendMetaData = Op.getsendMetaData();
-   // numSendPackets = Op.getnumSendPackets();
-    //numRecvPackets = Op.getnumRecvPackets();  
-    //PsiData psiNew = Op.getpsi();
-    //psiBound = Op.getpsiBound();
-    //c_sigmaTotal = Op.getsigmaTotal();
     
 }
 
@@ -707,4 +610,6 @@ void SweeperSchurBoundary::write(PsiData &psi, const PsiData &source)
 
     outputfile.close();
 }
+
+
 
