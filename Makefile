@@ -5,10 +5,9 @@ include make.inc
 MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_MPI
 
 # Include directories
-INC = -Isrc -I../lib/moonlight/PETSC/include 
+INC = -Isrc -I/opt/cray/petsc/3.7.2.0/real/GNU/5.1/sandybridge/include  
 
-LIBS = -L../lib/moonlight/PETSC/lib -lpetsc -Wl,-rpath,../lib/moonlight/PETSC/lib
-
+LIBS = -L/opt/cray/petsc/3.7.2.0/real/GNU/5.1/sandybridge/lib -lcraypetsc_gnu_real
 
 # List of sources, header files, and object files
 SOURCE = $(wildcard src/*.cc)

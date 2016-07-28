@@ -339,7 +339,7 @@ namespace Solver
 /*
     Solve problem
 */
-void solve(const double sigmaTotal, const double sigmaScat, 
+void solve(const double g_sigmaTotal, const double sigmaScat, 
            const UINT iterMax, const double errMax)
 {
     // Data for problem
@@ -356,7 +356,7 @@ void solve(const double sigmaTotal, const double sigmaScat,
     PhiData phiNew(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
     PhiData phiOld(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
     
-    hatSource(sigmaTotal, sigmaScat, fixedSource);
+    hatSource(g_sigmaTotal, sigmaScat, fixedSource);
     double mass = calcMass(fixedSource);
     if(Comm::rank() == 0) {
         printf("Mass of Q: %e\n", mass);
@@ -379,7 +379,7 @@ void solve(const double sigmaTotal, const double sigmaScat,
     if (g_sweepType == SweepType_PBJ) {
         vector<vector<UINT>> anglesVector(g_nAngleGroups);
         splitAnglesAcrossThreads(anglesVector);
-        sweeperPBJ = new SweeperPBJ(sigmaTotal);
+        sweeperPBJ = new SweeperPBJ(g_sigmaTotal);
     }
 
     // Solver 2 class
@@ -388,7 +388,7 @@ void solve(const double sigmaTotal, const double sigmaScat,
         vector<vector<UINT>> anglesVector(g_nAngleGroups);
         splitAnglesAcrossThreads(anglesVector);
         sweeper2 = new Sweeper2(g_maxCellsPerStep,
-                                g_intraAngleP, g_interAngleP, sigmaTotal);
+                                g_intraAngleP, g_interAngleP, g_sigmaTotal);
     }
 
     //Solver Schur Boundary class
@@ -396,7 +396,7 @@ void solve(const double sigmaTotal, const double sigmaScat,
     if (g_sweepType == SweepType_Schur) {
         vector<vector<UINT>> anglesVector(g_nAngleGroups);
         splitAnglesAcrossThreads(anglesVector);
-        sweeperSchurBoundary = new SweeperSchurBoundary(sigmaTotal);
+        sweeperSchurBoundary = new SweeperSchurBoundary(g_sigmaTotal);
     }
     
     
@@ -436,7 +436,7 @@ void solve(const double sigmaTotal, const double sigmaScat,
         switch (g_sweepType) {
             case SweepType_OriginalTycho1:
             case SweepType_OriginalTycho2:
-                Sweeper::sweep(psi, totalSource, sigmaTotal);
+                Sweeper::sweep(psi, totalSource, g_sigmaTotal);
                 break;
             case SweepType_TraverseGraph:
 	        sweeper2->sweep(psi, totalSource);
@@ -504,9 +504,9 @@ void solve(const double sigmaTotal, const double sigmaScat,
             case SweepType_TraverseGraph:
 	        sweeper2->write(psi, totalSource);
 		break;
-	    case SweepType_Schur:
-                sweeperSchurBoundary->write(psi, totalSource);
-	    	break;
+//	    case SweepType_Schur:
+//                sweeperSchurBoundary->write(psi, totalSource);
+//	    	break;
 	    case SweepType_PBJ:
 	        sweeperPBJ->write(psi, totalSource);
 	        break;

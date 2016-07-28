@@ -75,6 +75,8 @@ EXTERN UINT g_nGroups;
 EXTERN UINT g_snOrder;
 EXTERN UINT g_iterMax;
 EXTERN double g_errMax;
+EXTERN double g_sigmaTotal;
+EXTERN double g_sigmaScat;
 EXTERN UINT g_maxCellsPerStep;
 EXTERN UINT g_intraAngleP;
 EXTERN UINT g_interAngleP;

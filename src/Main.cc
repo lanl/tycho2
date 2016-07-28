@@ -142,13 +142,16 @@ void readInput(const string &inputFileName)
     kvr.getInt("intraAngleP", intraAngleP);
     kvr.getInt("interAngleP", interAngleP);
     kvr.getInt("nGroups", nGroups);
-    
+    kvr.getDouble("sigmaTotal", g_sigmaTotal);
+    kvr.getDouble("sigmaScat", g_sigmaScat);    
+
     g_snOrder = snOrder;
     g_iterMax = iterMax;
     g_maxCellsPerStep = maxCellsPerStep;
     g_intraAngleP = intraAngleP;
     g_interAngleP = interAngleP;
     g_nGroups = nGroups;
+    
     
     
     string sweepType;
@@ -175,8 +178,8 @@ void readInput(const string &inputFileName)
 */
 int main( int argc, char *argv[] )
 {
-    static const double sigmaTotal = 10.0;
-    static const double sigmaScat = 5.0;
+    //static const double sigmaTotal = 10.0;
+    //static const double sigmaScat = 5.0;
     
     
     // For Debugging (prints a backtrace)
@@ -195,7 +198,7 @@ int main( int argc, char *argv[] )
     // Print initial stuff
     if(Comm::rank() == 0) {
         printf("\n\n--- Initiating test of parallel sweeps. ---\n");
-        printf("sigmaTotal: %f   sigmaScat: %f\n", sigmaTotal, sigmaScat);
+        printf("sigmaTotal: %f   sigmaScat: %f\n", g_sigmaTotal, g_sigmaScat);
         printf("ASSERT_ON: %d\n", ASSERT_ON);
     }
     
@@ -251,7 +254,7 @@ int main( int argc, char *argv[] )
     
     
     // Do source iterations.
-    Solver::solve(sigmaTotal, sigmaScat, g_iterMax, g_errMax);
+    Solver::solve(g_sigmaTotal, g_sigmaScat, g_iterMax, g_errMax);
 
     
     // End program
