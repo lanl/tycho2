@@ -68,11 +68,13 @@ static std::vector<UINT> s_numSendPackets;
 static std::vector<UINT> s_numRecvPackets; 
 static PsiData s_psi(g_nVrtxPerCell, 0, 0,g_nGroups);
 static PsiData s_psiBound(g_nVrtxPerCell, 0,0,g_nGroups);
-static PsiData s_psiSource(g_nVrtxPerCell, 0,0,g_nGroups);
 static double s_sigmaTotal;
-static MPI_Comm s_mpiComm;
-
-
+static const bool doComm = false;
+static const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
+static int argc = 0;
+static char **args = NULL;
+static PsiData ZeroSource(0,0,0,0);
+static PetscInt VecSize = 0;
 
 /*
     Constructor
@@ -292,59 +294,38 @@ void commSides(const std::vector<UINT> &adjRanks,
 /*Schur complement operator. This performs the sweep and returns the boundary */
 PetscErrorCode Schur(Mat mat, Vec x, Vec b){
 
-    //Declare variables
-    PetscErrorCode ierr;
-    const bool doComm = false;
-    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-    PetscInt size;
-    PsiData ZeroSource = s_psiSource;
-    ZeroSource.setToValue(0.0);    
-    
-
+   
     //Vector -> array
-    VecGetLocalSize(x, &size);
     const PetscScalar *In;
     VecGetArrayRead(x, &In);
     arrayToPsiBound(In, s_psiBound);
+    VecRestoreArrayRead(x,&In);
+    
  
     //Create a sweepData
     SweepDataSchur s_sweepData(s_psi, ZeroSource, s_psiBound, s_sigmaTotal);
     
       
     //Traverse the graph to get the values on the outward facing boundary, call commSides to transfer boundary data
-    traverseGraph(maxComputePerStep, s_sweepData, doComm, s_mpiComm, Direction_Forward);    	
+    traverseGraph(maxComputePerStep, s_sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);    	
     commSides(s_adjRanks, s_sendMetaData, s_numSendPackets, s_numRecvPackets, s_sweepData);	
 
-
-    //Initialize an array to put into b
-    PetscScalar *Out = (PetscScalar *) malloc(size*sizeof(PetscScalar));
      
- 
-    //Take the values of s_psi from the sweep and put them in Out 
+    //Take the values of s_psi from the sweep and put them in b
+    PetscScalar *Out;
+    VecGetArray(b, &Out);    
     psiBoundToArray(Out, s_sweepData.getSideData());
-    //PetscInt count = GetVecSize();
+    VecRestoreArray(b, &Out);
 
+
+    //b = x - b (aka Out = In - Out)
+    VecAYPX(b,-1,x);
   
-    //Produce b_guess
-    PetscInt ind;
-    PetscScalar tempOut;
-    PetscScalar *bOut;
-    VecGetArray(b, &bOut);
-    for (ind=0; ind<size; ind++){
-        //tempOut = In[ind];//-Out[ind];
-        bOut[ind] = In[ind]-Out[ind];
-        //if (tempOut > 0.01) {printf("ind: %u b:%lf \n",ind, tempOut);};
-        //VecSetValue(b, ind, tempOut, INSERT_VALUES);
-    }
-    VecRestoreArray(b, &bOut);
-
-    VecAssemblyBegin(b);
-    VecAssemblyEnd(b);
-
-    //Set data back
-    VecRestoreArrayRead(x,&In);
+    
+    //Free allocated memory
     free(Out);
    
+
     return(0);
 }
 
@@ -364,18 +345,17 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
     KSP ksp;    
     PC pc; //preconditioner (will be set to "None" in this case)
     PetscMPIInt size;
-    PetscBool  nonzeroguess = PETSC_FALSE;
-    int argc = 0;
-    char **args = NULL;
-    const bool doComm = false;
-    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
+
+    //Make a ZeroSource for use in the inner loop
+    ZeroSource = source;
+    ZeroSource.setToValue(0.0);  
+
 
     //Get rank numbers
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
-     
-      
+       
  /* 
        Set up the sweep data to place into x and b  */
     //Set initial guess for psiBound
@@ -439,14 +419,12 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
 
    
     //Set variables
-    s_mpiComm = MPI_COMM_WORLD;
     s_adjRanks = adjRanks;
     s_sendMetaData = sendMetaData;
     s_numSendPackets = numSendPackets;
     s_numRecvPackets = numRecvPackets; 
     s_psi = psi;
     s_psiBound = psiBound;
-    s_psiSource = source;
     s_sigmaTotal = c_sigmaTotal;
     
 
@@ -456,11 +434,9 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
       they can be used in the Krylov solve, and a matrix shell A is set up so that it runs a matrix free method from the Operator.cc file.     */
 
   
-    PetscInt VecSize = GetVecSize();   
+    VecSize = GetVecSize();   
     PetscInt g_VecSize = VecSize;
     Comm::gsum(g_VecSize);
-    printf("%u\n!!!!!!\n",VecSize);
-    printf("%u\n!!!Global!!!\n",g_VecSize);
 
 
     //Start up petsc
@@ -469,25 +445,25 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
 
   
     //Create vectors
-    VecCreate(PETSC_COMM_WORLD,&x);
+    VecCreate(MPI_COMM_WORLD,&x);
     VecSetSizes(x,VecSize,g_VecSize); 
     VecSetType(x, VECMPI);
     VecDuplicate(x,&b);
         
 
     //Create matrix shell and define it as the operator
-    MatCreateShell(PETSC_COMM_WORLD,VecSize,VecSize,g_VecSize,g_VecSize,(void*)(NULL),&A);
+    MatCreateShell(MPI_COMM_WORLD,VecSize,VecSize,g_VecSize,g_VecSize,(void*)(NULL),&A);
     MatShellSetOperation(A, MATOP_MULT, (void(*)(void))Schur);
     
 
     //Set solver context
-    KSPCreate(PETSC_COMM_WORLD,&ksp);
+    KSPCreate(MPI_COMM_WORLD,&ksp);
     
  
     //Set operator to KSP context. No preconditioning will actually
     //be used due to the PCNONE option.
     KSPSetOperators(ksp,A,A);
-    KSPSetTolerances(ksp,1.e-5,PETSC_DEFAULT,PETSC_DEFAULT,100);
+    KSPSetTolerances(ksp,1.e-5,PETSC_DEFAULT,PETSC_DEFAULT,PETSC_DEFAULT);
                 
 
     //Input psi into XIn
@@ -512,13 +488,15 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
     printf("    Source Swept\n");  
     }
 
+
     //Input source into BIn
+    commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sourceData);    
     PetscScalar *BIn; 
     VecGetArray(b,&BIn);
-    commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sourceData);
     psiBoundToArray(BIn, sourceData.getSideData()); 
     VecRestoreArray(b,&BIn);
-   
+  
+ 
     //Solve the system (x is the solution, b is the RHS)
     if (rank==0){
     printf("    Starting Krylov Solve on Boundary\n");
@@ -534,18 +512,16 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
     printf("    Krylov iterations: %u for Rank: %u with Rnorm: %lf\n", its, rank, rnorm);
 
 
-    //Put x in XOut
+    //Put x in XOut and output the answer from XOut to psi  
     PetscScalar *XOut ;
-    VecGetArray(x,&XOut);
-
-
-    //Output the answer from XOut to psi      
+    VecGetArray(x,&XOut);    
     arrayToPsiBound(XOut, psiBound); 
     VecRestoreArray(x,&XOut);    
 
+
     //Sweep to solve for the non-boundary values
     if (rank==0){
-    printf("    Sweeping to solver non-boundary values\n");
+    printf("    Sweeping to solve non-boundary values\n");
     }
     SweepDataSchur sweepData(psi, source, psiBound, c_sigmaTotal);
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	   

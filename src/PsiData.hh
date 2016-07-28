@@ -197,6 +197,36 @@ public:
         setToValue(initValue);
     }
 
+    PhiData(const PhiData &other)
+    {
+        c_len1=other.c_len1;
+        c_len2=other.c_len2;
+        c_len3=other.c_len3;
+        c_data = new double[size()];
+        for (size_t i=0; i<size(); i++)
+            {c_data[i] = other.c_data[i];}
+    }
+
+    //Assignment Operator
+    PhiData & operator= (const PhiData &other) //= delete;
+    {
+        if (this != &other)
+        {
+            if (c_data != NULL) {
+               delete[] c_data;
+            }
+            c_len1=other.c_len1;
+            c_len2=other.c_len2;
+            c_len3=other.c_len3;
+            c_data = new double[size()];
+            for (size_t i=0; i<size(); i++)
+                {c_data[i] = other.c_data[i];}
+
+        }    
+    }
+
+
+
 
     // Destructor
     ~PhiData()
