@@ -194,11 +194,13 @@ int main( int argc, char *argv[] )
     Insist (mpiResult == MPI_SUCCESS, "MPI_Init failed.");
     Insist (required <= provided, "");
     
-    
+    // Input data.
+    readInput(argv[2]);
+
     // Print initial stuff
     if(Comm::rank() == 0) {
         printf("\n\n--- Initiating test of parallel sweeps. ---\n");
-        printf("sigmaTotal: %f   sigmaScat: %f\n", g_sigmaTotal, g_sigmaScat);
+        printf("sigmaTotal: %lf   sigmaScat: %lf\n", g_sigmaTotal, g_sigmaScat);
         printf("ASSERT_ON: %d\n", ASSERT_ON);
     }
     
@@ -214,11 +216,7 @@ int main( int argc, char *argv[] )
     g_nThreads = g_nAngleGroups;
     if (Comm::rank() == 0)
         printf("Num angle groups: %" PRIu64 "\n", g_nAngleGroups);
-    
-    
-    // Input data.
-    readInput(argv[2]);
-        
+            
     
     // Create quadrature
     g_quadrature = new Quadrature(g_snOrder);
