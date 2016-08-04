@@ -362,25 +362,26 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
     PsiData psiBound(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
                      g_nVrtxPerFace, g_nGroups);  
         
-    
+    psiBound.setToValue(0.0); // 
     //Put old psi values into PsiBound as a guess //!!NOT CHECKED TO SEE IF WORKS
-    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT group = 0; group < g_nGroups; group++) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
-            UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-            UINT adjRank = g_spTychoMesh->getAdjRank(cell,face);
+   // for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+   // for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+   // for (UINT group = 0; group < g_nGroups; group++) {
+   // for (UINT face = 0; face < g_nFacePerCell; face++) {
+     //   if (g_spTychoMesh->isIncoming(angle, cell, face)) {
+     //       UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
+      //      UINT adjRank = g_spTychoMesh->getAdjRank(cell,face);
             
             // In local mesh
-            if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
-                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    psiBound(g_spTychoMesh->getSide(cell,face), angle, fvrtx, group) = psi(g_spTychoMesh->getSide(cell,face), angle, fvrtx, group);
-                }
-            }
-        }
-    }}}}
-           
+     //       if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
+       //         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+     //               psiBound(g_spTychoMesh->getSide(cell,face), angle, fvrtx, group) = psi(g_spTychoMesh->getFaceToCellVrtx(cell,face,fvrtx), angle, cell, group);
+    //            }
+    //        }
+    //    }
+  //  }}}}
+  //  }}       
+
     PsiData zeroPsiBound(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
                      g_nVrtxPerFace, g_nGroups);   
 
