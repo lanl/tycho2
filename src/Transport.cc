@@ -68,6 +68,7 @@ void calcLocalSource(const UINT cell,
 {
     double volume = g_spTychoMesh->getCellVolume(cell);
     
+	#pragma ivdep
 	for (UINT group = 0; group < g_nGroups; group++) {
     	double q0 = localSource(0, group);
     	double q1 = localSource(1, group);

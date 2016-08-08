@@ -155,7 +155,9 @@ public:
         
         
         // Populate localSource
+        #pragma ivdep
         for (UINT group = 0; group < g_nGroups; group++) {
+        #pragma ivdep
         for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
             localSource(vrtx, group) = c_source(vrtx, angle, cell, group);
         }}
