@@ -45,3 +45,9 @@ Now that you have created a parallel mesh, it is time to compile the main progra
 
 ## Los Alamos LACC Number
 LA-CC-16-049
+
+
+## Contributors
+- Kris Garrett (Original Author)
+- Neelam Patel
+- Kevin Procopio
