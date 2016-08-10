@@ -55,7 +55,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iostream>
 
-
+static PsiData resOld(0,0,0,0);
 using namespace std;
 
 
@@ -353,12 +353,22 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     // Set psi0
     PsiData psi0(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
                  g_spTychoMesh->getNCells(), g_nGroups);
+
+    //resOld = psi0;
+    PsiData res(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
+                g_spTychoMesh->getNCells(), g_nGroups);
     
+    PsiData zeroPsiBound=psiBound; 
+    PsiData zeroSource = source;
+    zeroSource.setToValue(0.0);
+
     for (UINT group = 0; group < g_nGroups; ++group) {
     for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
         psi0(vertex, angle, cell, group) = psi(vertex, angle, cell, group);
+        //resOld(vertex, angle, cell, group) = 0;
+        //res(vertex, angle, cell, group) = 0;
     }}}}
     
     
@@ -418,50 +428,71 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         }}
     }
     
+    //Sweep to get the swept source for the error convergence (could be moved out a loop also, to before the source iteration)
+    PsiData sourceCopy = source;
+    SweepDataPBJ sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
+    traverseGraph(maxComputePerStep, sourceData, doComm, MPI_COMM_WORLD, Direction_Forward);
+    commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sourceData);
+    printf("Source Swept for Error\n");
     
+
     // Sweep till converged
     UINT iter = 0;
     while (iter < maxIter) {
+
+      psi0 = psi;
         
-        // Sweep
-        traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
-                      Direction_Forward);
-        
-        
-        // Check tolerance and set psi0 = psi1
-        double errL1 = 0.0;
-        double normL1 = 0.0;
+      // Sweep
+      traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
+                      Direction_Forward);      
+
+      //Sweep psi again with source of zero for the residual
+      PsiData psiNew = psi;
+      SweepDataPBJ resSweepData(psiNew, zeroSource, psiBound, c_sigmaTotal);
+      traverseGraph(maxComputePerStep, resSweepData, doComm, MPI_COMM_WORLD, 
+                    Direction_Forward);        
+      commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, 
+                  resSweepData);
+
+     // Check tolerance and set psi0 = psi1
+        double bnorm = 0.0;
+        double rnorm = 0.0;
         for (UINT group = 0; group < g_nGroups; ++group) {
         for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+        for (UINT face=0; face<g_nFacePerCell; face++){
         for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+        if (g_spTychoMesh->isOutgoing(angle, cell, face)) {
+            UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
+            UINT adjRank = g_spTychoMesh->getAdjRank(cell,face);
+        if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-            double p0 = psi0(vertex, angle, cell, group);
-            double p1 = psi(vertex, angle, cell, group);
-             
-            errL1  += fabs(p0 - p1);
-            normL1 += fabs(p1);
+            double p0 = psi0(vertex,angle,cell,group);
+            double bSwept = sourceCopy(vertex, angle, cell, group);
+            double b = source(vertex, angle, cell, group);
+            double p1 = psiNew(vertex, angle, cell, group);
             
-            psi0(vertex, angle, cell, group) = p1;
-        }}}}
-        
-        Comm::gsum(errL1);
-        Comm::gsum(normL1);
-	
+            bnorm +=  (bSwept)*(bSwept);
+            rnorm +=  (p0 - p1 - bSwept)*(p0 - p1 - bSwept);       
+            
+            //resOld(vertex, angle, cell, group) = res(vertex,angle,cell,group);
+        }}}}}}}
+
+            Comm::gsum(bnorm);
+            Comm::gsum(rnorm);
+            //double sqrtbnorm = std::pow(bnorm, 0.5);
+            //double sqrtrnorm = std::pow(rnorm, 0.5);
+                
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	if(rank==0){
-	printf("	Total errL1: %f \n", errL1);
-	printf("	Total normL1: %f \n", normL1);
-	printf("	errL1/normL1: %f \n", errL1/normL1);
-	
-	}
-	if (errL1 / normL1 < tolerance)
-            break;
-        
         
         // Communicate
         commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, 
                   sweepData);
+        
+        //First argument is relative tolerance, second is absolute size of the residual norm
+        if (rnorm < tolerance*tolerance*bnorm || 1e-5*1e-5 > rnorm){
+        	break;}
+
         
         
         // Increment iter

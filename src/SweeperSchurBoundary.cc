@@ -304,11 +304,11 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b){
  
     //Create a sweepData
     SweepDataSchur s_sweepData(s_psi, ZeroSource, s_psiBound, s_sigmaTotal);
-    
-      
+   
     //Traverse the graph to get the values on the outward facing boundary, call commSides to transfer boundary data
-    traverseGraph(maxComputePerStep, s_sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);    	
+    traverseGraph(maxComputePerStep, s_sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);     
     commSides(s_adjRanks, s_sendMetaData, s_numSendPackets, s_numRecvPackets, s_sweepData);	
+
 
      
     //Take the values of s_psi from the sweep and put them in b
@@ -498,7 +498,7 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
 
 
     //Do a sweep on the source 
-    PsiData sourceCopy = source;
+    PsiData sourceCopy = source;//I think this is unnecessary, can just use psi
     SweepDataSchur sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
     if (rank==0){
     printf("    Sweeping Source\n");
@@ -545,7 +545,6 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
     }
     SweepDataSchur sweepData(psi, source, psiBound, c_sigmaTotal);
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	   
-     
 
     //Destroy vectors, ksp, and matrices to free work space
     VecDestroy(&x);
