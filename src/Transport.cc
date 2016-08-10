@@ -116,9 +116,7 @@ void streamPlusColl(const UINT cell, const UINT angle,
 */
 static
 void faceDependence(const UINT cell, const UINT angle,
-                    double matrix[g_nVrtxPerCell][g_nVrtxPerCell])//,
-                    //const Mat3<double> &localPsiBound, 
-                    //double cellSource[g_nVrtxPerCell], const UINT group) 
+                    double matrix[g_nVrtxPerCell][g_nVrtxPerCell])
 {
     double area[4];
     UINT cellToFaceVrtx[4][4];
@@ -163,20 +161,8 @@ void faceDependence(const UINT cell, const UINT angle,
         
         // Incoming flux
         else {
-            /*for(UINT rowIndex = 0; rowIndex < 3; rowIndex++) {
-            for(UINT colIndex = 0; colIndex < 3; colIndex++) {
-                UINT row = indices[face][rowIndex];
-                UINT col = indices[face][colIndex];
-                double factor = (row == col) ? 2.0 : 1.0;
-                UINT faceVertex = cellToFaceVrtx[face][col];
-                for (UINT group = 0; group < g_nGroups; group++) {
-                double psiNeighbor = localPsiBound(faceVertex, face, group);
-                cellSource(row, group) -= area[face] / 12.0 * psiNeighbor * factor;
-                }
-            }}*/
+
         }
-    }
-}
 
 
 /*
@@ -218,13 +204,7 @@ void faceDependence1(const UINT cell, const UINT angle,
 
         // Outgoing flux
         if(area[face] > 0) {
-            /*for(UINT rowIndex = 0; rowIndex < 3; rowIndex++) {
-            for(UINT colIndex = 0; colIndex < 3; colIndex++) {
-                UINT row = indices[face][rowIndex];
-                UINT col = indices[face][colIndex];
-                double factor = (row == col) ? 2.0 : 1.0;
-                matrix[row][col] += area[face] / 12.0 * factor;
-            }}*/
+                    
         }
 
     // Incoming flux
@@ -664,20 +644,16 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
     double matrix2[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
     double solution[g_nVrtxPerCell];
     
-    //for(UINT group = 0; group < g_nGroups; group++) {
-        //double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
-        //double cellSource[g_nVrtxPerCell] = {0.0};
-        //double solution[g_nVrtxPerCell];
         
-        // form local source term
-        calcLocalSource(cell, localSource, cellSource);//, group);
+    // form local source term
+    calcLocalSource(cell, localSource, cellSource);
         
-        // form streaming-plus-collision portion of matrix
-        streamPlusColl(cell, angle, sigmaTotal, matrix);
+    // form streaming-plus-collision portion of matrix
+    streamPlusColl(cell, angle, sigmaTotal, matrix);
         
-        // form dependencies on incoming (outgoing) faces
-        faceDependence(cell, angle, matrix);//, localPsiBound, cellSource, group);
-        faceDependence1(cell, angle, localPsiBound, cellSource);
+    // form dependencies on incoming (outgoing) faces
+    faceDependence(cell, angle, matrix);
+    faceDependence1(cell, angle, localPsiBound, cellSource);
         
     for (UINT group = 0; group < g_nGroups; group++) {
         // solve matrix
