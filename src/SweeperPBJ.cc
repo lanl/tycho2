@@ -78,6 +78,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max(); ;
     const UINT maxIter = 100;
     const double tolerance = 1e-5;
+    const double abstolerance = 1e-5;
     
     
     // Set initial guess for psiBound
@@ -156,9 +157,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     PsiData sourceCopy = source;
     SweepData2 sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
     traverseGraph(maxComputePerStep, sourceData, doComm, MPI_COMM_WORLD, Direction_Forward);
-    commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sourceData);
-    printf("Source Swept for Error\n");
-    
+    commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sourceData);    
 
     // Sweep till converged
     UINT iter = 0;
@@ -210,7 +209,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
                   sweepData);
         
         //First argument is relative tolerance, second is absolute size of the residual norm
-        if (rnorm < tolerance*tolerance*bnorm || tolerance*tolerance > rnorm){
+        if (rnorm < tolerance*tolerance*bnorm || abstolerance*abstolerance > rnorm){
         	break;}
 
         

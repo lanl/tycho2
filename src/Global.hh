@@ -84,6 +84,7 @@ EXTERN SweepType g_sweepType;
 EXTERN TychoMesh *g_spTychoMesh;
 EXTERN SweepSchedule **g_spSweepSchedule;
 EXTERN Quadrature *g_quadrature;
+EXTERN UINT g_write;
 
 #endif
 

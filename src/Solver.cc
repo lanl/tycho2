@@ -489,7 +489,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
     }
     
     
-    // Print tests
+    // Print tests and write out the Comparison test results if the write flag is 1
     mass = calcMass(psi);
     double psiError = hatL2Error(psi);
     double diffGroups = diffBetweenGroups(psi);
@@ -497,6 +497,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
         printf("Mass of psi: %e\n", mass);
         printf("L2 Relative Error: %e\n", psiError);
         printf("Diff between groups: %e\n", diffGroups);
+        if (g_write==1){
 	switch (g_sweepType){
 	    case SweepType_OriginalTycho1:
             case SweepType_OriginalTycho2:
@@ -513,6 +514,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
             default:
                 //Insist(false, "Sweep type not recognized.");
                 break;
+        }
 	}
     }
 }

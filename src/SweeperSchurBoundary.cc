@@ -403,8 +403,9 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
     PetscInt its;
     KSPGetIterationNumber(ksp, &its); 
     KSPGetResidualNorm(ksp,&rnorm);
-    printf("    Krylov iterations: %u for Rank: %u with Rnorm: %lf\n", its, rank, rnorm);
-
+    if (rank==0){
+    printf("    Krylov iterations: %u with Rnorm: %lf\n", its, rnorm);
+    }
 
     //Put x in XOut and output the answer from XOut to psi  
     PetscScalar *XOut ;
@@ -419,6 +420,10 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
     }
     SweepData2 sweepData(psi, source, psiBound, c_sigmaTotal);
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	   
+    if (rank==0){
+    printf("    Non-boundary values swept\n");
+    }
+    
 
     //Destroy vectors, ksp, and matrices to free work space
     VecDestroy(&x);
