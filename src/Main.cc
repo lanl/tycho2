@@ -142,7 +142,7 @@ void readInput(const string &inputFileName)
     kvr.getInt("intraAngleP", intraAngleP);
     kvr.getInt("interAngleP", interAngleP);
     kvr.getInt("nGroups", nGroups);
-    
+
     g_snOrder = snOrder;
     g_iterMax = iterMax;
     g_maxCellsPerStep = maxCellsPerStep;
@@ -163,6 +163,19 @@ void readInput(const string &inputFileName)
         g_sweepType = SweepType_PBJ;
     else
         Insist(false, "Sweep type not recognized.");
+
+
+    string gaussElimMethod;
+    kvr.getString("GaussElim", gaussElimMethod);
+    if(gaussElimMethod == "Original")
+        g_gaussElim = GaussElim_Original;
+    else if (gaussElimMethod == "NoPivot")
+        g_gaussElim = GaussElim_NoPivot;
+    else if (gaussElimMethod == "CramerGlu")
+        g_gaussElim = GaussElim_CramerGlu;
+    else if (gaussElimMethod == "CramerIntel")
+        g_gaussElim = GaussElim_CramerIntel;
+
 }
 
 
