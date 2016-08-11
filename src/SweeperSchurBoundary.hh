@@ -61,24 +61,6 @@ private:
     double c_sigmaTotal;
 };
 
-
-/*
-    MetaData struct
-*/
-struct MetaData
-{
-    UINT gSide;
-    UINT angle;
-    UINT cell;
-    UINT face;
-};
-
-
-
-
-
-
-
 #endif
 
 

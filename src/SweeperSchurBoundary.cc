@@ -58,7 +58,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <petscmat.h>
 #include <petscvec.h>
 #include <petscksp.h>
-#include "SweepDataSchur.hh"
+#include "SweepData2.hh"
+#include "CommSides.hh"
 
 
 //Initial definition of static variables
@@ -164,133 +165,6 @@ int GetVecSize()
 }
 
 
-/*
-    commSides
-*/
-void commSides(const std::vector<UINT> &adjRanks,
-               const std::vector<std::vector<MetaData>> &sendMetaData,
-               const std::vector<UINT> &numSendPackets,
-               const std::vector<UINT> &numRecvPackets,
-               SweepDataSchur &sweepData)
-{
-    int mpiError;
-    UINT numToRecv;
-    UINT numAdjRanks = adjRanks.size();
-    UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
-    std::vector<MPI_Request> mpiRecvRequests(numAdjRanks);
-    std::vector<MPI_Request> mpiSendRequests(numAdjRanks);
-    std::vector<std::vector<char>> dataToSend(numAdjRanks);
-    std::vector<std::vector<char>> dataToRecv(numAdjRanks);
-    
-   
-    // Data structures to send/recv packets
-    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        dataToSend[rankIndex].resize(packetSize * numSendPackets[rankIndex]);
-        dataToRecv[rankIndex].resize(packetSize * numRecvPackets[rankIndex]);
-    }
-    
-    
-    // Irecv data
-    numToRecv = 0;
-    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        
-        if (dataToRecv[rankIndex].size() > 0) {
-            int tag = 0;
-            int adjRank = adjRanks[rankIndex];
-            MPI_Request request;
-            mpiError = MPI_Irecv(dataToRecv[rankIndex].data(), 
-                                 dataToRecv[rankIndex].size(), 
-                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD,
-                                 &request);
-            Insist(mpiError == MPI_SUCCESS, "");
-            mpiRecvRequests[rankIndex] = request;
-            numToRecv++;
-        }
-        
-        else {
-            mpiRecvRequests[rankIndex] = MPI_REQUEST_NULL;
-        }
-    }
-
-    
-    // Update data to send and Isend it
-    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        
-        if (dataToSend[rankIndex].size() > 0) {
-            for (UINT metaDataIndex = 0; 
-                 metaDataIndex < sendMetaData[rankIndex].size(); 
-                 metaDataIndex++)
-            {
-                UINT gSide = sendMetaData[rankIndex][metaDataIndex].gSide;
-                UINT angle = sendMetaData[rankIndex][metaDataIndex].angle;
-                UINT cell  = sendMetaData[rankIndex][metaDataIndex].cell;
-                UINT face  = sendMetaData[rankIndex][metaDataIndex].face;
-                const char *data = sweepData.getData(cell, face, angle);
-                
-                char *ptr = &dataToSend[rankIndex][metaDataIndex * packetSize];
-                memcpy(ptr, &gSide, sizeof(UINT));
-		ptr += sizeof(UINT);
-                memcpy(ptr, &angle, sizeof(UINT));
-                ptr += sizeof(UINT);
-                memcpy(ptr, data, sweepData.getDataSize());
-            }
-            
-            int tag = 0;
-	    int adjRank = adjRanks[rankIndex];
-            MPI_Request request;
-            mpiError = MPI_Isend(dataToSend[rankIndex].data(), 
-                                 dataToSend[rankIndex].size(), 
-                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD, 
-                                 &request);
-            Insist(mpiError == MPI_SUCCESS, "");
-            mpiSendRequests[rankIndex] = request;
-        }
-        
-        else {
-            mpiSendRequests[rankIndex] = MPI_REQUEST_NULL;
-        }
-    }
-    
-    
-    // Get data from Irecv
-    for (UINT numWaits = 0; numWaits < numToRecv; numWaits++) {
-        
-        // Wait for a data packet to arrive
-        int rankIndex;
-        mpiError = MPI_Waitany(mpiRecvRequests.size(), mpiRecvRequests.data(), 
-                               &rankIndex, MPI_STATUS_IGNORE);
-        Insist(mpiError == MPI_SUCCESS, "");
-        
-        
-        // Process Data
-        UINT numPackets = dataToRecv[rankIndex].size() / packetSize;
-        for (UINT packetIndex = 0; packetIndex < numPackets; packetIndex++) {
-            char *ptr = &dataToRecv[rankIndex][packetIndex * packetSize];
-            UINT gSide = 0;
-            UINT angle = 0;
-            memcpy(&gSide, ptr, sizeof(UINT));
-            ptr += sizeof(UINT);
-            memcpy(&angle, ptr, sizeof(UINT));
-            ptr += sizeof(UINT);
-            UINT side = g_spTychoMesh->getGLSide(gSide);
-            sweepData.setSideData(side, angle, ptr);
-        }
-    }
-    
-    
-    // Wait on send to complete
-    if (mpiSendRequests.size() > 0) {
-        mpiError = MPI_Waitall(mpiSendRequests.size(), mpiSendRequests.data(), 
-                               MPI_STATUSES_IGNORE);
-        Insist(mpiError == MPI_SUCCESS, "");
-    }
-
-
-}
-
-
-
-
 /*Schur complement operator. This performs the sweep and returns the boundary */
 PetscErrorCode Schur(Mat mat, Vec x, Vec b){
 
@@ -303,7 +177,7 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b){
     
  
     //Create a sweepData
-    SweepDataSchur s_sweepData(s_psi, ZeroSource, s_psiBound, s_sigmaTotal);
+    SweepData2 s_sweepData(s_psi, ZeroSource, s_psiBound, s_sigmaTotal);
    
     //Traverse the graph to get the values on the outward facing boundary, call commSides to transfer boundary data
     traverseGraph(maxComputePerStep, s_sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);     
@@ -499,7 +373,7 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
 
     //Do a sweep on the source 
     PsiData sourceCopy = source;//I think this is unnecessary, can just use psi
-    SweepDataSchur sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
+    SweepData2 sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
     if (rank==0){
     printf("    Sweeping Source\n");
     }
@@ -543,7 +417,7 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
     if (rank==0){
     printf("    Sweeping to solve non-boundary values\n");
     }
-    SweepDataSchur sweepData(psi, source, psiBound, c_sigmaTotal);
+    SweepData2 sweepData(psi, source, psiBound, c_sigmaTotal);
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	   
 
     //Destroy vectors, ksp, and matrices to free work space

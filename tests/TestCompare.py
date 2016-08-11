@@ -6,12 +6,12 @@ tol = float(0.00001)
 #prompts for filenames
 file1 = raw_input("Enter file 1: ")
 file2 = raw_input("Enter file 2: ")
-out = raw_input("Enter file to write results to: ")
+#out = raw_input("Enter file to write results to: ")
 
 #open files
 f1=open(file1, 'r')
 f2=open(file2, 'r')
-outfile = open(out, 'w')
+#outfile = open(out, 'w')
 
 #read first line of files
 f1line = f1.readline()
@@ -29,13 +29,14 @@ while f1line != '' or f2line != '':
 	f2line=f2line.rstrip()
 	#compare	
 	if abs(float(f1line)-float(f2line))<=tol:
-		outfile.write('0\n')
+	#	outfile.write('0\n')
 		numzeros += 1
 	elif abs(float(f1line)-float(f2line))>tol:
-		outfile.write('1\n')
+	#	outfile.write('1\n')
 		numones += 1
 	else:
-		outfile.write('ERROR!')
+	#	outfile.write('ERROR!')
+		pass	 
 
 	#read the next line
 	f1line=f1.readline()
@@ -44,7 +45,7 @@ while f1line != '' or f2line != '':
 	#increment
 	counter += 1
 
-outfile.close()
+#outfile.close()
 f1.close()
 f2.close()
 

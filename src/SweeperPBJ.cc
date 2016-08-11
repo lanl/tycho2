@@ -54,275 +54,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <fstream>
 #include <iostream>
+#include "SweepData2.hh"
+#include "CommSides.hh"
 
-static PsiData resOld(0,0,0,0);
 using namespace std;
 
-
-/*
-    SweepData
-    
-    Holds psi and other data for the sweep.
-*/
-class SweepDataPBJ : public TraverseData
-{
-public:
-    
-    /*
-        Constructor
-    */
-    SweepDataPBJ(PsiData &psi, const PsiData &source, PsiData &psiBound, 
-              const double sigmaTotal)
-    : c_psi(psi), c_psiBound(psiBound), 
-      c_source(source), c_sigmaTotal(sigmaTotal),
-      c_localFaceData(g_nThreads)
-    {
-        for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
-        }
-    }
-    
-    
-    /*
-        data
-        
-        Return face data for (cell, angle) pair.
-    */
-    virtual const char* getData(UINT cell, UINT face, UINT angle)
-    {
-        Mat2<double> &localFaceData = c_localFaceData[omp_get_thread_num()];
-        
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            UINT vrtx = g_spTychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
-            localFaceData(fvrtx, group) = c_psi(vrtx, angle, cell, group);
-        }}
-        
-        return (char*) (&localFaceData[0]);
-    }
-    
-    
-    /*
-        getDataSize
-    */
-    virtual size_t getDataSize()
-    {
-        return g_nGroups * g_nVrtxPerFace * sizeof(double);
-    }
-    
-    
-    /*
-        sideData
-        
-        Set face data for (side, angle) pair.
-    */
-    virtual void setSideData(UINT side, UINT angle, const char *data)
-    {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups, (double*)data);
-        
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            c_psiBound(side, angle, fvrtx, group) = localFaceData(fvrtx, group);
-        }}
-    }
-    
-    
-    /*
-        getPriority
-        
-        Return a priority for the cell/angle pair.
-        Not needed for this class, so it is just set to a constant.
-    */
-    virtual UINT getPriority(UINT cell, UINT angle)
-    {
-        UNUSED_VARIABLE(cell);
-        UNUSED_VARIABLE(angle);
-        return 1;
-    }
-    
-    
-    /*
-        update
-        
-        Updates psi for a given (cell, angle) pair.
-    */
-    virtual void update(UINT cell, UINT angle, 
-                        UINT adjCellsSides[g_nFacePerCell], 
-                        BoundaryType bdryType[g_nFacePerCell])
-    {
-        UNUSED_VARIABLE(adjCellsSides);
-        UNUSED_VARIABLE(bdryType);
-        
-        Mat2<double> localSource(g_nVrtxPerCell, g_nGroups);
-        Mat2<double> localPsi(g_nVrtxPerCell, g_nGroups);
-        Mat3<double> localPsiBound(g_nVrtxPerFace, g_nFacePerCell, g_nGroups);
-        
-        
-        // Populate localSource
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            localSource(vrtx, group) = c_source(vrtx, angle, cell, group);
-        }}
-        
-        
-        // Populate localPsiBound
-        Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound, 
-                                         localPsiBound);
-        
-        
-        // Transport solve
-        Transport::solve(cell, angle, c_sigmaTotal, 
-                         localPsiBound, localSource, localPsi);
-        
-        
-        // localPsi -> psi
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            c_psi(vrtx, angle, cell, group) = localPsi(vrtx, group);
-        }}
-    }
-    
-private:
-    PsiData &c_psi;
-    PsiData &c_psiBound;
-    const PsiData &c_source;
-    const double c_sigmaTotal;
-    vector<Mat2<double>> c_localFaceData;
-};
-
-
-/*
-    MetaData struct
-*/
-struct MetaData
-{
-    UINT gSide;
-    UINT angle;
-    UINT cell;
-    UINT face;
-};
-
-/*
-    commSides
-*/
-void commSides(const vector<UINT> &adjRanks,
-               const vector<vector<MetaData>> &sendMetaData,
-               const vector<UINT> &numSendPackets,
-               const vector<UINT> &numRecvPackets,
-               SweepDataPBJ &sweepData)
-{
-    int mpiError;
-    UINT numToRecv;
-    UINT numAdjRanks = adjRanks.size();
-    UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
-    vector<MPI_Request> mpiRecvRequests(numAdjRanks);
-    vector<MPI_Request> mpiSendRequests(numAdjRanks);
-    vector<vector<char>> dataToSend(numAdjRanks);
-    vector<vector<char>> dataToRecv(numAdjRanks);
-    
-    
-    // Data structures to send/recv packets
-    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        dataToSend[rankIndex].resize(packetSize * numSendPackets[rankIndex]);
-        dataToRecv[rankIndex].resize(packetSize * numRecvPackets[rankIndex]);
-    }
-    
-    
-    // Irecv data
-    numToRecv = 0;
-    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        
-        if (dataToRecv[rankIndex].size() > 0) {
-            int tag = 0;
-            int adjRank = adjRanks[rankIndex];
-            MPI_Request request;
-            mpiError = MPI_Irecv(dataToRecv[rankIndex].data(), 
-                                 dataToRecv[rankIndex].size(), 
-                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD,
-                                 &request);
-            Insist(mpiError == MPI_SUCCESS, "");
-            mpiRecvRequests[rankIndex] = request;
-            numToRecv++;
-        }
-        
-        else {
-            mpiRecvRequests[rankIndex] = MPI_REQUEST_NULL;
-        }
-    }
-    
-    
-    // Update data to send and Isend it
-    for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        
-        if (dataToSend[rankIndex].size() > 0) {
-            for (UINT metaDataIndex = 0; 
-                 metaDataIndex < sendMetaData[rankIndex].size(); 
-                 metaDataIndex++)
-            {
-                UINT gSide = sendMetaData[rankIndex][metaDataIndex].gSide;
-                UINT angle = sendMetaData[rankIndex][metaDataIndex].angle;
-                UINT cell  = sendMetaData[rankIndex][metaDataIndex].cell;
-                UINT face  = sendMetaData[rankIndex][metaDataIndex].face;
-                const char *data = sweepData.getData(cell, face, angle);
-                
-                char *ptr = &dataToSend[rankIndex][metaDataIndex * packetSize];
-                memcpy(ptr, &gSide, sizeof(UINT));
-                ptr += sizeof(UINT);
-                memcpy(ptr, &angle, sizeof(UINT));
-                ptr += sizeof(UINT);
-                memcpy(ptr, data, sweepData.getDataSize());
-            }
-            
-            int tag = 0;
-            int adjRank = adjRanks[rankIndex];
-            MPI_Request request;
-            mpiError = MPI_Isend(dataToSend[rankIndex].data(), 
-                                 dataToSend[rankIndex].size(), 
-                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD, 
-                                 &request);
-            Insist(mpiError == MPI_SUCCESS, "");
-            mpiSendRequests[rankIndex] = request;
-        }
-        
-        else {
-            mpiSendRequests[rankIndex] = MPI_REQUEST_NULL;
-        }
-    }
-    
-    
-    // Get data from Irecv
-    for (UINT numWaits = 0; numWaits < numToRecv; numWaits++) {
-        
-        // Wait for a data packet to arrive
-        int rankIndex;
-        mpiError = MPI_Waitany(mpiRecvRequests.size(), mpiRecvRequests.data(), 
-                               &rankIndex, MPI_STATUS_IGNORE);
-        Insist(mpiError == MPI_SUCCESS, "");
-        
-        
-        // Process Data
-        UINT numPackets = dataToRecv[rankIndex].size() / packetSize;
-        for (UINT packetIndex = 0; packetIndex < numPackets; packetIndex++) {
-            char *ptr = &dataToRecv[rankIndex][packetIndex * packetSize];
-            UINT gSide = 0;
-            UINT angle = 0;
-            memcpy(&gSide, ptr, sizeof(UINT));
-            ptr += sizeof(UINT);
-            memcpy(&angle, ptr, sizeof(UINT));
-            ptr += sizeof(UINT);
-            UINT side = g_spTychoMesh->getGLSide(gSide);
-            sweepData.setSideData(side, angle, ptr);
-        }
-    }
-    
-    
-    // Wait on send to complete
-    if (mpiSendRequests.size() > 0) {
-        mpiError = MPI_Waitall(mpiSendRequests.size(), mpiSendRequests.data(), 
-                               MPI_STATUSES_IGNORE);
-        Insist(mpiError == MPI_SUCCESS, "");
-    }
-}
 
 /*
     Constructor
@@ -354,26 +90,14 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     PsiData psi0(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
                  g_spTychoMesh->getNCells(), g_nGroups);
 
-    //resOld = psi0;
-    PsiData res(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
-                g_spTychoMesh->getNCells(), g_nGroups);
-    
+    //Set zeroed versions of source and psiBound for computing the residual
     PsiData zeroPsiBound=psiBound; 
     PsiData zeroSource = source;
     zeroSource.setToValue(0.0);
-
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-        psi0(vertex, angle, cell, group) = psi(vertex, angle, cell, group);
-        //resOld(vertex, angle, cell, group) = 0;
-        //res(vertex, angle, cell, group) = 0;
-    }}}}
     
     
     // Create SweepData for traversal
-    SweepDataPBJ sweepData(psi, source, psiBound, c_sigmaTotal);
+    SweepData2 sweepData(psi, source, psiBound, c_sigmaTotal);
     
     
     // Get adjacent ranks
@@ -430,7 +154,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     //Sweep to get the swept source for the error convergence (could be moved out a loop also, to before the source iteration)
     PsiData sourceCopy = source;
-    SweepDataPBJ sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
+    SweepData2 sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
     traverseGraph(maxComputePerStep, sourceData, doComm, MPI_COMM_WORLD, Direction_Forward);
     commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sourceData);
     printf("Source Swept for Error\n");
@@ -448,13 +172,13 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
 
       //Sweep psi again with source of zero for the residual
       PsiData psiNew = psi;
-      SweepDataPBJ resSweepData(psiNew, zeroSource, psiBound, c_sigmaTotal);
+      SweepData2 resSweepData(psiNew, zeroSource, psiBound, c_sigmaTotal);
       traverseGraph(maxComputePerStep, resSweepData, doComm, MPI_COMM_WORLD, 
                     Direction_Forward);        
       commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, 
                   resSweepData);
 
-     // Check tolerance and set psi0 = psi1
+     // Check tolerance
         double bnorm = 0.0;
         double rnorm = 0.0;
         for (UINT group = 0; group < g_nGroups; ++group) {
@@ -468,19 +192,15 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
             double p0 = psi0(vertex,angle,cell,group);
             double bSwept = sourceCopy(vertex, angle, cell, group);
-            double b = source(vertex, angle, cell, group);
             double p1 = psiNew(vertex, angle, cell, group);
             
             bnorm +=  (bSwept)*(bSwept);
             rnorm +=  (p0 - p1 - bSwept)*(p0 - p1 - bSwept);       
             
-            //resOld(vertex, angle, cell, group) = res(vertex,angle,cell,group);
         }}}}}}}
 
             Comm::gsum(bnorm);
             Comm::gsum(rnorm);
-            //double sqrtbnorm = std::pow(bnorm, 0.5);
-            //double sqrtrnorm = std::pow(rnorm, 0.5);
                 
 	int rank;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -490,10 +210,9 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
                   sweepData);
         
         //First argument is relative tolerance, second is absolute size of the residual norm
-        if (rnorm < tolerance*tolerance*bnorm || 1e-5*1e-5 > rnorm){
+        if (rnorm < tolerance*tolerance*bnorm || tolerance*tolerance > rnorm){
         	break;}
 
-        
         
         // Increment iter
         iter++;
