@@ -256,7 +256,7 @@ Face $k$ is defined to be opposite vertex $k$ as shown in the figure.
 = \frac{V}{20} \left( 2Q_0 + Q_1 + Q_2 + Q_3 \right)
 \end{align*}
 \begin{align*}
-\frac{1}{12} \bar{A}_0 \left( 2\hat{\Psi}^{(1)}_1 + \hat{\Psi}^{(1)}_2 + \hat{\Psi}^{(1)}_3 \right)
+\frac{1}{12} \bar{A}_0 \left( 2\hat{\Psi}^{(0)}_1 + \hat{\Psi}^{(0)}_2 + \hat{\Psi}^{(0)}_3 \right)
 + \frac{1}{12} \bar{A}_2 \left( \hat{\Psi}^{(2)}_0 + 2\hat{\Psi}^{(2)}_1 + \hat{\Psi}^{(2)}_3 \right)
 + \frac{1}{12} \bar{A}_3 \left( \hat{\Psi}^{(3)}_0 + 2\hat{\Psi}^{(3)}_1 + \hat{\Psi}^{(3)}_2 \right) \\
 + \frac{1}{12} \bar{A}_1 \left( \Psi_0 + \Psi_1 + \Psi_2 + \Psi_3 \right)
@@ -264,17 +264,17 @@ Face $k$ is defined to be opposite vertex $k$ as shown in the figure.
 = \frac{V}{20} \left( Q_0 + 2Q_1 + Q_2 + Q_3 \right)
 \end{align*}
 \begin{align*}
-\frac{1}{12} \bar{A}_0 \left( \hat{\Psi}^{(1)}_1 + 2\hat{\Psi}^{(1)}_2 + \hat{\Psi}^{(1)}_3 \right)
-+ \frac{1}{12} \bar{A}_1 \left( \hat{\Psi}^{(2)}_0 + 2\hat{\Psi}^{(2)}_2 + \hat{\Psi}^{(2)}_3 \right)
+\frac{1}{12} \bar{A}_0 \left( \hat{\Psi}^{(0)}_1 + 2\hat{\Psi}^{(0)}_2 + \hat{\Psi}^{(0)}_3 \right)
++ \frac{1}{12} \bar{A}_1 \left( \hat{\Psi}^{(1)}_0 + 2\hat{\Psi}^{(1)}_2 + \hat{\Psi}^{(1)}_3 \right)
 + \frac{1}{12} \bar{A}_3 \left( \hat{\Psi}^{(3)}_0 + \hat{\Psi}^{(3)}_1 + 2\hat{\Psi}^{(3)}_2 \right) \\
 + \frac{1}{12} \bar{A}_2 \left( \Psi_0 + \Psi_1 + \Psi_2 + \Psi_3 \right)
 + \frac{\sigma_t V}{20} \left( \Psi_0 + \Psi_1 + 2\Psi_2 + \Psi_3 \right)
 = \frac{V}{20} \left( Q_0 + Q_1 + 2Q_2 + Q_3 \right)
 \end{align*}
 \begin{align*}
-\frac{1}{12} \bar{A}_0 \left( \hat{\Psi}^{(1)}_1 + \hat{\Psi}^{(1)}_2 + 2\hat{\Psi}^{(1)}_3 \right)
-+ \frac{1}{12} \bar{A}_1 \left( \hat{\Psi}^{(2)}_0 + \hat{\Psi}^{(2)}_2 + 2\hat{\Psi}^{(2)}_3 \right)
-+ \frac{1}{12} \bar{A}_2 \left( \hat{\Psi}^{(3)}_0 + \hat{\Psi}^{(3)}_1 + 2\hat{\Psi}^{(3)}_3 \right) \\
+\frac{1}{12} \bar{A}_0 \left( \hat{\Psi}^{(0)}_1 + \hat{\Psi}^{(0)}_2 + 2\hat{\Psi}^{(0)}_3 \right)
++ \frac{1}{12} \bar{A}_1 \left( \hat{\Psi}^{(1)}_0 + \hat{\Psi}^{(1)}_2 + 2\hat{\Psi}^{(1)}_3 \right)
++ \frac{1}{12} \bar{A}_2 \left( \hat{\Psi}^{(2)}_0 + \hat{\Psi}^{(2)}_1 + 2\hat{\Psi}^{(2)}_3 \right) \\
 + \frac{1}{12} \bar{A}_3 \left( \Psi_0 + \Psi_1 + \Psi_2 + \Psi_3 \right)
 + \frac{\sigma_t V}{20} \left( \Psi_0 + \Psi_1 + \Psi_2 + 2\Psi_3 \right)
 = \frac{V}{20} \left( Q_0 + Q_1 + Q_2 + 2Q_3 \right)
@@ -312,6 +312,115 @@ This continues until $\Psi$ is computed in all cells.
 A sweep is needed for each angle and energy group.
 Fortunately, all these sweeps are completely independent and therefore trivially parallelizable.
 
+\subsubsection{Sweeps Algorithms}
+Several sweep algorithms have been employed.
+The input deck currently allows 4 types of sweeps: {\tt OriginalTycho1}, {\tt OriginalTycho2}, {\tt GraphTraversal}, and {\tt PBJ}.
+All but the {\tt PBJ} algorithm rely on each cell-angle pair having a priority assigned.
+To understand why, consider the same sweep problem as shown in the previous figure but now split via MPI into 2 partitions.
+
+\includegraphics[scale=0.75]{dag_partitioned.pdf}
+
+For partition 2, cell 10 must be computed first, then cell 11.
+After this, there is a choice.
+Either cell 12 or 19 can be computed, but cell 12 is probably best so that data can be communicated to compute cell 13 in partition 1.
+Generally, the cell-angle priorities will attempt to get data to a partition boundary as quickly as possible.
+The formulas for the priorities are detailed below but an explanation of the reasoning for each priority may be found in \cite{pautz-2002}.
+
+\subsubsection{Intra-Angle Priorities}
+Priorities are first created cells in each angle separately.
+This is the definition of the intra-angle priorities.
+Fundamental to all the priority calculations is the notion of B-Level of a cell.
+This is defined to be the longest distance to leaf of the {\em entire} graph (not just for the partition).
+For instance, node 17 has a B-Level of 1, node 16 has a B-Level of 0, and node 10 has a B-Level of 6 by traversing cells: 10, 11, 12, 13, 14, 15, 16.
+Leaves of a graph have a B-Level of zero.
+
+\paragraph{Random}
+The random priority assigns a uniformly random priority to all cells.
+
+\paragraph{B-Level}
+The b-level priority assigns to each cell a priority equal to the cell's b-level.
+
+\paragraph{BFDS}
+This stands for Breadth First Descendant Seeking.
+Each cell's priority is equal to the highest b-level of any descendant in another partition.
+If there is no descendant in another partition, the priority is set to zero.
+
+\paragraph{DFDS}
+This stands for Depth First Descendant Seeking.
+Each cell with a child in another partition has a priority equal to the maximum b-level of such children plus a constant equal or greater than the number of levels of the graph.
+Parents are recursively assigned a priority of one less than the maximum of its children.
+If a cell has no descendants in another partition, its priority is set to zero.
+
+\paragraph{DFHDS}
+This stands for Depth First Highest Descendant Seeking.
+Each cell with a child in another partition has a priority equal to the maximum b-level of such children multiplied by (rather than addition as in DFDS) a constant equal or greater than the number of levels of the graph.
+The rest of the algorithm is the same as for DFDS.
+
+\subsubsection{Inter-Angle Priorities}
+For a given cell, a priority is assigned for each angle independently via one of the intra-angle priorities above.
+Now these priorities must be combined.
+
+\paragraph{Interleaved}
+For this priority type, the inter-angle priority is set to the intra-angle priority.
+This can cause angles to be interleaved when cell-angle pairs are sorted by priority.
+
+\paragraph{Globally Prioritized}
+A sufficiently large constant is multiplied by the angle index to ensure a cell-angle pair with angle index less than another angle index has a lower priority.
+
+\paragraph{Locally Prioritized}
+First, for each angle, the maximum priority across cells is calculated to created an array of maximum priorities (with size of the number of angles).
+The max priority array is sorted and angle indices are reordered with respect to the sorted max priority array.
+Then the globally prioritized algorithm is used.
+
+
+\subsubsection{The Sweep Algorithms}
+
+The general sweep algorithm works as follows.
+\begin{verbatim}
+Assign priorities for each cell-angle pair
+Calculate number of dependencies (parents) for each cell-angle pair
+Place all cell-angle pairs with no dependencies in a priority queue
+While (Still some cell-angle pair to compute)
+  For i = 1 to maxCellsPerStep
+    Pop cell-angle pair off priority queue
+    Calculate Psi on cell-angle pair
+    Update number of dependencies for children on MPI rank
+    If (child has no dependencies)
+      Put child in priority queue
+    Send/Recv MPI rank's boundary data
+    Update dependencies
+    Place any cell-angle pairs with no dependencies in priority queue
+\end{verbatim}
+
+
+\paragraph{OriginalTycho 1 and 2}
+Both of these sweep types use the same overall algorithm but differ on their OpenMP implementation.
+In this section, the OpenMP implementation will not be discussed, and the text below equally describes both sweep types.
+
+For this sweep type, the schedule of updates for $\Psi$ on each cell-angle pair is precomputed.
+The for loop in the algorithm above is called a step and a queue of computational tasks is initially created for that loop.
+Then, when it comes time to do the sweep, tasks are popped off the queue for each step.
+
+\paragraph{GraphTraversal}
+This sweep algorithm follows the above algorithm exactly.
+In particular, the dependencies are updated calculated in real time for the sweep as opposed to precomputing them like the OriginalTycho algorithms.
+
+
+\paragraph{PBJ}
+PBJ stands for Parallel Block Jacobi.
+In this algorithm, every MPI rank has an initial guess for the boundary data and a sweep is performed for each partition without regard for neighboring partitions.
+Then boundary data is communicated between all MPI ranks and sweeps are performed on each individual partition again.
+This is iterated until $\Psi$ does not change.
+
+
+
+\begin{thebibliography}{1}
+
+  \bibitem{pautz-2002} Shawn D. Pautz, ``An Algorithm for Parallel S$_n$ Sweeps on Unstructed Meshes,'' {\em Nuclear Science and Engineering}, 140, 111-136 (2002).
+
+  
+
+\end{thebibliography}
 
 
 
