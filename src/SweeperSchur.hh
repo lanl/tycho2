@@ -39,15 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __SWEEPER_SCHUR_BOUNDARY_HH__
 
 
-#include "Mat.hh"
 #include "PsiData.hh"
-#include "Typedef.hh"
-#include "TraverseGraph.hh"
-#include "Global.hh"
-#include <vector>
-#include "Transport.hh"
-#include <omp.h>
-
 
 
 class SweeperSchur

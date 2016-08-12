@@ -253,7 +253,7 @@ int main( int argc, char *argv[] )
     
     
     // Do source iterations.
-    Solver::solve(g_sigmaTotal, g_sigmaScat, g_iterMax, g_errMax);
+    Solver::solve(g_iterMax, g_errMax);
 
     
     // End program

@@ -48,13 +48,14 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __SWEEP_DATA_HH__
-#define __SWEEP_DATA_HH__
+#ifndef __SWEEP_DATA_2_HH__
+#define __SWEEP_DATA_2_HH__
 
 
 #include "Assert.hh"
 #include "Typedef.hh"
 #include <stddef.h>
+#include <omp.h>
 
 /*
     SweepData
@@ -96,15 +97,7 @@ public:
         
         return (char*) (&localFaceData[0]);
     }
-    
-    virtual double getData2(UINT vertex, UINT angle, UINT cell, UINT group)
-    {
-        Mat2<double> &localFaceData = c_localFaceData[omp_get_thread_num()];
-        double temp = c_psi(vertex, angle, cell, group);
-        
-        return (double) (temp);
-    }
-    
+       
         
     /*
         getDataSize
@@ -129,10 +122,14 @@ public:
             c_psiBound(side, angle, fvrtx, group) = localFaceData(fvrtx, group);
         }}
     }
-
+    
+    /*
+        getSideData
+    */
     PsiData getSideData()
     {return c_psiBound;};
     
+
     /*
         getPriority
         

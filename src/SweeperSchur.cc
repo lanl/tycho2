@@ -1,6 +1,7 @@
 static char help[] = "Solves using Schur Complement.\n\n";
 
-/*     SweeperSchurBoundary.cc
+/* 
+    SweeperSchurBoundary.cc
     
     Implements Schur Complement solver.
 */
@@ -53,8 +54,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <math.h>
 #include <string.h>
-#include <fstream>
-#include <iostream>
 #include <petscmat.h>
 #include <petscvec.h>
 #include <petscksp.h>
@@ -77,6 +76,7 @@ static char **args = NULL;
 static PsiData ZeroSource(0,0,0,0);
 static PetscInt VecSize = 0;
 
+
 /*
     Constructor
 */
@@ -85,7 +85,10 @@ SweeperSchur::SweeperSchur(const double sigmaTotal)
     c_sigmaTotal = sigmaTotal;
 }
 
-//Returns an array of the local boundary values 
+
+/*
+   psiBoundToArray 
+ */
 void psiBoundToArray(PetscScalar Array[], const PsiData &psiBound)
 {
     //Start an array index
@@ -112,7 +115,10 @@ void psiBoundToArray(PetscScalar Array[], const PsiData &psiBound)
     }}}}
 }
 
-//Sets local boundary values to the values in array
+
+/*
+   arrayToPsiBound
+ */
 void arrayToPsiBound(const PetscScalar Array[], PsiData &psiBound)
 {
     //Start an array index
@@ -138,8 +144,11 @@ void arrayToPsiBound(const PetscScalar Array[], PsiData &psiBound)
     }}}}
 }
 
-//Returns the Vector Size for a Psi and psiData
-int GetVecSize()
+
+/*
+    getVecSize
+ */
+int getVecSize()
 {
     //Start an array index
     int ArrayIndex = 0;
@@ -165,9 +174,13 @@ int GetVecSize()
 }
 
 
-/*Schur complement operator. This performs the sweep and returns the boundary */
-PetscErrorCode Schur(Mat mat, Vec x, Vec b){
-
+/*
+  Schur 
+ 
+  This performs the sweep and returns the boundary
+ */
+PetscErrorCode Schur(Mat mat, Vec x, Vec b)
+{
    
     //Vector -> array
     const PetscScalar *In;
@@ -179,10 +192,10 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b){
     //Create a sweepData
     SweepData2 s_sweepData(s_psi, ZeroSource, s_psiBound, s_sigmaTotal);
    
+
     //Traverse the graph to get the values on the outward facing boundary, call commSides to transfer boundary data
     traverseGraph(maxComputePerStep, s_sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);     
     commSides(s_adjRanks, s_sendMetaData, s_numSendPackets, s_numRecvPackets, s_sweepData);	
-
 
      
     //Take the values of s_psi from the sweep and put them in b
@@ -230,8 +243,6 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
        
- /* 
-       Set up the sweep data to place into x and b  */
     //Set initial guess for psiBound
     PsiData psiBound(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
                      g_nVrtxPerFace, g_nGroups);  
@@ -328,7 +339,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
       they can be used in the Krylov solve, and a matrix shell A is set up so that it runs a matrix free method from the Operator.cc file.     */
 
   
-    VecSize = GetVecSize();   
+    VecSize = getVecSize();   
     PetscInt TotalVecSize = VecSize;
     Comm::gsum(TotalVecSize);
 
@@ -375,11 +386,11 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     PsiData sourceCopy = source;//I think this is unnecessary, can just use psi
     SweepData2 sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
     if (rank==0){
-    printf("    Sweeping Source\n");
+        printf("    Sweeping Source\n");
     }
     traverseGraph(maxComputePerStep, sourceData, doComm, MPI_COMM_WORLD, Direction_Forward);
     if (rank == 0){
-    printf("    Source Swept\n");  
+        printf("    Source Swept\n");  
     }
 
 
@@ -393,7 +404,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
  
     //Solve the system (x is the solution, b is the RHS)
     if (rank==0){
-    printf("    Starting Krylov Solve on Boundary\n");
+        printf("    Starting Krylov Solve on Boundary\n");
     }    
     KSPSolve(ksp,b,x);
     
@@ -404,7 +415,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     KSPGetIterationNumber(ksp, &its); 
     KSPGetResidualNorm(ksp,&rnorm);
     if (rank==0){
-    printf("    Krylov iterations: %u with Rnorm: %lf\n", its, rnorm);
+        printf("    Krylov iterations: %u with Rnorm: %lf\n", its, rnorm);
     }
 
     //Put x in XOut and output the answer from XOut to psi  
@@ -416,12 +427,12 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
 
     //Sweep to solve for the non-boundary values
     if (rank==0){
-    printf("    Sweeping to solve non-boundary values\n");
+        printf("    Sweeping to solve non-boundary values\n");
     }
     SweepData2 sweepData(psi, source, psiBound, c_sigmaTotal);
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	   
     if (rank==0){
-    printf("    Non-boundary values swept\n");
+        printf("    Non-boundary values swept\n");
     }
     
 

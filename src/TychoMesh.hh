@@ -126,7 +126,7 @@ public:
     
     
     // Arbitrary value to mark any face that lies on a boundary.
-    static const UINT BOUNDARY_FACE = UINT64_MAX;  
+    static const UINT BOUNDARY_FACE = UINT64_MAX;
     static const UINT NOT_BOUNDARY_FACE = UINT64_MAX;
     static const UINT BAD_RANK = UINT64_MAX;
     

@@ -49,8 +49,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include <omp.h>
 #include <vector>
-#include <fstream>
-#include <iostream>
 
 using namespace std;
 
@@ -262,5 +260,4 @@ void Sweeper2::sweep(PsiData &psi, const PsiData &source)
     traverseGraph(c_maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
                   Direction_Forward);
 }
-
 

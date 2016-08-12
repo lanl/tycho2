@@ -44,8 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Solver 
 {
-    void solve(const double sigmaTotal, const double sigmaScat, 
-               const UINT iterMax, const double errMax);
+    void solve(const UINT iterMax, const double errMax);
 }
 
 

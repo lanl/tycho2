@@ -86,7 +86,7 @@ public:
         setToValue(initValue);
     }
     
-
+    //Copy constructor
     PsiData(const PsiData &other)
     {
         c_len1=other.c_len1;
@@ -197,6 +197,7 @@ public:
         setToValue(initValue);
     }
 
+    //Copy constructor
     PhiData(const PhiData &other)
     {
         c_len1=other.c_len1;
@@ -224,9 +225,6 @@ public:
 
         }    
     }
-
-
-
 
     // Destructor
     ~PhiData()

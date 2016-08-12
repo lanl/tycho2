@@ -291,8 +291,7 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
     calcScatterSource
 */
 static
-void calcScatterSource(PsiData &scatSource, const double sigmaScat,
-                       const PhiData &phiOld) 
+void calcScatterSource(PsiData &scatSource, const PhiData &phiOld) 
 {
     //for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     #pragma omp parallel for
@@ -302,7 +301,7 @@ void calcScatterSource(PsiData &scatSource, const double sigmaScat,
     for (UINT group = 0; group < g_nGroups; ++group) {
         // need to loop over moments in the future
         scatSource(vertex, angle, cell, group) =
-            sigmaScat / (4.0 * M_PI) *  phiOld(vertex, cell, group);
+            g_sigmaScat / (4.0 * M_PI) *  phiOld(vertex, cell, group);
     }}}}
 }
 
@@ -339,8 +338,7 @@ namespace Solver
 /*
     Solve problem
 */
-void solve(const double g_sigmaTotal, const double sigmaScat, 
-           const UINT iterMax, const double errMax)
+void solve(const UINT iterMax, const double errMax)
 {
     // Data for problem
     PsiData fixedSource(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
@@ -356,7 +354,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
     PhiData phiNew(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
     PhiData phiOld(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
     
-    hatSource(g_sigmaTotal, sigmaScat, fixedSource);
+    hatSource(g_sigmaTotal, g_sigmaScat, fixedSource);
     double mass = calcMass(fixedSource);
     if(Comm::rank() == 0) {
         printf("Mass of Q: %e\n", mass);
@@ -383,7 +381,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
     }
 
     // Solver 2 class
-       Sweeper2 *sweeper2 = NULL;
+    Sweeper2 *sweeper2 = NULL;
     if (g_sweepType == SweepType_TraverseGraph) {
         vector<vector<UINT>> anglesVector(g_nAngleGroups);
         splitAnglesAcrossThreads(anglesVector);
@@ -391,7 +389,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
                                 g_intraAngleP, g_interAngleP, g_sigmaTotal);
     }
 
-    //Solver Schur Boundary class
+    //Solver Schur class
     SweeperSchur *sweeperSchur = NULL;
     if (g_sweepType == SweepType_Schur) {
         vector<vector<UINT>> anglesVector(g_nAngleGroups);
@@ -420,7 +418,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
         
         // Need to update fixed source with scattering source here
         timer2.start();
-        calcScatterSource(scatSource, sigmaScat, phiOld);
+        calcScatterSource(scatSource, phiOld);
         #pragma omp parallel for
         for(UINT i = 0; i < totalSource.size(); i++) {
             totalSource[i] = fixedSource[i] + scatSource[i];
@@ -489,7 +487,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
     }
     
     
-    // Print tests and write out the comparison test results if the write flag is 1
+    // Print tests 
     mass = calcMass(psi);
     double psiError = hatL2Error(psi);
     double diffGroups = diffBetweenGroups(psi);
