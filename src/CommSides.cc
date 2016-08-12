@@ -1,7 +1,7 @@
 /*
- CommSides.cc
+    CommSides.cc
 
-Communicates boundary values between the sides
+    Communicates boundary values between the sides
  */
 
 

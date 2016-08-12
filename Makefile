@@ -5,9 +5,10 @@ include make.inc
 MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_MPI
 
 # Include directories
-INC = -Isrc -I../lib/moonlight/PETSC/include 
+INC = -Isrc -I$(PETSC_INC) 
 
-LIBS = -L../lib/moonlight/PETSC/lib -lpetsc -Wl,-rpath,../lib/moonlight/PETSC/lib
+LIBS = $(PETSC_LIB)
+
 
 
 # List of sources, header files, and object files

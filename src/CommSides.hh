@@ -1,4 +1,8 @@
 /*
+    CommSides.hh
+*/
+
+/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 Copyright 2016. Los Alamos National Security, LLC. This software was produced 
@@ -35,27 +39,14 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "Global.hh"
-#include "TraverseGraph.hh"
-#include "Priorities.hh"
-#include "Transport.hh"
-#include "PsiData.hh"
-#include "Comm.hh"
-#include <omp.h>
 #include <vector>
-#include <math.h>
-#include <string.h>
-#include <fstream>
-#include <iostream>
 #include "SweepData2.hh"
 
 
 #ifndef __COMMSIDES_HH__
 #define __COMMSIDES_HH__
 
-/*
-    MetaData struct
-*/
+
 struct MetaData
 {
     UINT gSide;

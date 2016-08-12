@@ -4,6 +4,12 @@
 
 # Assert level: 0 = no asserts, 1 = all asserts
 ASSERT_ON = 
+# Use petsc for SweeperSchur: 0 = no, 1 = yes
+USE_PETSC = 
+
+#PETSC libraries
+PETSC_INC =
+PETSC_LIB =
 
 # Compile command
 # Needs (1) MPI C++ compiler wrapper
