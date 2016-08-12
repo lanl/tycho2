@@ -38,7 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SWEEPER_SCHUR_BOUNDARY_HH__
 #define __SWEEPER_SCHUR_BOUNDARY_HH__
 
-
+#if USE_PETSC
 #include "PsiData.hh"
 
 
@@ -53,5 +53,5 @@ private:
 };
 
 #endif
-
+#endif
 

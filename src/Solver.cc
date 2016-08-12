@@ -43,10 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Sweeper.hh"
 #include "Sweeper2.hh"
 #include "SweeperPBJ.hh"
-<<<<<<< HEAD
 #include "SweeperSchur.hh"
-=======
->>>>>>> master
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "Timer.hh"
@@ -392,6 +389,7 @@ void solve(const UINT iterMax, const double errMax)
                                 g_intraAngleP, g_interAngleP, g_sigmaTotal);
     }
 
+    #if USE_PETSC
     //Solver Schur class
     SweeperSchur *sweeperSchur = NULL;
     if (g_sweepType == SweepType_Schur) {
@@ -399,13 +397,7 @@ void solve(const UINT iterMax, const double errMax)
         splitAnglesAcrossThreads(anglesVector);
         sweeperSchur = new SweeperSchur(g_sigmaTotal);
     }
-    SweeperPBJ *sweeperPBJ = NULL;
-    if (g_sweepType == SweepType_PBJ) {
-        vector<vector<UINT>> anglesVector(g_nAngleGroups);
-        splitAnglesAcrossThreads(anglesVector);
-        sweeperPBJ = new SweeperPBJ(sigmaTotal);
-    }
-    
+    #endif
     
     // Source iteration
     UINT iter = 0;
@@ -448,9 +440,11 @@ void solve(const UINT iterMax, const double errMax)
             case SweepType_TraverseGraph:
                 sweeper2->sweep(psi, totalSource);
                 break;
+            #if USE_PETSC
             case SweepType_Schur:
                 sweeperSchur->sweep(psi, totalSource);
                 break;
+            #endif
             case SweepType_PBJ:
                 sweeperPBJ->sweep(psi, totalSource);
                 break;

@@ -2,10 +2,10 @@
 include make.inc
 
 # Add assert level to compile command
-MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_MPI
+MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_PETSC=$(USE_PETSC)
 
 # Include directories
-INC = -Isrc -I$(PETSC_INC) 
+INC = -Isrc $(PETSC_INC) 
 
 LIBS = $(PETSC_LIB)
 

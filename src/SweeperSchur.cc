@@ -1,3 +1,5 @@
+#if USE_PETSC
+
 static char help[] = "Solves using Schur Complement.\n\n";
 
 /* 
@@ -450,3 +452,4 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     
 }
 
+#endif
