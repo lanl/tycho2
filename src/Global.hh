@@ -69,6 +69,14 @@ enum SweepType
     SweepType_Schur,
 };
 
+enum GaussElim
+{
+    GaussElim_Original,
+    GaussElim_NoPivot,
+    GaussElim_CramerGlu,
+    GaussElim_CramerIntel
+};
+
 EXTERN UINT g_nAngleGroups;
 EXTERN UINT g_nThreads;
 EXTERN UINT g_nGroups;
@@ -84,6 +92,7 @@ EXTERN SweepType g_sweepType;
 EXTERN TychoMesh *g_spTychoMesh;
 EXTERN SweepSchedule **g_spSweepSchedule;
 EXTERN Quadrature *g_quadrature;
+EXTERN GaussElim g_gaussElim;
 
 #endif
 

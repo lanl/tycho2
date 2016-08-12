@@ -145,7 +145,6 @@ void readInput(const string &inputFileName)
     kvr.getDouble("sigmaTotal", g_sigmaTotal);
     kvr.getDouble("sigmaScat", g_sigmaScat);
        
-
     g_snOrder = snOrder;
     g_iterMax = iterMax;
     g_maxCellsPerStep = maxCellsPerStep;
@@ -169,6 +168,19 @@ void readInput(const string &inputFileName)
         g_sweepType = SweepType_Schur;
     else
         Insist(false, "Sweep type not recognized.");
+
+
+    string gaussElimMethod;
+    kvr.getString("GaussElim", gaussElimMethod);
+    if(gaussElimMethod == "Original")
+        g_gaussElim = GaussElim_Original;
+    else if (gaussElimMethod == "NoPivot")
+        g_gaussElim = GaussElim_NoPivot;
+    else if (gaussElimMethod == "CramerGlu")
+        g_gaussElim = GaussElim_CramerGlu;
+    else if (gaussElimMethod == "CramerIntel")
+        g_gaussElim = GaussElim_CramerIntel;
+
 }
 
 
@@ -195,9 +207,21 @@ int main( int argc, char *argv[] )
     Insist (mpiResult == MPI_SUCCESS, "MPI_Init failed.");
     Insist (required <= provided, "");
     
+
     // Input data.
     readInput(argv[2]);
+    
 
+    // Check inputs
+    if (Comm::rank() == 0) {
+        if (argc != 3) {
+            printf("Incorrect number of arguments\n");
+            printf("Usage: ./sweep.x <.pmesh file> <input.deck file>\n\n\n");
+            MPI_Abort(MPI_COMM_WORLD, 6);
+        }
+    }
+    
+    
     // Print initial stuff
     if(Comm::rank() == 0) {
         printf("\n\n--- Initiating test of parallel sweeps. ---\n");

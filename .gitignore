@@ -1,6 +1,11 @@
 *.DS_Store
+*.aux
+*.log
+*.gz
 *.o
 input.deck
 make.inc
 *.x
 *.pmesh
+*.dSYM
+run.sh

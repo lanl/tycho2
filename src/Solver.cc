@@ -43,7 +43,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Sweeper.hh"
 #include "Sweeper2.hh"
 #include "SweeperPBJ.hh"
+<<<<<<< HEAD
 #include "SweeperSchur.hh"
+=======
+>>>>>>> master
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "Timer.hh"
@@ -396,6 +399,12 @@ void solve(const UINT iterMax, const double errMax)
         splitAnglesAcrossThreads(anglesVector);
         sweeperSchur = new SweeperSchur(g_sigmaTotal);
     }
+    SweeperPBJ *sweeperPBJ = NULL;
+    if (g_sweepType == SweepType_PBJ) {
+        vector<vector<UINT>> anglesVector(g_nAngleGroups);
+        splitAnglesAcrossThreads(anglesVector);
+        sweeperPBJ = new SweeperPBJ(sigmaTotal);
+    }
     
     
     // Source iteration
@@ -411,11 +420,11 @@ void solve(const UINT iterMax, const double errMax)
         double clockTime3 = 0.0;
         //double clockTime4 = 0.0;
         timer.start();
-        
+
         for(UINT i = 0; i < phiOld.size(); i++) {
             phiOld[i] = phiNew[i];
         }
-        
+
         // Need to update fixed source with scattering source here
         timer2.start();
         calcScatterSource(scatSource, phiOld);
@@ -429,22 +438,22 @@ void solve(const UINT iterMax, const double errMax)
         if(Comm::rank() == 0) {
             printf("\n   Source time: %f\n", clockTime2);
         }
-        
+
         // Sweep
         switch (g_sweepType) {
             case SweepType_OriginalTycho1:
             case SweepType_OriginalTycho2:
-                Sweeper::sweep(psi, totalSource, g_sigmaTotal);
-                break;
-            case SweepType_TraverseGraph:
-	        sweeper2->sweep(psi, totalSource);
-		break;
-	    case SweepType_Schur:
-                sweeperSchur->sweep(psi, totalSource);
-		break;
-	    case SweepType_PBJ:
-	        sweeperPBJ->sweep(psi, totalSource);
+	        Sweeper::sweep(psi, totalSource, g_sigmaTotal);
 	        break;
+            case SweepType_TraverseGraph:
+                sweeper2->sweep(psi, totalSource);
+                break;
+            case SweepType_Schur:
+                sweeperSchur->sweep(psi, totalSource);
+                break;
+            case SweepType_PBJ:
+                sweeperPBJ->sweep(psi, totalSource);
+                break;
             default:
                 Insist(false, "Sweep type not recognized.");
                 break;
