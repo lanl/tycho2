@@ -1,4 +1,11 @@
 /*
+ CommSides.cc
+
+Communicates boundary values between the sides
+ */
+
+
+/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 Copyright 2016. Los Alamos National Security, LLC. This software was produced 

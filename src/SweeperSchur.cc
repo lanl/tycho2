@@ -41,7 +41,7 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include "SweeperSchurBoundary.hh"
+#include "SweeperSchur.hh"
 #include "Global.hh"
 #include "TraverseGraph.hh"
 #include "Priorities.hh"
@@ -80,7 +80,7 @@ static PetscInt VecSize = 0;
 /*
     Constructor
 */
-SweeperSchurBoundary::SweeperSchurBoundary(const double sigmaTotal)
+SweeperSchur::SweeperSchur(const double sigmaTotal)
 {
     c_sigmaTotal = sigmaTotal;
 }
@@ -210,7 +210,7 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b){
  Run the Krylov solver
  
 */
-void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
+void SweeperSchur::sweep(PsiData &psi, PsiData &source)
 {
 
     //Initalize variables
@@ -329,8 +329,8 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
 
   
     VecSize = GetVecSize();   
-    PetscInt g_VecSize = VecSize;
-    Comm::gsum(g_VecSize);
+    PetscInt TotalVecSize = VecSize;
+    Comm::gsum(TotalVecSize);
 
 
     //Start up petsc
@@ -340,13 +340,13 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
   
     //Create vectors
     VecCreate(MPI_COMM_WORLD,&x);
-    VecSetSizes(x,VecSize,g_VecSize); 
+    VecSetSizes(x,VecSize,TotalVecSize); 
     VecSetType(x, VECMPI);
     VecDuplicate(x,&b);
         
 
     //Create matrix shell and define it as the operator
-    MatCreateShell(MPI_COMM_WORLD,VecSize,VecSize,g_VecSize,g_VecSize,(void*)(NULL),&A);
+    MatCreateShell(MPI_COMM_WORLD,VecSize,VecSize,TotalVecSize,TotalVecSize,(void*)(NULL),&A);
     MatShellSetOperation(A, MATOP_MULT, (void(*)(void))Schur);
     
 
@@ -440,7 +440,7 @@ void SweeperSchurBoundary::sweep(PsiData &psi, PsiData &source)
 }
 
 
-void SweeperSchurBoundary::write(PsiData &psi, const PsiData &source)
+void SweeperSchur::write(PsiData &psi, const PsiData &source)
 {
     std::ofstream outputfile("tests/testSchurKrylov.txt");
     

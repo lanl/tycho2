@@ -43,7 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Sweeper.hh"
 #include "Sweeper2.hh"
 #include "SweeperPBJ.hh"
-#include "SweeperSchurBoundary.hh"
+#include "SweeperSchur.hh"
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "Timer.hh"
@@ -392,11 +392,11 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
     }
 
     //Solver Schur Boundary class
-    SweeperSchurBoundary *sweeperSchurBoundary = NULL;
+    SweeperSchur *sweeperSchur = NULL;
     if (g_sweepType == SweepType_Schur) {
         vector<vector<UINT>> anglesVector(g_nAngleGroups);
         splitAnglesAcrossThreads(anglesVector);
-        sweeperSchurBoundary = new SweeperSchurBoundary(g_sigmaTotal);
+        sweeperSchur = new SweeperSchur(g_sigmaTotal);
     }
     
     
@@ -442,7 +442,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
 	        sweeper2->sweep(psi, totalSource);
 		break;
 	    case SweepType_Schur:
-                sweeperSchurBoundary->sweep(psi, totalSource);
+                sweeperSchur->sweep(psi, totalSource);
 		break;
 	    case SweepType_PBJ:
 	        sweeperPBJ->sweep(psi, totalSource);
@@ -489,7 +489,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
     }
     
     
-    // Print tests and write out the Comparison test results if the write flag is 1
+    // Print tests and write out the comparison test results if the write flag is 1
     mass = calcMass(psi);
     double psiError = hatL2Error(psi);
     double diffGroups = diffBetweenGroups(psi);
@@ -506,13 +506,13 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
 	        sweeper2->write(psi, totalSource);
 		break;
 	    case SweepType_Schur:
-                sweeperSchurBoundary->write(psi, totalSource);
+                sweeperSchur->write(psi, totalSource);
 	    	break;
 	    case SweepType_PBJ:
 	        sweeperPBJ->write(psi, totalSource);
 	        break;
             default:
-                //Insist(false, "Sweep type not recognized.");
+                Insist(false, "Sweep type not recognized.");
                 break;
         }
 	}

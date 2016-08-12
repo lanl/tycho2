@@ -50,10 +50,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-class SweeperSchurBoundary
+class SweeperSchur
 {
 public:
-    SweeperSchurBoundary(const double sigmaTotal);
+    SweeperSchur(const double sigmaTotal);
     
     void sweep(PsiData &psi, PsiData &source);
     void write(PsiData &psi, const PsiData &source);

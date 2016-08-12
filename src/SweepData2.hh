@@ -1,10 +1,9 @@
 //----------------------------------*-C++-*----------------------------------//
 /*!
- * \file   PsiData.hh
- * \author Kris Garrett
- * \date   December 2015
- * \brief  Class for data for psi.  Want the ability to change order of data
- *         data structures.
+ *  SweepData2.hh
+ *
+ *  Class for data for sweeps for use by PBJ and Schur algorithms.  Want the ability to change order of data
+ *         data structures. The 2 distinguishes it from the SweepData for sweeps.
  */
 //---------------------------------------------------------------------------//
 // $Id: Mat.hh,v 1.17 2003/03/14 19:55:03 tme Exp $
@@ -49,8 +48,8 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __SWEEP_DATA_SCHUR_HH__
-#define __SWEEP_DATA_SCHUR_HH__
+#ifndef __SWEEP_DATA_HH__
+#define __SWEEP_DATA_HH__
 
 
 #include "Assert.hh"
