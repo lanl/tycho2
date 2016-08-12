@@ -55,7 +55,6 @@ public:
              const double sigmaTotal);
     
     void sweep(PsiData &psi, const PsiData &source);
-    void write(PsiData &psi, const PsiData &source);
 
 private:
     Mat2<UINT> c_priorities;

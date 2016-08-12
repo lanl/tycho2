@@ -497,26 +497,7 @@ void solve(const double g_sigmaTotal, const double sigmaScat,
         printf("Mass of psi: %e\n", mass);
         printf("L2 Relative Error: %e\n", psiError);
         printf("Diff between groups: %e\n", diffGroups);
-        if (g_write==1){
-	switch (g_sweepType){
-	    case SweepType_OriginalTycho1:
-            case SweepType_OriginalTycho2:
-                break;
-            case SweepType_TraverseGraph:
-	        sweeper2->write(psi, totalSource);
-		break;
-	    case SweepType_Schur:
-                sweeperSchur->write(psi, totalSource);
-	    	break;
-	    case SweepType_PBJ:
-	        sweeperPBJ->write(psi, totalSource);
-	        break;
-            default:
-                Insist(false, "Sweep type not recognized.");
-                break;
-        }
-	}
     }
 }
 
-}
+}//End namespace Solver

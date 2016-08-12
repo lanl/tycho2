@@ -56,7 +56,6 @@ public:
     SweeperSchur(const double sigmaTotal);
     
     void sweep(PsiData &psi, PsiData &source);
-    void write(PsiData &psi, const PsiData &source);
 private:
     double c_sigmaTotal;
 };

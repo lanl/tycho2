@@ -224,26 +224,4 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     }
 }
 
-/*
-    SweeperPBJ::write
-
-    writes psi to a file
- 
- */
-
-void SweeperPBJ::write(PsiData &psi, const PsiData &source)
-{
-    ofstream outputfile ("tests/testPBJ.txt");
-    
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-       outputfile << psi(vertex, angle, cell, group) << '\n' ;
-
-	
-    }}}}
-
-    outputfile.close();
-}
 

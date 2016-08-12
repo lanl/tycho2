@@ -439,22 +439,3 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     
 }
 
-
-void SweeperSchur::write(PsiData &psi, const PsiData &source)
-{
-    std::ofstream outputfile("tests/testSchurKrylov.txt");
-    
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-       outputfile << psi(vertex, angle, cell, group) << '\n' ;
-
-	
-    }}}}
-
-    outputfile.close();
-}
-
-
-

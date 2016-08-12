@@ -10,7 +10,6 @@ interAngleP     1
 nGroups         2
 sigmaTotal      10
 sigmaScat       5     #sigmaScat < sigmaTotal
-write           0     #1 writes values of psi to file for comparison test, 0 does not
 
 
 # Types: OriginalTycho1, OriginalTycho2, TraverseGraph, PBJ, Schur
