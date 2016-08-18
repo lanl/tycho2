@@ -50,6 +50,13 @@ SerialToParallelMesh:
 	$(CPP) $(INC) $(SRC_MESH) SerialToParallelMesh.cc -o SerialToParallelMesh.x $(LIB_METIS)
 	@echo " "
 
+# SerialMeshInfo
+.PHONY: SerialMeshInfo
+SerialMeshInfo:
+	@echo Making SerialMeshInfo
+	$(CPP) $(INC) $(SRC_MESH) SerialMeshInfo.cc -o SerialMeshInfo.x
+	@echo " "
+
 # PartitionColumns
 .PHONY: PartitionColumns
 PartitionColumns:
