@@ -47,8 +47,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 #include <cassert>
 #include <cinttypes>
+#include <cstring>
 
 using namespace std;
+
+static const char MESH_FORMAT_NAME[SerialMesh::MESH_FORMAT_NAME_LEN] = 
+    {'T', 'y', 'c', 'h', 'o', ' ', '2', ' ', 'S', 'e', 'r', 'i', 'a', 'l', 
+     ' ', 'M', 'e', 's', 'h', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
 
 
 /*
@@ -56,14 +62,21 @@ using namespace std;
     
     Prints the entire mesh data.
 */
-void SerialMesh::printAll()
+void SerialMesh::print(bool printVerbose)
 {
     // Header Data
+    printf("Mesh Format Name: %s\n", c_meshFormatName);
+    printf("Mesh Version: %" PRIu64 "\n", c_version);
     printf("Num Cells: %" PRIu64 "\n", c_numCells);
     printf("Num Faces: %" PRIu64 "\n", c_numFaces);
     printf("Num Nodes: %" PRIu64 "\n", c_numNodes);
     
     
+    // Exit if not verbose print
+    if (!printVerbose)
+        return;
+
+
     // Cell Data
     for (uint64_t cell = 0; cell < c_numCells; cell++) {
         printf("Cell %" PRIu64 "\n", cell);
@@ -101,29 +114,6 @@ void SerialMesh::printAll()
 
 
 /*
-    printSummary
-    
-    Prints number of cells, faces, and nodes.
-    Also prints number of boundary faces vs interior faces.
-*/
-void SerialMesh::printSummary()
-{
-    uint64_t bdryFace = 0;
-    uint64_t intFace = 0;
-    for (uint64_t face = 0; face < c_numFaces; face++) {
-        if (c_faceData[face].boundingCells[1] == INVALID_INDEX)
-            bdryFace++;
-        else
-            intFace++;
-    }
-    
-    printf("Cells: %" PRIu64 ", Nodes: %" PRIu64 ", Faces: %" PRIu64 "\n", 
-           c_numCells, c_numNodes, c_numFaces);
-    printf("Boundary Faces: %" PRIu64 "   Interior Faces: %" PRIu64 "\n", bdryFace, intFace);
-}
-
-
-/*
     write
     
     Write serial mesh to file.
@@ -132,46 +122,78 @@ void SerialMesh::write(const std::string &filename)
 {
     FILE *file;
     size_t numWritten;
+    vector<uint64_t> bufferUint;
+    vector<double> bufferDouble;
     
     
     // Open file
     file = fopen(filename.c_str(), "wb");
     assert(file != NULL);
+
+
+    // Make sure format name and version are filled in
+    memcpy(c_meshFormatName, MESH_FORMAT_NAME, 
+           SerialMesh::MESH_FORMAT_NAME_LEN * sizeof(char));
+    c_version = SerialMesh::VERSION;
     
     
-    // Header Data
-    numWritten = fwrite(&c_numCells, sizeof(uint64_t), 1, file);
-    assert(numWritten == 1);
-    numWritten = fwrite(&c_numFaces, sizeof(uint64_t), 1, file);
-    assert(numWritten == 1);
-    numWritten = fwrite(&c_numNodes, sizeof(uint64_t), 1, file);
-    assert(numWritten == 1);
+    // Write mesh format name
+    numWritten = fwrite(c_meshFormatName, sizeof(char), 
+                        SerialMesh::MESH_FORMAT_NAME_LEN, file);
+    assert(numWritten == SerialMesh::MESH_FORMAT_NAME_LEN);
     
+
+    // Buffer header data
+    bufferUint.push_back(c_version);
+    bufferUint.push_back(c_numCells);
+    bufferUint.push_back(c_numFaces);
+    bufferUint.push_back(c_numNodes);
+
     
-    // Cell Data
+    // Buffer cell data
     for (uint64_t cell = 0; cell < c_numCells; cell++) {
-        numWritten = fwrite(c_cellData[cell].boundingFaces, sizeof(uint64_t), 4, file);
-        assert(numWritten == 4);
-        numWritten = fwrite(c_cellData[cell].boundingNodes, sizeof(uint64_t), 4, file);
-        assert(numWritten == 4);
+        bufferUint.push_back(c_cellData[cell].boundingFaces[0]);
+        bufferUint.push_back(c_cellData[cell].boundingFaces[1]);
+        bufferUint.push_back(c_cellData[cell].boundingFaces[2]);
+        bufferUint.push_back(c_cellData[cell].boundingFaces[3]);
+        
+        bufferUint.push_back(c_cellData[cell].boundingNodes[0]);
+        bufferUint.push_back(c_cellData[cell].boundingNodes[1]);
+        bufferUint.push_back(c_cellData[cell].boundingNodes[2]);
+        bufferUint.push_back(c_cellData[cell].boundingNodes[3]);
     }
     
     
-    // Face Data
+    // Buffer face data
     for (uint64_t face = 0; face < c_numFaces; face++) {
-        numWritten = fwrite(c_faceData[face].boundingCells, sizeof(uint64_t), 2, file);
-        assert(numWritten == 2);
-        numWritten = fwrite(c_faceData[face].boundingNodes, sizeof(uint64_t), 3, file);
-        assert(numWritten == 3);
+        bufferUint.push_back(c_faceData[face].boundingCells[0]);
+        bufferUint.push_back(c_faceData[face].boundingCells[1]);
+        
+        bufferUint.push_back(c_faceData[face].boundingNodes[0]);
+        bufferUint.push_back(c_faceData[face].boundingNodes[1]);
+        bufferUint.push_back(c_faceData[face].boundingNodes[2]);
     }
-    
-    
-    // Node Data
+
+
+    // Buffer node data
     for (uint64_t node = 0; node < c_numNodes; node++) {
-        numWritten = fwrite(c_nodeData[node].coords, sizeof(double), 3, file);
-        assert(numWritten == 3);
+        bufferDouble.push_back(c_nodeData[node].coords[0]);
+        bufferDouble.push_back(c_nodeData[node].coords[1]);
+        bufferDouble.push_back(c_nodeData[node].coords[2]);
     }
     
+    
+    // Write uint64_t buffered data
+    numWritten = fwrite(bufferUint.data(), sizeof(uint64_t), 
+                        bufferUint.size(), file);
+    assert(numWritten == bufferUint.size());
+
+    
+    // Write double buffered data
+    numWritten = fwrite(bufferDouble.data(), sizeof(double), 
+                        bufferDouble.size(), file);
+    assert(numWritten == bufferDouble.size());
+
     
     // Close file
     fclose(file);
@@ -187,6 +209,8 @@ void SerialMesh::read(const std::string &filename)
 {
     FILE *file;
     size_t numRead;
+    vector<uint64_t> bufferUint;
+    vector<double> bufferDouble;
     
     
     // Open file
@@ -194,40 +218,70 @@ void SerialMesh::read(const std::string &filename)
     assert(file != NULL);
     
     
-    // Header Data
-    numRead = fread(&c_numCells, sizeof(uint64_t), 1, file);
-    assert(numRead == 1);
-    numRead = fread(&c_numFaces, sizeof(uint64_t), 1, file);
-    assert(numRead == 1);
-    numRead = fread(&c_numNodes, sizeof(uint64_t), 1, file);
-    assert(numRead == 1);
+    // Read mesh format name
+    numRead = fread(c_meshFormatName, sizeof(char), 
+                    SerialMesh::MESH_FORMAT_NAME_LEN, file);
+    assert(numRead == SerialMesh::MESH_FORMAT_NAME_LEN);
+    assert(memcmp(c_meshFormatName, MESH_FORMAT_NAME, 
+                  SerialMesh::MESH_FORMAT_NAME_LEN * sizeof(char)) == 0);
+
     
+    // Read rest of header data
+    bufferUint.resize(4);
+    numRead = fread(bufferUint.data(), sizeof(uint64_t), 4, file);
+    assert(numRead == 4);
+    c_version  = bufferUint[0];
+    c_numCells = bufferUint[1];
+    c_numFaces = bufferUint[2];
+    c_numNodes = bufferUint[3];
+    assert(c_version == 1);
+
     
     // Cell Data
+    bufferUint.resize(c_numCells * 8);
+    numRead = fread(bufferUint.data(), sizeof(uint64_t), c_numCells * 8, file);
+    assert(numRead == c_numCells * 8);
+
     c_cellData.resize(c_numCells);
     for (uint64_t cell = 0; cell < c_numCells; cell++) {
-        numRead = fread(c_cellData[cell].boundingFaces, sizeof(uint64_t), 4, file);
-        assert(numRead == 4);
-        numRead = fread(c_cellData[cell].boundingNodes, sizeof(uint64_t), 4, file);
-        assert(numRead == 4);
+        c_cellData[cell].boundingFaces[0] = bufferUint[cell * 8 + 0];
+        c_cellData[cell].boundingFaces[1] = bufferUint[cell * 8 + 1];
+        c_cellData[cell].boundingFaces[2] = bufferUint[cell * 8 + 2];
+        c_cellData[cell].boundingFaces[3] = bufferUint[cell * 8 + 3];
+
+        c_cellData[cell].boundingNodes[0] = bufferUint[cell * 8 + 4];
+        c_cellData[cell].boundingNodes[1] = bufferUint[cell * 8 + 5];
+        c_cellData[cell].boundingNodes[2] = bufferUint[cell * 8 + 6];
+        c_cellData[cell].boundingNodes[3] = bufferUint[cell * 8 + 7];
     }
     
     
     // Face Data
+    bufferUint.resize(c_numFaces * 5);
+    numRead = fread(bufferUint.data(), sizeof(uint64_t), c_numFaces * 5, file);
+    assert(numRead == c_numFaces * 5);
+
     c_faceData.resize(c_numFaces);
     for (uint64_t face = 0; face < c_numFaces; face++) {
-        numRead = fread(c_faceData[face].boundingCells, sizeof(uint64_t), 2, file);
-        assert(numRead == 2);
-        numRead = fread(c_faceData[face].boundingNodes, sizeof(uint64_t), 3, file);
-        assert(numRead == 3);
+        c_faceData[face].boundingCells[0] = bufferUint[face * 5 + 0];
+        c_faceData[face].boundingCells[1] = bufferUint[face * 5 + 1];
+
+        c_faceData[face].boundingNodes[0] = bufferUint[face * 5 + 2];
+        c_faceData[face].boundingNodes[1] = bufferUint[face * 5 + 3];
+        c_faceData[face].boundingNodes[2] = bufferUint[face * 5 + 4];
     }
     
     
     // Node Data
+    bufferDouble.resize(c_numNodes * 3);
+    numRead = fread(bufferDouble.data(), sizeof(double), c_numNodes * 3, file);
+    assert(numRead == c_numNodes * 3);
+
     c_nodeData.resize(c_numNodes);
     for (uint64_t node = 0; node < c_numNodes; node++) {
-        numRead = fread(c_nodeData[node].coords, sizeof(double), 3, file);
-        assert(numRead == 3);
+        c_nodeData[node].coords[0] = bufferDouble[node * 3 + 0];
+        c_nodeData[node].coords[1] = bufferDouble[node * 3 + 1];
+        c_nodeData[node].coords[2] = bufferDouble[node * 3 + 2];
     }
     
     

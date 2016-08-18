@@ -47,6 +47,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
     File format on disk.
     
+    (Array<char>(32)) "Tycho 2 Serial Mesh" (Rest of characters set to 0)
+    (uint64_t) version of serial mesh format (version 1 currently)
     (uint64_t) number of cells
     (uint64_t) number of faces
     (uint64_t) number of nodes
@@ -77,6 +79,11 @@ class SerialMesh
 {
 public:
     
+    static const uint64_t INVALID_INDEX = UINT64_MAX; // Indicates boundary
+    static const uint64_t VERSION = 1;
+    static const uint64_t MESH_FORMAT_NAME_LEN = 32;
+    
+    
     // Sub-structures
     struct CellData
     {
@@ -95,6 +102,8 @@ public:
     
     
     // Data
+    char c_meshFormatName[MESH_FORMAT_NAME_LEN];
+    uint64_t c_version;
     uint64_t c_numCells;
     uint64_t c_numFaces;
     uint64_t c_numNodes;
@@ -106,12 +115,7 @@ public:
     // Read and write functions
     void write(const std::string &filename);
     void read(const std::string &filename);
-    void printAll();
-    void printSummary();
-    
-    
-    // Used mainly to indicate a boundary
-    static const uint64_t INVALID_INDEX = UINT64_MAX;
+    void print(bool printVerbose);
 };
 
 
