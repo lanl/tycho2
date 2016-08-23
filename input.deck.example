@@ -14,3 +14,10 @@ sigmaScat       5     #sigmaScat < sigmaTotal
 
 # Types: OriginalTycho1, OriginalTycho2, TraverseGraph, PBJ, Schur
 SweepType PBJ
+
+# Gaussian Elimination Types
+# Original:    Uses pivoting
+# NoPivot:     No pivoting
+# CramerGlu:   Use Cramer's rule to invert (algorithm from OpenGL library)
+# CramerIntel: User Cramer's rule to invert (algorithm found from Intel blog)
+GaussElim NoPivot
