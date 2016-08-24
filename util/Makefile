@@ -3,10 +3,15 @@ include make.inc
 
 
 ##### Variables #####
-CPP += -DPARALLEL_MESH_READ_SERIAL_ONLY
+CPP1 = $(CPP) -DPARALLEL_MESH_READ_SERIAL_ONLY
 
 SRC_MESH = ../src/SerialMesh.cc \
            ../src/ParallelMesh.cc
+
+SRC_MESH2 = ../src/SerialMesh.cc \
+            ../src/ParallelMesh.cc \
+            ../src/Comm.cc \
+            ../src/Assert.cc
 
 INC = -I../src \
       -I$(MOAB_DIR)/include \
@@ -23,6 +28,8 @@ LIB_METIS = $(METIS_DIR)/lib/libmetis.a
 
 ##### Applications #####
 APPS = SerialToParallelMesh \
+       SerialMeshInfo \
+       ParallelMeshInfo \
        PartitionColumns \
        MoabToSerialMesh \
        RefineSerialMesh \
@@ -47,48 +54,55 @@ clean:
 .PHONY: SerialToParallelMesh
 SerialToParallelMesh:
 	@echo Making SerialToParallelMesh
-	$(CPP) $(INC) $(SRC_MESH) SerialToParallelMesh.cc -o SerialToParallelMesh.x $(LIB_METIS)
+	$(CPP1) $(INC) $(SRC_MESH) SerialToParallelMesh.cc -o SerialToParallelMesh.x $(LIB_METIS)
 	@echo " "
 
 # SerialMeshInfo
 .PHONY: SerialMeshInfo
 SerialMeshInfo:
 	@echo Making SerialMeshInfo
-	$(CPP) $(INC) $(SRC_MESH) SerialMeshInfo.cc -o SerialMeshInfo.x
+	$(CPP1) $(INC) $(SRC_MESH) SerialMeshInfo.cc -o SerialMeshInfo.x
+	@echo " "
+
+# ParallelMeshInfo
+.PHONY: ParallelMeshInfo
+ParallelMeshInfo:
+	@echo Making ParallelMeshInfo
+	$(CPP) $(INC) $(SRC_MESH2) ParallelMeshInfo.cc -o ParallelMeshInfo.x
 	@echo " "
 
 # PartitionColumns
 .PHONY: PartitionColumns
 PartitionColumns:
 	@echo Making PartitionColumns
-	$(CPP) $(INC) $(SRC_MESH) PartitionColumns.cc -o PartitionColumns.x
+	$(CPP1) $(INC) $(SRC_MESH) PartitionColumns.cc -o PartitionColumns.x
 	@echo " "
 
 # MoabToSerialMesh
 .PHONY: MoabToSerialMesh
 MoabToSerialMesh:
 	@echo Making MoabToSerialMesh
-	$(CPP) $(INC) $(SRC_MESH) MoabToSerialMesh.cc -o MoabToSerialMesh.x $(LIB_MOAB)
+	$(CPP1) $(INC) $(SRC_MESH) MoabToSerialMesh.cc -o MoabToSerialMesh.x $(LIB_MOAB)
 	@echo " "
 
 # RefineSerialMesh
 .PHONY: RefineSerialMesh
 RefineSerialMesh:
 	@echo Making RefineSerialMesh
-	$(CPP) $(SRC_MESH) RefineSerialMesh.cc -o RefineSerialMesh.x
+	$(CPP1) $(SRC_MESH) RefineSerialMesh.cc -o RefineSerialMesh.x
 	@echo " "
 
 # SerialMeshToMoab
 .PHONY: SerialMeshToMoab
 SerialMeshToMoab:
 	@echo Making SerialMeshToMoab
-	$(CPP) $(INC) $(SRC_MESH) SerialMeshToMoab.cc -o SerialMeshToMoab.x $(LIB_MOAB)
+	$(CPP1) $(INC) $(SRC_MESH) SerialMeshToMoab.cc -o SerialMeshToMoab.x $(LIB_MOAB)
 	@echo " "
 
 # ParallelMeshToMoab
 .PHONY: ParallelMeshToMoab
 ParallelMeshToMoab:
 	@echo Making ParallelMeshToMoab
-	$(CPP) $(INC) $(SRC_MESH) ParallelMeshToMoab.cc -o ParallelMeshToMoab.x $(LIB_MOAB)
+	$(CPP1) $(INC) $(SRC_MESH) ParallelMeshToMoab.cc -o ParallelMeshToMoab.x $(LIB_MOAB)
 	@echo " "
 

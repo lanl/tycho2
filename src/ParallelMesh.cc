@@ -50,16 +50,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 #include <cassert>
 #include <cinttypes>
+#include <cstring>
 
 using namespace std;
 
+static const char MESH_FORMAT_NAME[ParallelMesh::MESH_FORMAT_NAME_LEN] = 
+    {'T', 'y', 'c', 'h', 'o', ' ', '2', ' ', 'P', 'a', 'r', 'a', 'l', 'l', 'e', 'l', 
+     ' ', 'M', 'e', 's', 'h', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
 
 /*
-    printAll
+    print
     
     Prints the entire mesh.
 */
-void ParallelMesh::printAll()
+void ParallelMesh::print(bool printVerbose)
 {
     const char *boundaryNames[NumBoundaryTypes] = {
         "MeshBoundary", "PartitionBoundary", "NotBoundary"
@@ -67,6 +72,8 @@ void ParallelMesh::printAll()
     
     
     // Header Data
+    printf("Mesh Format Name: %s\n", c_meshFormatName);
+    printf("Mesh Version: %" PRIu64 "\n", c_version);
     printf("Num partitions %" PRIu64 "\n", c_numPartitions);
     printf("Bytes Offset\n");
     for (uint64_t part = 0; part < c_numPartitions + 1; part++) {
@@ -83,6 +90,11 @@ void ParallelMesh::printAll()
         printf("   Num Faces: %" PRIu64 "\n", partData.numFaces);
         printf("   Num Nodes: %" PRIu64 "\n", partData.numNodes);
         
+        
+        // Skip the rest if not verbose print
+        if (!printVerbose)
+            continue;
+
         
         // Cell Data
         for (uint64_t cell = 0; cell < partData.numCells; cell++) {
@@ -138,39 +150,77 @@ void ParallelMesh::printAll()
 
 
 /*
-    printSummary
+    printPartitionData
     
-    Prints number of cells, faces, and nodes for each partition.
-    Also prints number of faces for each boundary type.
+    Prints the entire mesh.
 */
-void ParallelMesh::printSummary()
+void ParallelMesh::printPartitionData(const PartitionData &partData, 
+                                      bool printVerbose)
 {
-    for (uint64_t part = 0; part < c_numPartitions; part++) {
+    const char *boundaryNames[NumBoundaryTypes] = {
+        "MeshBoundary", "PartitionBoundary", "NotBoundary"
+    };
+    
+    
+        printf("   Num Cells: %" PRIu64 "\n", partData.numCells);
+        printf("   Num Faces: %" PRIu64 "\n", partData.numFaces);
+        printf("   Num Nodes: %" PRIu64 "\n", partData.numNodes);
         
-        PartitionData &partData = c_partitionData[part];
-        uint64_t meshFace = 0;
-        uint64_t partFace = 0;
-        uint64_t intFace = 0;
         
-        for (uint64_t face = 0; face < partData.numFaces; face++) {
-            uint64_t boundaryType = partData.faceData[face].boundaryType;
-            if (boundaryType == MeshBoundary)
-                meshFace++;
-            else if (boundaryType == PartitionBoundary)
-                partFace++;
-            else if (boundaryType == NotBoundary)
-                intFace++;
-            else
-                assert(false);
+        // Skip the rest if not verbose print
+        if (!printVerbose)
+            return;
+
+        
+        // Cell Data
+        for (uint64_t cell = 0; cell < partData.numCells; cell++) {
+            printf("   Cell %" PRIu64 "\n", cell);
+            printf("      Faces %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
+                   partData.cellData[cell].boundingFaces[0],
+                   partData.cellData[cell].boundingFaces[1],
+                   partData.cellData[cell].boundingFaces[2],
+                   partData.cellData[cell].boundingFaces[3]);
+            printf("      Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
+                   partData.cellData[cell].boundingNodes[0],
+                   partData.cellData[cell].boundingNodes[1],
+                   partData.cellData[cell].boundingNodes[2],
+                   partData.cellData[cell].boundingNodes[3]);
+            printf("      globalID: %" PRIu64 "\n", 
+                   partData.cellData[cell].globalID);
         }
         
-        printf("Partition: %" PRIu64 "\n", part);
-        printf("   Cells: %" PRIu64 ", Nodes: %" PRIu64 ", Faces: %" PRIu64 "\n", 
-               partData.numCells, partData.numNodes, partData.numFaces);
-        printf("   Mesh Boundary Faces:      %" PRIu64 "\n", meshFace);
-        printf("   Partition Boundary Faces: %" PRIu64 "\n", partFace);
-        printf("   Interior Faces:           %" PRIu64 "\n", intFace);
-    }
+        
+        // Face Data
+        for (uint64_t face = 0; face < partData.numFaces; face++) {
+            printf("   Face %" PRIu64 "\n", face);
+            printf("      Cells %" PRIu64 " %" PRIu64 "\n", 
+                   partData.faceData[face].boundingCells[0],
+                   partData.faceData[face].boundingCells[1]);
+            printf("      Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
+                   partData.faceData[face].boundingNodes[0],
+                   partData.faceData[face].boundingNodes[1],
+                   partData.faceData[face].boundingNodes[2]);
+            printf("      globalID: %" PRIu64 "\n", 
+                   partData.faceData[face].globalID);
+            printf("      partition: %" PRIu64 " %" PRIu64 "\n", 
+                   partData.faceData[face].partition[0],
+                   partData.faceData[face].partition[1]);
+            assert(partData.faceData[face].boundaryType < NumBoundaryTypes);
+            printf("      boundaryType: %s\n", 
+                   boundaryNames[partData.faceData[face].boundaryType]);
+        }
+        
+        
+        // Node Data
+        for (uint64_t node = 0; node < partData.numNodes; node++) {
+            printf("   Node %" PRIu64 "\n", node);
+            printf("      coords: (%f, %f, %f)\n", 
+                   partData.nodeData[node].coords[0],
+                   partData.nodeData[node].coords[1],
+                   partData.nodeData[node].coords[2]);
+            printf("      globalID: %" PRIu64 "\n", 
+                   partData.nodeData[node].globalID);
+        }
 }
 
 
@@ -183,77 +233,96 @@ void ParallelMesh::write(const std::string &filename)
 {
     FILE *file;
     size_t numWritten;
+    vector<uint64_t> bufferUint;
     
     
     // Open file
     file = fopen(filename.c_str(), "wb");
     assert(file != NULL);
-    
-    
-    // Header Data
-    numWritten = fwrite(&c_numPartitions, sizeof(uint64_t), 1, file);
-    assert(numWritten == 1);
-    numWritten = fwrite(&c_bytesOffset[0], sizeof(uint64_t), 
-                        c_numPartitions + 1, file);
-    assert(numWritten == c_numPartitions + 1);
-    
+
+
+    // Make sure format name and version are filled in
+    memcpy(c_meshFormatName, MESH_FORMAT_NAME, 
+           ParallelMesh::MESH_FORMAT_NAME_LEN * sizeof(char));
+    c_version = ParallelMesh::VERSION;
+
+
+    // Write mesh format name
+    numWritten = fwrite(c_meshFormatName, sizeof(char),
+                        ParallelMesh::MESH_FORMAT_NAME_LEN, file);
+    assert(numWritten == ParallelMesh::MESH_FORMAT_NAME_LEN);
+
+
+    // Buffer header data and write
+    bufferUint.push_back(c_version);
+    bufferUint.push_back(c_numPartitions);
+    for (uint64_t part = 0; part < c_numPartitions + 1; part++) {
+        bufferUint.push_back(c_bytesOffset[part]);
+    }
+    numWritten = fwrite(bufferUint.data(), sizeof(uint64_t),
+                        bufferUint.size(), file);
+    assert(numWritten == bufferUint.size());
+    bufferUint.clear();
+
     
     // Partition Data
     for (uint64_t part = 0; part < c_numPartitions; part++) {
         
+        // Buffer header
         PartitionData &partData = c_partitionData[part];
-        numWritten = fwrite(&partData.numCells, sizeof(uint64_t), 1, file);
-        assert(numWritten == 1);
-        numWritten = fwrite(&partData.numFaces, sizeof(uint64_t), 1, file);
-        assert(numWritten == 1);
-        numWritten = fwrite(&partData.numNodes, sizeof(uint64_t), 1, file);
-        assert(numWritten == 1);
+        bufferUint.push_back(partData.numCells);
+        bufferUint.push_back(partData.numFaces);
+        bufferUint.push_back(partData.numNodes);
         
         
-        // Cell Data
+        // Buffer Cell Data
         for (uint64_t cell = 0; cell < partData.numCells; cell++) {
-            numWritten = fwrite(partData.cellData[cell].boundingFaces, 
-                                sizeof(uint64_t), 4, file);
-            assert(numWritten == 4);
-            numWritten = fwrite(partData.cellData[cell].boundingNodes, 
-                                sizeof(uint64_t), 4, file);
-            assert(numWritten == 4);
-            numWritten = fwrite(&partData.cellData[cell].globalID, 
-                                sizeof(uint64_t), 1, file);
-            assert(numWritten == 1);
+            bufferUint.push_back(partData.cellData[cell].boundingFaces[0]);
+            bufferUint.push_back(partData.cellData[cell].boundingFaces[1]);
+            bufferUint.push_back(partData.cellData[cell].boundingFaces[2]);
+            bufferUint.push_back(partData.cellData[cell].boundingFaces[3]);
+
+            bufferUint.push_back(partData.cellData[cell].boundingNodes[0]);
+            bufferUint.push_back(partData.cellData[cell].boundingNodes[1]);
+            bufferUint.push_back(partData.cellData[cell].boundingNodes[2]);
+            bufferUint.push_back(partData.cellData[cell].boundingNodes[3]);
+
+            bufferUint.push_back(partData.cellData[cell].globalID);
         }
         
         
-        // Face Data
+        // Buffer Face Data
         for (uint64_t face = 0; face < partData.numFaces; face++) {
-            numWritten = fwrite(partData.faceData[face].boundingCells, 
-                                sizeof(uint64_t), 2, file);
-            assert(numWritten == 2);
-            numWritten = fwrite(partData.faceData[face].boundingNodes, 
-                                sizeof(uint64_t), 3, file);
-            assert(numWritten == 3);
-            numWritten = fwrite(&partData.faceData[face].globalID, 
-                                sizeof(uint64_t), 1, file);
-            assert(numWritten == 1);
-            numWritten = fwrite(partData.faceData[face].partition, 
-                                sizeof(uint64_t), 2, file);
-            assert(numWritten == 2);
-            numWritten = fwrite(&partData.faceData[face].boundaryType, 
-                                sizeof(uint64_t), 1, file);
-            assert(numWritten == 1);
-            assert(partData.faceData[face].boundaryType < NumBoundaryTypes);
+            bufferUint.push_back(partData.faceData[face].boundingCells[0]);
+            bufferUint.push_back(partData.faceData[face].boundingCells[1]);
+
+            bufferUint.push_back(partData.faceData[face].boundingNodes[0]);
+            bufferUint.push_back(partData.faceData[face].boundingNodes[1]);
+            bufferUint.push_back(partData.faceData[face].boundingNodes[2]);
+
+            bufferUint.push_back(partData.faceData[face].globalID);
+
+            bufferUint.push_back(partData.faceData[face].partition[0]);
+            bufferUint.push_back(partData.faceData[face].partition[1]);
+
+            bufferUint.push_back(partData.faceData[face].boundaryType);
         }
         
         
-        // Node Data
+        // Buffer Node Data
         for (uint64_t node = 0; node < partData.numNodes; node++) {
-            numWritten = fwrite(partData.nodeData[node].coords, 
-                                sizeof(double), 3, file);
-            assert(numWritten == 3);
-            numWritten = fwrite(&partData.nodeData[node].globalID, 
-                                sizeof(uint64_t), 1, file);
-            assert(numWritten == 1);
+            bufferUint.push_back(*((uint64_t*)(&partData.nodeData[node].coords[0])));
+            bufferUint.push_back(*((uint64_t*)(&partData.nodeData[node].coords[1])));
+            bufferUint.push_back(*((uint64_t*)(&partData.nodeData[node].coords[2])));
+            bufferUint.push_back(partData.nodeData[node].globalID);
         }
+
+
+        // Write data and clear buffers
+        numWritten = fwrite(bufferUint.data(), sizeof(uint64_t),
+                            bufferUint.size(), file);
+        assert(numWritten == bufferUint.size());
+        bufferUint.clear();
     }
     
     
@@ -271,19 +340,35 @@ void ParallelMesh::read(const std::string &filename)
 {
     FILE *file;
     size_t numRead;
+    vector<uint64_t> bufferUint;
     
     
     // Open file
     file = fopen(filename.c_str(), "rb");
     assert(file != NULL);
+
+
+    // Read mesh format name
+    numRead = fread(c_meshFormatName, sizeof(char), 
+                    ParallelMesh::MESH_FORMAT_NAME_LEN, file);
+    assert(numRead == ParallelMesh::MESH_FORMAT_NAME_LEN);
+    assert(memcmp(c_meshFormatName, MESH_FORMAT_NAME, 
+                  ParallelMesh::MESH_FORMAT_NAME_LEN * sizeof(char)) == 0);
     
     
     // Header Data
-    numRead = fread(&c_numPartitions, sizeof(uint64_t), 1, file);
-    assert(numRead == 1);
+    bufferUint.resize(2);
+    numRead = fread(bufferUint.data(), sizeof(uint64_t), 2, file);
+    assert(numRead == 2);
+    c_version = bufferUint[0];
+    c_numPartitions = bufferUint[1];
+    assert(c_version == 1);
+
+
+    // Partition offsets
     c_bytesOffset.resize(c_numPartitions + 1);
-    numRead = fread(&c_bytesOffset[0], sizeof(uint64_t), 
-                    c_numPartitions + 1, file);
+    numRead = fread(c_bytesOffset.data(), sizeof(uint64_t), c_numPartitions + 1, 
+                    file);
     assert(numRead == c_numPartitions + 1);
     
     
@@ -291,61 +376,76 @@ void ParallelMesh::read(const std::string &filename)
     c_partitionData.resize(c_numPartitions);
     for (uint64_t i = 0; i < c_numPartitions; i++) {
         
+        // Get header data
         PartitionData &partData = c_partitionData[i];
-        numRead = fread(&partData.numCells, sizeof(uint64_t), 1, file);
-        assert(numRead == 1);
-        numRead = fread(&partData.numFaces, sizeof(uint64_t), 1, file);
-        assert(numRead == 1);
-        numRead = fread(&partData.numNodes, sizeof(uint64_t), 1, file);
-        assert(numRead == 1);
+        bufferUint.resize(3);
+        numRead = fread(bufferUint.data(), sizeof(uint64_t), 3, file);
+        assert(numRead == 3);
+        
+        partData.numCells = bufferUint[0];
+        partData.numFaces = bufferUint[1];
+        partData.numNodes = bufferUint[2];
         
         
         // Cell Data
+        bufferUint.resize(partData.numCells * 9);
+        numRead = fread(bufferUint.data(), sizeof(uint64_t), 
+                        partData.numCells * 9, file);
+        assert(numRead == partData.numCells * 9);
+
         partData.cellData.resize(partData.numCells);
         for (uint64_t cell = 0; cell < partData.numCells; cell++) {
-            numRead = fread(partData.cellData[cell].boundingFaces, 
-                            sizeof(uint64_t), 4, file);
-            assert(numRead == 4);
-            numRead = fread(partData.cellData[cell].boundingNodes, 
-                            sizeof(uint64_t), 4, file);
-            assert(numRead == 4);
-            numRead = fread(&partData.cellData[cell].globalID, 
-                            sizeof(uint64_t), 1, file);
-            assert(numRead == 1);
+            partData.cellData[cell].boundingFaces[0] = bufferUint[cell * 9 + 0];
+            partData.cellData[cell].boundingFaces[1] = bufferUint[cell * 9 + 1];
+            partData.cellData[cell].boundingFaces[2] = bufferUint[cell * 9 + 2];
+            partData.cellData[cell].boundingFaces[3] = bufferUint[cell * 9 + 3];
+
+            partData.cellData[cell].boundingNodes[0] = bufferUint[cell * 9 + 4];
+            partData.cellData[cell].boundingNodes[1] = bufferUint[cell * 9 + 5];
+            partData.cellData[cell].boundingNodes[2] = bufferUint[cell * 9 + 6];
+            partData.cellData[cell].boundingNodes[3] = bufferUint[cell * 9 + 7];
+            
+            partData.cellData[cell].globalID         = bufferUint[cell * 9 + 8];
         }
         
         
         // Face Data
+        bufferUint.resize(partData.numFaces * 9);
+        numRead = fread(bufferUint.data(), sizeof(uint64_t), 
+                        partData.numFaces * 9, file);
+        assert(numRead == partData.numFaces * 9);
+
         partData.faceData.resize(partData.numFaces);
         for (uint64_t face = 0; face < partData.numFaces; face++) {
-            numRead = fread(partData.faceData[face].boundingCells, 
-                            sizeof(uint64_t), 2, file);
-            assert(numRead == 2);
-            numRead = fread(partData.faceData[face].boundingNodes, 
-                            sizeof(uint64_t), 3, file);
-            assert(numRead == 3);
-            numRead = fread(&partData.faceData[face].globalID, 
-                            sizeof(uint64_t), 1, file);
-            assert(numRead == 1);
-            numRead = fread(partData.faceData[face].partition, 
-                            sizeof(uint64_t), 2, file);
-            assert(numRead == 2);
-            numRead = fread(&partData.faceData[face].boundaryType, 
-                            sizeof(uint64_t), 1, file);
-            assert(numRead == 1);
-            assert(partData.faceData[face].boundaryType < NumBoundaryTypes);
+            partData.faceData[face].boundingCells[0] = bufferUint[face * 9 + 0];
+            partData.faceData[face].boundingCells[1] = bufferUint[face * 9 + 1];
+
+            partData.faceData[face].boundingNodes[0] = bufferUint[face * 9 + 2];
+            partData.faceData[face].boundingNodes[1] = bufferUint[face * 9 + 3];
+            partData.faceData[face].boundingNodes[2] = bufferUint[face * 9 + 4];
+            
+            partData.faceData[face].globalID         = bufferUint[face * 9 + 5];
+            
+            partData.faceData[face].partition[0]     = bufferUint[face * 9 + 6];
+            partData.faceData[face].partition[1]     = bufferUint[face * 9 + 7];
+            
+            partData.faceData[face].boundaryType     = bufferUint[face * 9 + 8];
         }
         
         
         // Node Data
+        bufferUint.resize(partData.numNodes * 4);
+        numRead = fread(bufferUint.data(), sizeof(uint64_t), 
+                        partData.numNodes * 4, file);
+        assert(numRead == partData.numNodes * 4);
+
         partData.nodeData.resize(partData.numNodes);
         for (uint64_t node = 0; node < partData.numNodes; node++) {
-            numRead = fread(&partData.nodeData[node].coords, 
-                            sizeof(double), 3, file);
-            assert(numRead == 3);
-            numRead = fread(&partData.nodeData[node].globalID, 
-                            sizeof(uint64_t), 1, file);
-            assert(numRead == 1);
+            partData.nodeData[node].coords[0] = *((double*)(&bufferUint[node * 4 + 0]));
+            partData.nodeData[node].coords[1] = *((double*)(&bufferUint[node * 4 + 1]));
+            partData.nodeData[node].coords[2] = *((double*)(&bufferUint[node * 4 + 2]));
+            
+            partData.nodeData[node].globalID = bufferUint[node * 4 + 3];
         }
     }
     
@@ -373,82 +473,101 @@ void ParallelMesh::readInParallel(const std::string &filename,
 {
     MPI_File file;
     uint64_t offset = 0;
-    vector<uint64_t> buffer;
+    vector<uint64_t> bufferUint;
     
     
     // Open file
     Comm::openFileForRead(filename, file);
-    
-    
-    // Read num partitions (This is just a sanity check)
+
+
+    // Check header
     if (Comm::rank() == 0) {
+        char meshFormatName[32];
+        uint64_t version;
         uint64_t numPartitions;
         Comm::seek(file, 0);
-        Comm::readUint64(file, numPartitions);
+        Comm::readChars(file, meshFormatName, 32);
+        assert(memcmp(meshFormatName, MESH_FORMAT_NAME, 
+                      ParallelMesh::MESH_FORMAT_NAME_LEN * sizeof(char)) == 0);
+        
+        bufferUint.resize(2);
+        Comm::readUint64(file, bufferUint.data(), 2);
+        version = bufferUint[0];
+        numPartitions = bufferUint[1];
+        assert(version == ParallelMesh::VERSION);
         assert(numPartitions == (uint64_t)Comm::numRanks());
     }
     Comm::barrier();
     
     
     // Read in bytes offset
-    Comm::seek(file, (1 + Comm::rank()) * sizeof(uint64_t));
+    Comm::seek(file, 32 * sizeof(char) + (2 + Comm::rank()) * sizeof(uint64_t));
     Comm::readUint64(file, offset);
     Comm::seek(file, offset);
     
     
     // Num Cells, Face, Nodes
-    Comm::readUint64(file, partData.numCells);
-    Comm::readUint64(file, partData.numFaces);
-    Comm::readUint64(file, partData.numNodes);
+    bufferUint.resize(3);
+    Comm::readUint64(file, bufferUint.data(), 3);
+    partData.numCells = bufferUint[0];
+    partData.numFaces = bufferUint[1];
+    partData.numNodes = bufferUint[2];
     
     
     // Cell Data
-    buffer.resize(partData.numCells * 9);
-    Comm::readUint64(file, buffer.data(), partData.numCells * 9);
+    bufferUint.resize(partData.numCells * 9);
+    Comm::readUint64(file, bufferUint.data(), partData.numCells * 9);
     partData.cellData.resize(partData.numCells);
     
     for (uint64_t cell = 0; cell < partData.numCells; cell++) {
-        partData.cellData[cell].boundingFaces[0] = buffer[cell * 9 + 0];
-        partData.cellData[cell].boundingFaces[1] = buffer[cell * 9 + 1];
-        partData.cellData[cell].boundingFaces[2] = buffer[cell * 9 + 2];
-        partData.cellData[cell].boundingFaces[3] = buffer[cell * 9 + 3];
-        partData.cellData[cell].boundingNodes[0] = buffer[cell * 9 + 4];
-        partData.cellData[cell].boundingNodes[1] = buffer[cell * 9 + 5];
-        partData.cellData[cell].boundingNodes[2] = buffer[cell * 9 + 6];
-        partData.cellData[cell].boundingNodes[3] = buffer[cell * 9 + 7];
-        partData.cellData[cell].globalID         = buffer[cell * 9 + 8];
+        partData.cellData[cell].boundingFaces[0] = bufferUint[cell * 9 + 0];
+        partData.cellData[cell].boundingFaces[1] = bufferUint[cell * 9 + 1];
+        partData.cellData[cell].boundingFaces[2] = bufferUint[cell * 9 + 2];
+        partData.cellData[cell].boundingFaces[3] = bufferUint[cell * 9 + 3]
+        ;
+        partData.cellData[cell].boundingNodes[0] = bufferUint[cell * 9 + 4];
+        partData.cellData[cell].boundingNodes[1] = bufferUint[cell * 9 + 5];
+        partData.cellData[cell].boundingNodes[2] = bufferUint[cell * 9 + 6];
+        partData.cellData[cell].boundingNodes[3] = bufferUint[cell * 9 + 7];
+
+        partData.cellData[cell].globalID         = bufferUint[cell * 9 + 8];
     }
     
     
     // Face Data
-    buffer.resize(partData.numFaces * 9);
-    Comm::readUint64(file, buffer.data(), partData.numFaces * 9);
+    bufferUint.resize(partData.numFaces * 9);
+    Comm::readUint64(file, bufferUint.data(), partData.numFaces * 9);
     partData.faceData.resize(partData.numFaces);
     
     for (uint64_t face = 0; face < partData.numFaces; face++) {
-        partData.faceData[face].boundingCells[0] = buffer[face * 9 + 0];
-        partData.faceData[face].boundingCells[1] = buffer[face * 9 + 1];
-        partData.faceData[face].boundingNodes[0] = buffer[face * 9 + 2];
-        partData.faceData[face].boundingNodes[1] = buffer[face * 9 + 3];
-        partData.faceData[face].boundingNodes[2] = buffer[face * 9 + 4];
-        partData.faceData[face].globalID         = buffer[face * 9 + 5];
-        partData.faceData[face].partition[0]     = buffer[face * 9 + 6];
-        partData.faceData[face].partition[1]     = buffer[face * 9 + 7];
-        partData.faceData[face].boundaryType     = buffer[face * 9 + 8];
+        partData.faceData[face].boundingCells[0] = bufferUint[face * 9 + 0];
+        partData.faceData[face].boundingCells[1] = bufferUint[face * 9 + 1];
+
+        partData.faceData[face].boundingNodes[0] = bufferUint[face * 9 + 2];
+        partData.faceData[face].boundingNodes[1] = bufferUint[face * 9 + 3];
+        partData.faceData[face].boundingNodes[2] = bufferUint[face * 9 + 4];
+
+        partData.faceData[face].globalID         = bufferUint[face * 9 + 5];
+
+        partData.faceData[face].partition[0]     = bufferUint[face * 9 + 6];
+        partData.faceData[face].partition[1]     = bufferUint[face * 9 + 7];
+
+        partData.faceData[face].boundaryType     = bufferUint[face * 9 + 8];
         assert(partData.faceData[face].boundaryType < NumBoundaryTypes);
     }
     
     
     // Node Data
-    buffer.resize(partData.numNodes * 4);
-    Comm::readUint64(file, buffer.data(), partData.numNodes * 4);
+    bufferUint.resize(partData.numNodes * 4);
+    Comm::readUint64(file, bufferUint.data(), partData.numNodes * 4);
     partData.nodeData.resize(partData.numNodes);
     
     for (uint64_t node = 0; node < partData.numNodes; node++) {
-        partData.nodeData[node].coords[0] = *((double*)(&buffer[node * 4 + 0]));
-        partData.nodeData[node].coords[1] = *((double*)(&buffer[node * 4 + 1]));
-        partData.nodeData[node].coords[2] = *((double*)(&buffer[node * 4 + 2]));
-        partData.nodeData[node].globalID  = buffer[node * 4 + 3];
+        partData.nodeData[node].coords[0] = *((double*)(&bufferUint[node * 4 + 0]));
+        partData.nodeData[node].coords[1] = *((double*)(&bufferUint[node * 4 + 1]));
+        partData.nodeData[node].coords[2] = *((double*)(&bufferUint[node * 4 + 2]));
+
+        partData.nodeData[node].globalID  = bufferUint[node * 4 + 3];
     }
     
     

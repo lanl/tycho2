@@ -90,7 +90,7 @@ void closeFile(MPI_File &file);
 void seek(const MPI_File &file, uint64_t position);
 void readUint64(const MPI_File &file, uint64_t &data);
 void readUint64(const MPI_File &file, uint64_t *data, int numData);
-void readDouble(const MPI_File &file, double *data, int numData);
+void readChars(const MPI_File &file, char *data, int numData);
 
 } // End namespace
 

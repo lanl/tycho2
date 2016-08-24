@@ -1,6 +1,7 @@
 #include <string>
 #include <cstdio>
 #include <cassert>
+#include <cstring>
 #include "SerialMesh.hh"
 
 using namespace std;
@@ -13,6 +14,7 @@ int main(int argc, char* argv[])
 {
     SerialMesh serialMesh;
     string inputFile;
+    bool verbose = false;
     
     
     // Print utility name
@@ -20,9 +22,15 @@ int main(int argc, char* argv[])
     
     
     // Get input file
-    if (argc != 2) {
+    if (argc == 2) {
+        verbose = false;
+    }
+    else if (argc == 3 && strcmp(argv[2], "verbose") == 0) {
+        verbose = true;
+    }
+    else {
         printf("Incorrect number of arguments\n");
-        printf("Usage: ./SerialMeshInfo.x <inputFile>\n");
+        printf("Usage: ./SerialMeshInfo.x <inputFile> (verbose)\n");
         printf("\n\n\n");
         return 0;
     }
@@ -31,7 +39,7 @@ int main(int argc, char* argv[])
     
     // Read in serial mesh and convert to parallel mesh
     serialMesh.read(inputFile);
-    serialMesh.printAll();
+    serialMesh.print(verbose);
     
     
     // Cleanup

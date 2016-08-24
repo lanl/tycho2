@@ -47,6 +47,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
     File format on disk.
     
+    (Array<char>(32)) "Tycho 2 Parallel Mesh" (Rest of characters set to 0)
+    (uint64_t) version of parallel mesh format (version 1 currently)
     (uint64_t) number of partitions
     (Array<uint64_t>(num partitions + 1)) offsets in bytes for the partition data
     (Array<PartitionData>(num partitions)) partition data
@@ -90,6 +92,11 @@ class ParallelMesh
 {
 public:
     
+    static const uint64_t INVALID_INDEX = UINT64_MAX; // Indicates boundary
+    static const uint64_t VERSION = 1;
+    static const uint64_t MESH_FORMAT_NAME_LEN = 32;
+    
+    
     // Sub-structures
     enum BoundaryType
     {
@@ -126,6 +133,8 @@ public:
     
     
     // Data
+    char c_meshFormatName[MESH_FORMAT_NAME_LEN];
+    uint64_t c_version;
     uint64_t c_numPartitions;
     std::vector<uint64_t> c_bytesOffset;
     std::vector<PartitionData> c_partitionData;
@@ -134,17 +143,15 @@ public:
     // Read and write functions
     void write(const std::string &filename);
     void read(const std::string &filename);
-    void printAll();
-    void printSummary();
+    void print(bool printVerbose);
+    
+    static
+    void printPartitionData(const PartitionData &partData, bool printVerbose);
     
     #ifndef PARALLEL_MESH_READ_SERIAL_ONLY
     static
     void readInParallel(const std::string &filename, PartitionData &partData);
     #endif
-    
-    
-    // Used mainly to indicate a boundary
-    static const uint64_t INVALID_INDEX = UINT64_MAX;
 };
 
 

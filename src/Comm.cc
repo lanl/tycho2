@@ -410,14 +410,15 @@ void readUint64(const MPI_File &file, uint64_t *data, int numData)
 
 
 /*!
-    \brief Read an array of double elements.
+    \brief Read an array of char elements.
 */
-void readDouble(const MPI_File &file, double *data, int numData)
+void readChars(const MPI_File &file, char *data, int numData)
 {
-    int result = MPI_File_read(file, data, sizeof(double) * numData, MPI_BYTE, 
+    int result = MPI_File_read(file, data, sizeof(char) * numData, MPI_BYTE, 
                                MPI_STATUS_IGNORE);
-    Insist(result == MPI_SUCCESS, "Comm::readDouble[] MPI error.\n");
+    Insist(result == MPI_SUCCESS, "Comm::readSizeT[] MPI error.\n");
 }
+
 
 
 } // End namespace Comm
