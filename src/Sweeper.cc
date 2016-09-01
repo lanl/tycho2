@@ -84,12 +84,12 @@ UINT VG(UINT vrtx, UINT group)
     Puts psiBound data into communication data structure.
 */
 static
-void getBoundData(const PsiData &psiBound, const UINT side,
+void getBoundData(const PsiBoundData &psiBound, const UINT side,
                   const UINT angle, vector<double> &psiSide)
 {
     for (UINT vertex = 0; vertex < g_nVrtxPerFace; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
-        psiSide[VG(vertex, group)] = psiBound(side, angle, vertex, group);
+        psiSide[VG(vertex, group)] = psiBound(group, vertex, angle, side);
     }}
 }
 
@@ -100,7 +100,7 @@ void getBoundData(const PsiData &psiBound, const UINT side,
     Sets psiBound from the communication data structures.
 */
 static
-void setBoundData(PsiData &psiBound, const vector<UINT> &commSides,
+void setBoundData(PsiBoundData &psiBound, const vector<UINT> &commSides,
                   const vector<UINT> &commAngles, const vector<double> &commPsi) 
 {
     for(unsigned i = 0; i < commSides.size(); i++) {
@@ -109,7 +109,7 @@ void setBoundData(PsiData &psiBound, const vector<UINT> &commSides,
         UINT commPsiIndex = i * g_nVrtxPerFace * g_nGroups;
         for (UINT vrtx = 0; vrtx < g_nVrtxPerFace; ++vrtx) {
         for (UINT group = 0; group < g_nGroups; ++group) {
-            psiBound(side, angle, vrtx, group) = commPsi[commPsiIndex + VG(vrtx, group)];
+            psiBound(group, vrtx, angle, side) = commPsi[commPsiIndex + VG(vrtx, group)];
         }}
     }
 }
@@ -160,7 +160,7 @@ void send(const UINT step, const UINT angleGroup,
     Receive side data.
 */
 static
-void recv(const UINT step, const UINT angleGroup, PsiData &psiBound)
+void recv(const UINT step, const UINT angleGroup, PsiBoundData &psiBound)
 {
     if (step < g_spSweepSchedule[angleGroup]->nSteps()) {
         for (UINT proc : g_spSweepSchedule[angleGroup]->getRecvProcs(step)) {
@@ -207,7 +207,7 @@ void recv(const UINT step, const UINT angleGroup, PsiData &psiBound)
 */
 static
 void updateComm(const UINT cell, const UINT angle,
-                const PsiData &psiBound,
+                const PsiBoundData &psiBound,
                 Mat2<vector<UINT>> &commSidesAngles,
                 Mat2<vector<double>> &commPsi)
 {
@@ -238,7 +238,7 @@ void updateComm(const UINT cell, const UINT angle,
     Updates psiBound after doing transport on a set of work.
 */
 static
-void updateBoundData(const UINT cell, const UINT angle, PsiData &psiBound,
+void updateBoundData(const UINT cell, const UINT angle, PsiBoundData &psiBound,
                      const Mat2<double> &localPsi)
 {
     for (UINT group = 0; group < g_nGroups; group++) {
@@ -251,7 +251,7 @@ void updateBoundData(const UINT cell, const UINT angle, PsiData &psiBound,
             if (g_spTychoMesh->isOutgoing(angle, cell, face)) {
                 UINT side = g_spTychoMesh->getSide(cell, face);
                 for (UINT vertex = 0; vertex < g_nVrtxPerFace; ++vertex) {
-                    psiBound(side, angle, vertex, group) =
+                    psiBound(group, vertex, angle, side) =
                         localPsi(g_spTychoMesh->getFaceToCellVrtx(cell, face, vertex), group);
                 }
             }
@@ -274,7 +274,7 @@ void doComputation(const UINT step,
                    PsiData &psi, 
                    Mat2<vector<UINT>> &commSidesAngles,
                    Mat2<vector<double>> &commPsi,
-                   PsiData &psiBound)
+                   PsiBoundData &psiBound)
 {
     Mat2<double> localSource(g_nVrtxPerCell, g_nGroups);
     Mat2<double> localPsi(g_nVrtxPerCell, g_nGroups);
@@ -292,7 +292,7 @@ void doComputation(const UINT step,
             // Populate localSource
             for (UINT group = 0; group < g_nGroups; group++) {
             for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-                localSource(vrtx, group) = source(vrtx, angle, cell, group);
+                localSource(vrtx, group) = source(group, vrtx, angle, cell);
             }}
             
             // Populate localPsiBound
@@ -306,7 +306,7 @@ void doComputation(const UINT step,
             // localPsi -> psi
             for (UINT group = 0; group < g_nGroups; group++) {
             for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-                psi(vrtx, angle, cell, group) = localPsi(vrtx, group);
+                psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
             }}
             
             // Update psiBound and comm variables
@@ -341,8 +341,7 @@ void sweep(PsiData &psi, const PsiData &source, const double sigmaTotal)
     // Communication variables
     Mat2<vector<UINT>> commSidesAngles(g_nAngleGroups, Comm::numRanks());
     Mat2<vector<double>> commPsi(g_nAngleGroups, Comm::numRanks());
-    PsiData psiBound(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
-                         g_nVrtxPerFace, g_nGroups);
+    PsiBoundData psiBound;
     
     
     // Time computation for each thread

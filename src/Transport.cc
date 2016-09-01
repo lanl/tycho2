@@ -680,7 +680,7 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
     Put data from neighboring cells into localPsiBound(fvrtx, face, group).
 */
 void populateLocalPsiBound(const UINT angle, const UINT cell, 
-                           const PsiData &__restrict psi, const PsiData & __restrict psiBound,
+                           const PsiData &__restrict psi, const PsiBoundData & __restrict psiBound,
                            Mat3<double> &__restrict localPsiBound)
 {
     // Default to 0.0
@@ -700,7 +700,7 @@ void populateLocalPsiBound(const UINT angle, const UINT cell,
                     UINT neighborVrtx = 
                         g_spTychoMesh->getNeighborVrtx(cell, face, fvrtx);
                     localPsiBound(fvrtx, face, group) = 
-                        psi(neighborVrtx, angle, neighborCell, group);
+                        psi(group, neighborVrtx, angle, neighborCell);
                 }
             }
             
@@ -709,7 +709,7 @@ void populateLocalPsiBound(const UINT angle, const UINT cell,
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
                     UINT side = g_spTychoMesh->getSide(cell, face);
                     localPsiBound(fvrtx, face, group) = 
-                        psiBound(side, angle, fvrtx, group);
+                        psiBound(group, fvrtx, angle, side);
                 }
             }
         }

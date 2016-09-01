@@ -55,127 +55,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TychoMesh.hh"
 #include <stddef.h>
 
-class PsiData {
-public:
-    
-    // Accessors
-    double& operator()( size_t i, size_t j, size_t k, size_t l ) 
-        { return c_data[index(i,j,k,l)]; }
-    
-    const double& operator()( size_t i, size_t j, size_t k, size_t l ) const 
-        { return c_data[index(i,j,k,l)]; }
-    
-    double& operator[]( size_t i ) { check(i); return c_data[i]; }
-    const double& operator[]( size_t i ) const { check(i); return c_data[i]; }
-
-
-    // Size of Mat
-    size_t size() const { return c_len1 * c_len2 * c_len3 * c_len4; }
-
-
-    // Constructor
-    PsiData( size_t len1, size_t len2, size_t len3, size_t len4, double initValue = 0.0 )
-    {
-        c_len1 = len1;
-        c_len2 = len2;
-        c_len3 = len3;
-        c_len4 = len4;
-        c_data = new double[size()];
-        setToValue(initValue);
-    }
-    
-    //Copy constructor
-    PsiData(const PsiData &other)
-    {
-        c_len1=other.c_len1;
-        c_len2=other.c_len2;
-        c_len3=other.c_len3;
-        c_len4=other.c_len4;
-        c_data = new double[size()];
-        for (size_t i=0; i<size(); i++)
-            {c_data[i] = other.c_data[i];}
-    }
-
-    //Assignment Operator
-    PsiData & operator= (const PsiData &other) //= delete;
-    {
-        if (this != &other)
-        {
-            if (c_data != NULL) {
-               delete[] c_data;
-            }
-            c_len1=other.c_len1;
-            c_len2=other.c_len2;
-            c_len3=other.c_len3;
-            c_len4=other.c_len4;
-            c_data = new double[size()];
-            for (size_t i=0; i<size(); i++)
-                {c_data[i] = other.c_data[i];}
-
-        }    
-    }
-
-
-     //Destructor
-     ~PsiData()
-     {
-       if (c_data != NULL) {
-       delete[] c_data;
-       c_data = NULL;
-       }
-      }
-    
-    
-    void setToValue(double value)
-    {
-        if(c_data == NULL)
-            return;
-        
-        for(size_t i = 0; i < size(); i++) {
-            c_data[i] = value;
-        }
-    }
-
-
-// Private    
-private:
-    size_t c_len1, c_len2, c_len3, c_len4;
-    double *c_data;
-
-    // Compute the offset into the data array.
-    size_t index( size_t i, size_t j, size_t k, size_t l ) const
-    {
-        //Assert( i >= 0);
-        Assert( i < c_len1 );
-        //Assert( j >= 0);
-        Assert( j < c_len2 );
-        //Assert( k >= 0);
-        Assert( k < c_len3 );
-        //Assert( l >= 0);
-        Assert( l < c_len4 );
-        
-        return c_len1 * (c_len2 * (c_len3 * l + k) + j) + i;
-    }
-
-    // Make sure a bare integer index is within the appropriate range.
-    void check( size_t i ) const
-    {
-        UNUSED_VARIABLE(i);
-        //Assert( i >= 0 );
-        Assert( i < size() );
-    }
-};
-
 
 /*
-    PsiData2
+    PsiData
 
     g = group
     v = vertex
     a = angle
     c = cell
 */
-class PsiData2 {
+class PsiData {
 public:
     
     // Accessors
@@ -207,7 +96,7 @@ public:
 
 
     // Constructor
-    PsiData2(double initValue = 0.0)
+    PsiData(double initValue = 0.0)
     {
         c_ng = g_nGroups;
         c_nv = g_nVrtxPerCell;
@@ -218,7 +107,7 @@ public:
     }
     
     // Copy constructor
-    PsiData2(const PsiData2 &other)
+    PsiData(const PsiData &other)
     {
         c_ng = g_nGroups;
         c_nv = g_nVrtxPerCell;
@@ -231,7 +120,7 @@ public:
     }
 
     // Assignment Operator
-    PsiData2 & operator= (const PsiData2 &other)
+    PsiData & operator= (const PsiData &other)
     {
         if (this != &other) {
             if (c_data != NULL) {
@@ -251,7 +140,7 @@ public:
 
 
     //Destructor
-    ~PsiData2()
+    ~PsiData()
     {
         if (c_data != NULL) {
             delete[] c_data;
@@ -297,6 +186,139 @@ private:
         Assert( i < size() );
     }
 };
+
+
+/*
+    PsiBoundData
+
+    g = group
+    v = vertex
+    a = angle
+    s = side
+*/
+class PsiBoundData {
+public:
+    
+    // Accessors
+    double& operator()(size_t g, size_t v, size_t a, size_t s) 
+    {
+        return c_data[index(g,v,a,s)];
+    }
+    
+    const double& operator()(size_t g, size_t v, size_t a, size_t s) const 
+    {
+        return c_data[index(g,v,a,s)];
+    }
+    
+    double& operator[](size_t i)
+    {
+        check(i);
+        return c_data[i];
+    }
+
+    const double& operator[](size_t i) const
+    {
+        check(i);
+        return c_data[i];
+    }
+
+
+    // Size of data structure
+    size_t size() const { return c_ng * c_nv * c_na * c_ns; }
+
+
+    // Constructor
+    PsiBoundData(double initValue = 0.0)
+    {
+        c_ng = g_nGroups;
+        c_nv = g_nVrtxPerFace;
+        c_na = g_quadrature->getNumAngles();
+        c_ns = g_spTychoMesh->getNSides();
+        c_data = new double[size()];
+        setToValue(initValue);
+    }
+    
+    // Copy constructor
+    PsiBoundData(const PsiBoundData &other)
+    {
+        c_ng = g_nGroups;
+        c_nv = g_nVrtxPerFace;
+        c_na = g_quadrature->getNumAngles();
+        c_ns = g_spTychoMesh->getNSides();
+        c_data = new double[size()];
+        for (size_t i = 0; i < size(); i++) {
+            c_data[i] = other.c_data[i];
+        }
+    }
+
+    // Assignment Operator
+    PsiBoundData & operator= (const PsiBoundData &other)
+    {
+        if (this != &other) {
+            if (c_data != NULL) {
+               delete[] c_data;
+            }
+
+            c_ng = g_nGroups;
+            c_nv = g_nVrtxPerFace;
+            c_na = g_quadrature->getNumAngles();
+            c_ns = g_spTychoMesh->getNSides();
+            c_data = new double[size()];
+            for (size_t i = 0; i < size(); i++) {
+                c_data[i] = other.c_data[i];
+            }
+        }    
+    }
+
+
+    //Destructor
+    ~PsiBoundData()
+    {
+        if (c_data != NULL) {
+            delete[] c_data;
+            c_data = NULL;
+        }
+    }
+    
+    
+    // Set constant value
+    void setToValue(double value)
+    {
+        if(c_data == NULL)
+            return;
+        
+        for(size_t i = 0; i < size(); i++) {
+            c_data[i] = value;
+        }
+    }
+
+
+// Private    
+private:
+    size_t c_ng, c_nv, c_na, c_ns;
+    double *c_data;
+
+
+    // Compute the offset into the data array.
+    size_t index(size_t g, size_t v, size_t a, size_t s) const
+    {
+        Assert(g < c_ng);
+        Assert(v < c_nv);
+        Assert(a < c_na);
+        Assert(s < c_ns);
+        
+        return ((s * c_na + a) * c_nv + v) * c_ng + g;
+    }
+
+
+    // Make sure a bare integer index is within the appropriate range.
+    void check(size_t i) const
+    {
+        UNUSED_VARIABLE(i);     // Needed when Assert does nothing
+        Assert( i < size() );
+    }
+};
+
 
 
 

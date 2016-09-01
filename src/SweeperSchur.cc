@@ -68,14 +68,14 @@ static std::vector<UINT> s_adjRanks;
 static std::vector<std::vector<MetaData>> s_sendMetaData;
 static std::vector<UINT> s_numSendPackets;
 static std::vector<UINT> s_numRecvPackets; 
-static PsiData s_psi(g_nVrtxPerCell, 0, 0,g_nGroups);
-static PsiData s_psiBound(g_nVrtxPerCell, 0,0,g_nGroups);
+static PsiData s_psi;
+static PsiBoundData s_psiBound;
 static double s_sigmaTotal;
 static const bool doComm = false;
 static const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
 static int argc = 0;
 static char **args = NULL;
-static PsiData ZeroSource(0,0,0,0);
+static PsiData ZeroSource;
 static PetscInt VecSize = 0;
 
 
@@ -91,7 +91,7 @@ SweeperSchur::SweeperSchur(const double sigmaTotal)
 /*
    psiBoundToArray 
  */
-void psiBoundToArray(PetscScalar Array[], const PsiData &psiBound)
+void psiBoundToArray(PetscScalar Array[], const PsiBoundData &psiBound)
 {
     //Start an array index
     int ArrayIndex = 0;
@@ -109,7 +109,7 @@ void psiBoundToArray(PetscScalar Array[], const PsiData &psiBound)
             if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
                     Array[ArrayIndex] = 
-                        psiBound(g_spTychoMesh->getSide(cell,face), angle, fvrtx, group);
+                        psiBound(group, fvrtx, angle, g_spTychoMesh->getSide(cell,face));
                     ArrayIndex++;
                 }
             }
@@ -121,7 +121,7 @@ void psiBoundToArray(PetscScalar Array[], const PsiData &psiBound)
 /*
    arrayToPsiBound
  */
-void arrayToPsiBound(const PetscScalar Array[], PsiData &psiBound)
+void arrayToPsiBound(const PetscScalar Array[], PsiBoundData &psiBound)
 {
     //Start an array index
     int ArrayIndex = 0;
@@ -138,7 +138,7 @@ void arrayToPsiBound(const PetscScalar Array[], PsiData &psiBound)
             // In local mesh
             if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    psiBound(g_spTychoMesh->getSide(cell,face), angle, fvrtx, group) = Array[ArrayIndex];
+                    psiBound(group, fvrtx, angle, g_spTychoMesh->getSide(cell,face)) = Array[ArrayIndex];
                     ArrayIndex++;
                 }
             }
@@ -246,9 +246,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     
        
     //Set initial guess for psiBound
-    PsiData psiBound(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
-                     g_nVrtxPerFace, g_nGroups);  
-        
+    PsiBoundData psiBound;  
     psiBound.setToValue(0.0);
  
     //Put old psi values into PsiBound as a guess
@@ -263,15 +261,14 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
             // In local mesh
      //       if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
       //          for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-      //              psiBound(g_spTychoMesh->getSide(cell,face), angle, fvrtx, group) = psi(g_spTychoMesh->getFaceToCellVrtx(cell,face,fvrtx), angle, cell, group);
+      //              psiBound(group, fvrtx, angle, g_spTychoMesh->getSide(cell,face)) = psi(group, g_spTychoMesh->getFaceToCellVrtx(cell,face,fvrtx), angle, cell);
         //        }
         //    }
        // }
    // }}}}
      
 
-    PsiData zeroPsiBound(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
-                     g_nVrtxPerFace, g_nGroups);   
+    PsiBoundData zeroPsiBound;   
 
 
     //Get adjacent ranks
@@ -386,7 +383,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
 
     //Do a sweep on the source 
     PsiData sourceCopy = source;//I think this is unnecessary, can just use psi
-    SweepData2 sourceData(sourceCopy, source, zeroPsiBound, c_sigmaTotal);
+    SweepData2 sourceData;
     if (rank==0){
         printf("    Sweeping Source\n");
     }

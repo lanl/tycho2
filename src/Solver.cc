@@ -78,7 +78,7 @@ static const double cubeSize = 100.0;
 //         
 //         double e = exp(-(x*x + y*y + z*z) / (2.0 * L));
 //         
-//         source(vrtx, angle, cell, group) = 
+//         source(group, vrtx, angle, cell) = 
 //             - (x * xi * e / L) - (y * eta * e / L) - (z * mu * e / L)
 //             + (sigmaT - sigmaS) * e;
 //     }}}}
@@ -89,7 +89,7 @@ static const double cubeSize = 100.0;
     hatSource
 */
 static
-void hatSource(const double sigmaT, const double sigmaS, PsiData2 &source)
+void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
 {
     for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
@@ -143,7 +143,7 @@ void hatSource(const double sigmaT, const double sigmaS, PsiData2 &source)
 //             x += g_spTychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
 //             y += g_spTychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
 //             z += g_spTychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
-//             psiVal += psi(vrtx, angle, cell, group);
+//             psiVal += psi(group, vrtx, angle, cell);
 //         }
 //         
 //         x = x / g_nVrtxPerCell;
@@ -184,7 +184,7 @@ double hatL2Error(const PsiData &psi)
             x += g_spTychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
             y += g_spTychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
             z += g_spTychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
-            psiVal += psi(vrtx, angle, cell, group);
+            psiVal += psi(group, vrtx, angle, cell);
         }
         
         x = x / g_nVrtxPerCell;
@@ -224,13 +224,13 @@ double diffBetweenGroups(const PsiData &psi)
     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
     for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
         
-        double psi0 = psi(vrtx, angle, cell, 0);
+        double psi0 = psi(0, vrtx, angle, cell);
         
         if(fabs(psi0) > maxEntry)
             maxEntry = psi0;
         
         for(UINT group = 1; group < g_nGroups; group++) {
-            double psi1 = psi(vrtx, angle, cell, group);
+            double psi1 = psi(group, vrtx, angle, cell);
             if (fabs(psi0 - psi1) > maxDiff)
                 maxDiff = fabs(psi0 - psi1);
         }
@@ -255,7 +255,7 @@ double calcMass(const PsiData &psi)
         for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
             double localMass = 0.0;
             for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-                localMass += psi(vrtx, angle, cell, 0) * g_quadrature->getWt(angle);
+                localMass += psi(0, vrtx, angle, cell) * g_quadrature->getWt(angle);
             }
             sumVrtxMass += localMass;
         }
@@ -282,7 +282,7 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
         phi(vertex, cell, group) +=
-            psi(vertex, angle, cell, group) * g_quadrature->getWt(angle);
+            psi(group, vertex, angle, cell) * g_quadrature->getWt(angle);
     }}}}
 }
 
@@ -291,7 +291,7 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
     calcScatterSource
 */
 static
-void calcScatterSource(PsiData2 &scatSource, const PhiData &phiOld) 
+void calcScatterSource(PsiData &scatSource, const PhiData &phiOld) 
 {
     #pragma omp parallel for
     for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
@@ -339,35 +339,27 @@ namespace Solver
 void solve(const UINT iterMax, const double errMax)
 {
     // Data for problem
-    PsiData2 fixedSource;//g_nGroups, g_nVrtxPerCell, 
-                         //g_quadrature->getNumAngles(), 
-                         //g_spTychoMesh->getNCells());
-    PsiData2 scatSource;//(g_nVrtxPerCell,  g_quadrature->getNumAngles(), 
-                       //g_spTychoMesh->getNCells(), g_nGroups);
-    PsiData totalSource(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
-                        g_spTychoMesh->getNCells(), g_nGroups);
-    
-    PsiData psi(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
-                g_spTychoMesh->getNCells(), g_nGroups);
+    PsiData fixedSource;
+    PsiData scatSource;
+    PsiData totalSource;
+    PsiData psi;
     
     PhiData phiNew(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
     PhiData phiOld(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
     
+    
+    // Calculate fixed source
     hatSource(g_sigmaTotal, g_sigmaScat, fixedSource);
-    //double mass = calcMass(fixedSource);
-    //if(Comm::rank() == 0) {
-    //    printf("Mass of Q: %e\n", mass);
-    //}
     
     
-    // Volume of cube
+    // Volume of mesh
     double volume = 0.0;
     for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
         volume += g_spTychoMesh->getCellVolume(cell);
     }
     Comm::gsum(volume);
     if(Comm::rank() == 0) {
-        printf("Volume of cube: %e\n", volume);
+        printf("Volume of mesh: %e\n", volume);
     }
     
     
@@ -379,6 +371,7 @@ void solve(const UINT iterMax, const double errMax)
         sweeperPBJ = new SweeperPBJ(g_sigmaTotal);
     }
 
+
     // Solver 2 class
     Sweeper2 *sweeper2 = NULL;
     if (g_sweepType == SweepType_TraverseGraph) {
@@ -387,6 +380,7 @@ void solve(const UINT iterMax, const double errMax)
         sweeper2 = new Sweeper2(g_maxCellsPerStep,
                                 g_intraAngleP, g_interAngleP, g_sigmaTotal);
     }
+
 
     #if USE_PETSC
     //Solver Schur class
@@ -398,6 +392,7 @@ void solve(const UINT iterMax, const double errMax)
     }
     #endif
     
+
     // Source iteration
     UINT iter = 0;
     double error = 1.0;
@@ -409,28 +404,24 @@ void solve(const UINT iterMax, const double errMax)
         double wallClockTime = 0.0;
         double clockTime2 = 0.0;
         double clockTime3 = 0.0;
-        //double clockTime4 = 0.0;
         timer.start();
+        
 
+        // phiOld = phiNew
         for(UINT i = 0; i < phiOld.size(); i++) {
             phiOld[i] = phiNew[i];
         }
 
+        
         // Need to update fixed source with scattering source here
         timer2.start();
         calcScatterSource(scatSource, phiOld);
+        
         #pragma omp parallel for
-        //for(UINT i = 0; i < totalSource.size(); i++) {
-        for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-        for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-        for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-        for (UINT group = 0; group < g_nGroups; ++group) {
-            totalSource(vertex, angle, cell, group) = 
-                fixedSource(group, vertex, angle, cell) + 
-                scatSource(group, vertex, angle, cell);
-            //totalSource[i] = fixedSource[i] + scatSource[i];
-        }}}}
-        //}
+        for(UINT i = 0; i < totalSource.size(); i++) {
+            totalSource[i] = fixedSource[i] + scatSource[i];
+        }
+        
         timer2.stop();
         clockTime2 = timer2.wall_clock();
         Comm::gmax(clockTime2);
@@ -438,6 +429,7 @@ void solve(const UINT iterMax, const double errMax)
             printf("\n   Source time: %f\n", clockTime2);
         }
 
+        
         // Sweep
         switch (g_sweepType) {
             case SweepType_OriginalTycho1:
@@ -460,7 +452,8 @@ void solve(const UINT iterMax, const double errMax)
                 break;
         }
         
-        // Need to incorporate convergence tests here to iterate as necessary
+        
+        // Calculate L_inf relative error for phi
         timer3.start();
         psiToPhi(phiNew, psi);
         error = 0.0;
@@ -476,6 +469,8 @@ void solve(const UINT iterMax, const double errMax)
             printf("   psiToPhi Time: %f\n", clockTime3);
         }
         
+
+        // Print iteration stats
         timer.stop();
         wallClockTime = timer.wall_clock();
         Comm::gmax(wallClockTime);
@@ -484,8 +479,13 @@ void solve(const UINT iterMax, const double errMax)
                    iter, error, wallClockTime);
         }
         
+
+        // Increment iteration
         ++iter;
     }
+
+
+    // Time total solve
     innerTimer.stop();
     double clockTime = innerTimer.wall_clock();
     Comm::gmax(clockTime);

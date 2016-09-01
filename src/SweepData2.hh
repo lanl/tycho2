@@ -69,7 +69,7 @@ public:
     /*
         Constructor
     */
-    SweepData2(PsiData &psi, const PsiData &source, PsiData &psiBound, 
+    SweepData2(PsiData &psi, const PsiData &source, PsiBoundData &psiBound, 
               const double sigmaTotal)
     : c_psi(psi), c_psiBound(psiBound), 
       c_source(source), c_sigmaTotal(sigmaTotal),
@@ -92,7 +92,7 @@ public:
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
             UINT vrtx = g_spTychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
-            localFaceData(fvrtx, group) = c_psi(vrtx, angle, cell, group);
+            localFaceData(fvrtx, group) = c_psi(group, vrtx, angle, cell);
         }}
         
         return (char*) (&localFaceData[0]);
@@ -119,14 +119,14 @@ public:
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            c_psiBound(side, angle, fvrtx, group) = localFaceData(fvrtx, group);
+            c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
         }}
     }
     
     /*
         getSideData
     */
-    PsiData getSideData()
+    PsiBoundData getSideData()
     {return c_psiBound;};
     
 
@@ -164,7 +164,7 @@ public:
         // Populate localSource
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            localSource(vrtx, group) = c_source(vrtx, angle, cell, group);
+            localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
         }}
         
         
@@ -181,13 +181,13 @@ public:
         // localPsi -> psi
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            c_psi(vrtx, angle, cell, group) = localPsi(vrtx, group);
+            c_psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
         }}
     }
     
 private:
     PsiData &c_psi;
-    PsiData &c_psiBound;
+    PsiBoundData &c_psiBound;
     const PsiData &c_source;
     const double c_sigmaTotal;
     std::vector<Mat2<double>> c_localFaceData;

@@ -9,15 +9,23 @@ intraAngleP     3
 interAngleP     1
 nGroups         2
 sigmaTotal      10
-sigmaScat       5     #sigmaScat < sigmaTotal
+sigmaScat       5     # sigmaScat < sigmaTotal
 
 
-# Types: OriginalTycho1, OriginalTycho2, TraverseGraph, PBJ, Schur
-SweepType PBJ
+# Sweep Types: TraverseGraph is the flagship sweep type
+#SweepType OriginalTycho1
+#SweepType OriginalTycho2
+SweepType TraverseGraph
+#SweepType PBJ
+#SweepType Schur
 
-# Gaussian Elimination Types
+
+# Gaussian Elimination Types: NoPivot seems to be best
 # Original:    Uses pivoting
 # NoPivot:     No pivoting
 # CramerGlu:   Use Cramer's rule to invert (algorithm from OpenGL library)
 # CramerIntel: User Cramer's rule to invert (algorithm found from Intel blog)
+#GaussElim Original
 GaussElim NoPivot
+#GaussElim CramerGlu
+#GaussElim CramerIntel

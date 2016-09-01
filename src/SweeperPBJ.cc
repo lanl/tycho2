@@ -70,7 +70,7 @@ public:
     /*
         Constructor
     */
-    SweepDataPBJ(PsiData &psi, const PsiData &source, PsiData &psiBound, 
+    SweepDataPBJ(PsiData &psi, const PsiData &source, PsiBoundData &psiBound, 
               const double sigmaTotal)
     : c_psi(psi), c_psiBound(psiBound), 
       c_source(source), c_sigmaTotal(sigmaTotal),
@@ -94,7 +94,7 @@ public:
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
             UINT vrtx = g_spTychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
-            localFaceData(fvrtx, group) = c_psi(vrtx, angle, cell, group);
+            localFaceData(fvrtx, group) = c_psi(group, vrtx, angle, cell);
         }}
         
         return (char*) (&localFaceData[0]);
@@ -121,7 +121,7 @@ public:
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            c_psiBound(side, angle, fvrtx, group) = localFaceData(fvrtx, group);
+            c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
         }}
     }
     
@@ -160,7 +160,7 @@ public:
         // Populate localSource
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            localSource(vrtx, group) = c_source(vrtx, angle, cell, group);
+            localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
         }}
         
         
@@ -177,13 +177,13 @@ public:
         // localPsi -> psi
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            c_psi(vrtx, angle, cell, group) = localPsi(vrtx, group);
+            c_psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
         }}
     }
     
 private:
     PsiData &c_psi;
-    PsiData &c_psiBound;
+    PsiBoundData &c_psiBound;
     const PsiData &c_source;
     const double c_sigmaTotal;
     vector<Mat2<double>> c_localFaceData;
@@ -212,21 +212,15 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     
     // Set initial guess for psiBound
-    PsiData psiBound(g_spTychoMesh->getNSides(), g_quadrature->getNumAngles(), 
-                     g_nVrtxPerFace, g_nGroups);
+    PsiBoundData psiBound;
     psiBound.setToValue(0.0);  // Change to something more reasonable.
     
     
     // Set psi0
-    PsiData psi0(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
-                 g_spTychoMesh->getNCells(), g_nGroups);
-    
-    for (UINT group = 0; group < g_nGroups; ++group) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-        psi0(vertex, angle, cell, group) = psi(vertex, angle, cell, group);
-    }}}}
+    PsiData psi0;
+    for (UINT i = 0; i < psi.size(); i++) {
+        psi0[i] = psi[i];
+    }
     
     
     // Create SweepData for traversal
@@ -298,18 +292,12 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         // Check tolerance and set psi0 = psi1
         double errL1 = 0.0;
         double normL1 = 0.0;
-        for (UINT group = 0; group < g_nGroups; ++group) {
-        for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
-        for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-        for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-            double p0 = psi0(vertex, angle, cell, group);
-            double p1 = psi(vertex, angle, cell, group);
-             
-            errL1  += fabs(p0 - p1);
-            normL1 += fabs(p1);
+        for (UINT i = 0; i < psi.size(); i++) {
+            errL1  += fabs(psi0[i] - psi[i]);
+            normL1 += fabs(psi[i]);
             
-            psi0(vertex, angle, cell, group) = p1;
-        }}}}
+            psi0[i] = psi[i];
+        }
         
         Comm::gsum(errL1);
         Comm::gsum(normL1);
