@@ -1,14 +1,9 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- * \file   PsiData.hh
- * \author Kris Garrett
- * \date   December 2015
- * \brief  Class for data for psi.  Want the ability to change order of data
- *         data structures.
+/*
+    PsiData.hh
+    
+    Class for data for psi.  Want the ability to change order of data
+    data structures.
  */
-//---------------------------------------------------------------------------//
-// $Id: Mat.hh,v 1.17 2003/03/14 19:55:03 tme Exp $
-//---------------------------------------------------------------------------//
 
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC

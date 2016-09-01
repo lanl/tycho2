@@ -377,7 +377,8 @@ void KeyValueReader::getString(const std::string &key, std::string &value) const
     // Find value from key
     keyIndex = findKey(c_data->c_keyVector, key);
     if (keyIndex == KEY_NOT_FOUND) {
-    	c_data->printMessage("Key not found");
+        string errorMsg = string("Key not found: ") + key;
+    	c_data->printMessage(errorMsg);
     	throw ExceptionKeyNotFound;
     }
     

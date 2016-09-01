@@ -68,7 +68,7 @@ void calcLocalSource(const UINT cell,
 {
     double volume = g_spTychoMesh->getCellVolume(cell);
     
-    #pragma ivdep
+    #pragma omp simd
     for (UINT group = 0; group < g_nGroups; group++) {
         double q0 = localSource(0, group);
         double q1 = localSource(1, group);
@@ -119,7 +119,7 @@ void faceDependence(const UINT cell, const UINT angle,
                     double matrix[g_nVrtxPerCell][g_nVrtxPerCell])
 {
     double area[4];
-    UINT cellToFaceVrtx[4][4];
+    //UINT cellToFaceVrtx[4][4];
     UINT indices[4][3];
     
     
@@ -131,11 +131,11 @@ void faceDependence(const UINT cell, const UINT angle,
     
     
     // Populate cellToFaceVrtx
-    for(UINT face = 0; face < 4; face++) {
+    /*for(UINT face = 0; face < 4; face++) {
     for(UINT col = 0; col < 4; col++) {
         if(face != col)
             cellToFaceVrtx[face][col] = g_spTychoMesh->getCellToFaceVrtx(cell, face, col);
-    }}
+    }}*/
     
     
     // Populate indices
@@ -688,7 +688,7 @@ void populateLocalPsiBound(const UINT angle, const UINT cell,
         localPsiBound[i] = 0.0;
     
     // Populate if incoming flux
-    #pragma ivdep
+    #pragma omp simd
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         if (g_spTychoMesh->isIncoming(angle, cell, face)) {
