@@ -47,7 +47,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TraverseGraph.hh"
 #include "Priorities.hh"
 #include "Transport.hh"
-#include "PsiData.hh"
 #include "Comm.hh"
 #include <omp.h>
 #include <vector>

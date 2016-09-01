@@ -89,7 +89,7 @@ static const double cubeSize = 100.0;
     hatSource
 */
 static
-void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
+void hatSource(const double sigmaT, const double sigmaS, PsiData2 &source)
 {
     for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
@@ -108,12 +108,12 @@ void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
         
         for(UINT group = 0; group < g_nGroups; group++) {
             if(c <= 30.0) {
-                source(vrtx, angle, cell, group) = 
+                source(group, vrtx, angle, cell) = 
                     - x / (30.0*c) * xi - y / (30.0*c) * eta - z / (30.0*c) * mu
                     + (sigmaT - sigmaS) * (1.0 - c / 30.0);
             }
             else {
-                source(vrtx, angle, cell, group) = 0.0;
+                source(group, vrtx, angle, cell) = 0.0;
             }
         }
     }}}
@@ -291,16 +291,14 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
     calcScatterSource
 */
 static
-void calcScatterSource(PsiData &scatSource, const PhiData &phiOld) 
+void calcScatterSource(PsiData2 &scatSource, const PhiData &phiOld) 
 {
-    //for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     #pragma omp parallel for
     for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
-        // need to loop over moments in the future
-        scatSource(vertex, angle, cell, group) =
+        scatSource(group, vertex, angle, cell) =
             g_sigmaScat / (4.0 * M_PI) *  phiOld(vertex, cell, group);
     }}}}
 }
@@ -341,10 +339,11 @@ namespace Solver
 void solve(const UINT iterMax, const double errMax)
 {
     // Data for problem
-    PsiData fixedSource(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
-                        g_spTychoMesh->getNCells(), g_nGroups);
-    PsiData scatSource(g_nVrtxPerCell,  g_quadrature->getNumAngles(), 
-                       g_spTychoMesh->getNCells(), g_nGroups);
+    PsiData2 fixedSource;//g_nGroups, g_nVrtxPerCell, 
+                         //g_quadrature->getNumAngles(), 
+                         //g_spTychoMesh->getNCells());
+    PsiData2 scatSource;//(g_nVrtxPerCell,  g_quadrature->getNumAngles(), 
+                       //g_spTychoMesh->getNCells(), g_nGroups);
     PsiData totalSource(g_nVrtxPerCell, g_quadrature->getNumAngles(), 
                         g_spTychoMesh->getNCells(), g_nGroups);
     
@@ -355,10 +354,10 @@ void solve(const UINT iterMax, const double errMax)
     PhiData phiOld(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
     
     hatSource(g_sigmaTotal, g_sigmaScat, fixedSource);
-    double mass = calcMass(fixedSource);
-    if(Comm::rank() == 0) {
-        printf("Mass of Q: %e\n", mass);
-    }
+    //double mass = calcMass(fixedSource);
+    //if(Comm::rank() == 0) {
+    //    printf("Mass of Q: %e\n", mass);
+    //}
     
     
     // Volume of cube
@@ -421,9 +420,17 @@ void solve(const UINT iterMax, const double errMax)
         timer2.start();
         calcScatterSource(scatSource, phiOld);
         #pragma omp parallel for
-        for(UINT i = 0; i < totalSource.size(); i++) {
-            totalSource[i] = fixedSource[i] + scatSource[i];
-        }
+        //for(UINT i = 0; i < totalSource.size(); i++) {
+        for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+        for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+        for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+        for (UINT group = 0; group < g_nGroups; ++group) {
+            totalSource(vertex, angle, cell, group) = 
+                fixedSource(group, vertex, angle, cell) + 
+                scatSource(group, vertex, angle, cell);
+            //totalSource[i] = fixedSource[i] + scatSource[i];
+        }}}}
+        //}
         timer2.stop();
         clockTime2 = timer2.wall_clock();
         Comm::gmax(clockTime2);
@@ -491,7 +498,7 @@ void solve(const UINT iterMax, const double errMax)
     
     
     // Print tests 
-    mass = calcMass(psi);
+    double mass = calcMass(psi);
     double psiError = hatL2Error(psi);
     double diffGroups = diffBetweenGroups(psi);
     if(Comm::rank() == 0) {
