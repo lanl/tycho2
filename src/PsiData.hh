@@ -53,7 +53,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Global.hh"
 #include "Quadrature.hh"
 #include "TychoMesh.hh"
-#include <stddef.h>
+#include <string>
 
 
 /*
@@ -159,6 +159,10 @@ public:
             c_data[i] = value;
         }
     }
+
+
+    // Write to file
+    void writeToFile(const std::string &filename);
 
 
 // Private    

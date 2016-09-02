@@ -184,6 +184,21 @@ void gmax(UINT &x)
 }
 
 
+/*
+    exscan
+    
+    Performs an exclusive scan across all ranks.
+*/
+UINT exscan(UINT x)
+{
+    UINT send = x;
+    UINT recv = 0;
+    int result = MPI_Exscan(&send, &recv, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+    Insist(result == MPI_SUCCESS, "Comm::exscan MPI error.\n");
+    return recv;
+}
+
+
 /*!
     \brief Blocking send of a single integer value.
 */
@@ -354,8 +369,10 @@ void barrier()
 }
 
 
-/*!
-    \brief Open file for MPI-IO.
+/*
+    openFileForRead
+
+    Open MPI file to be read in parallel.
 */
 void openFileForRead(const std::string &filename, MPI_File &file)
 {
@@ -366,8 +383,41 @@ void openFileForRead(const std::string &filename, MPI_File &file)
 }
 
 
-/*!
-    \brief Close file for MPI-IO.
+/*
+    openFileForWrite
+
+    Open MPI file to write in parallel.
+*/
+void openFileForWrite(const std::string &filename, MPI_File &file)
+{
+    char *filename1 = const_cast<char*>(filename.c_str());
+    int result;
+    
+    // Try to open file
+    // If file exists this will fail and we have to delete the file and open again.
+    result = MPI_File_open(MPI_COMM_WORLD, filename1, 
+                           MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_EXCL, 
+                           MPI_INFO_NULL, &file);
+    if (result == MPI_SUCCESS) {
+        return;
+    }
+
+    if (Comm::rank() == 0) {
+        result = MPI_File_delete(filename1, MPI_INFO_NULL);
+        Insist(result == MPI_SUCCESS, "Comm::openFileForWrite MPI error (delete).\n");
+    }
+    
+    result = MPI_File_open(MPI_COMM_WORLD, filename1, 
+                           MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_EXCL, 
+                           MPI_INFO_NULL, &file);
+    Insist(result == MPI_SUCCESS, "Comm::openFileForWrite MPI error (open).\n");
+}
+
+
+/*
+    closeFile
+    
+    Close file for MPI-IO.
 */
 void closeFile(MPI_File &file)
 {
@@ -376,8 +426,10 @@ void closeFile(MPI_File &file)
 }
 
 
-/*!
-    \brief Seek to file position.
+/*
+    seek
+    
+    Seek to file position.
 */
 void seek(const MPI_File &file, uint64_t position)
 {
@@ -387,8 +439,10 @@ void seek(const MPI_File &file, uint64_t position)
 }
 
 
-/*!
-    \brief Read a uint64_t from file.
+/*
+    readUint64
+    
+    Read a uint64_t from file.
 */
 void readUint64(const MPI_File &file, uint64_t &data)
 {
@@ -398,8 +452,10 @@ void readUint64(const MPI_File &file, uint64_t &data)
 }
 
 
-/*!
-    \brief Read an array of uint64_t elements.
+/*
+    readUint64
+    
+    Read an array of uint64_t elements.
 */
 void readUint64(const MPI_File &file, uint64_t *data, int numData)
 {
@@ -409,8 +465,10 @@ void readUint64(const MPI_File &file, uint64_t *data, int numData)
 }
 
 
-/*!
-    \brief Read an array of char elements.
+/*
+    readChars
+    
+    Read an array of char elements.
 */
 void readChars(const MPI_File &file, char *data, int numData)
 {
@@ -418,6 +476,20 @@ void readChars(const MPI_File &file, char *data, int numData)
                                MPI_STATUS_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::readSizeT[] MPI error.\n");
 }
+
+
+/*
+    writeDoubleAt
+
+    Writes an array of doubles to specified location in file.
+*/
+void writeDoublesAt(const MPI_File &file, UINT offset, double *data, UINT numData)
+{
+    int result = MPI_File_write_at(file, offset * 8, data, numData, MPI_DOUBLE, 
+                                   MPI_STATUS_IGNORE);
+    Insist(result == MPI_SUCCESS, "Comm::writeDoublesAt MPI error.\n");
+}
+
 
 
 

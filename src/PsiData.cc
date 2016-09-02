@@ -1,5 +1,7 @@
 /*
-    Comm.hh
+    PsiData.cc
+
+    Implements writing psi to a file in parallel.
 */
 
 /*
@@ -41,60 +43,69 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __COMM_HH__
-#define __COMM_HH__
 
-#include "Typedef.hh"
-#include <mpi.h>
-#include <vector>
-#include <string>
+#include "PsiData.hh"
+#include "Comm.hh"
 
-namespace Comm
+
+/*
+    writeToFile
+
+    Writes psi to a file in parallel.
+
+    Data Format:
+    char[32]: "Tycho 2 Psi Output" (zeros for any trailing characters
+    uint64_t: version
+    uint64_t: number of cells
+    uint64_t: number of angles
+    uint64_t: number of energy groups
+    double[]: psi(group, vrtx, angle, cells)
+*/
+void PsiData::writeToFile(const std::string &filename)
 {
+    MPI_File file;
+    uint64_t numCellsBefore;
+    uint64_t offset;
+    char outputName[32] = {
+        'T', 'y', 'c', 'h', 'o', ' ', '2', ' ', 'P', 's', 'i', ' ', 
+        'O', 'u', 't', 'p', 'u', 't', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+    uint64_t restOfHeader[4];
 
-int rank();
-int rank(MPI_Comm comm);
-int numRanks();
 
-void gsum(double &x);
-void gsum(int &x);
-void gsum(UINT &x);
-void gmax(double &x);
-void gmax(double &x, MPI_Comm comm);
-void gmax(int &x);
-void gmax(UINT &x);
-UINT exscan(UINT x);
+    // Fill in rest of header
+    // version, number of cells, number of angles, and number of group
+    restOfHeader[0] = 1;
+    restOfHeader[1] = c_nc;
+    Comm::gsum(restOfHeader[1]);
+    restOfHeader[2] = c_na;
+    restOfHeader[3] = c_ng;
 
-void sendInt(int i, int destination);
-void sendUInt(UINT i, int destination);
-void sendIntVector(const std::vector<int> &buffer, int destination);
-void sendUIntVector(const std::vector<UINT> &buffer, int destination);
-void iSendIntVector(const std::vector<int> &buffer, int destination, int tag, 
-                    MPI_Request &request);
-void iSendUIntVector(const std::vector<UINT> &buffer, int destination, int tag, 
-                     MPI_Request &request);
-void iSendDoubleVector(const std::vector<double> &buffer, int destination, int tag, 
-                       MPI_Request &request);
 
-void recvInt(int &i, int destination);
-void recvUInt(UINT &i, int destination);
-void recvIntVector(std::vector<int> &buffer, int destination);
-void recvUIntVector(std::vector<UINT> &buffer, int destination);
-void recvIntVector(std::vector<int> &buffer, int destination, int tag);
-void recvUIntVector(std::vector<UINT> &buffer, int destination, int tag);
-void recvDoubleVector(std::vector<double> &buffer, int destination, int tag);
+    // Get number of cells before this MPI rank
+    numCellsBefore = Comm::exscan(c_nc);
 
-void barrier();
 
-void openFileForRead(const std::string &filename, MPI_File &file);
-void openFileForWrite(const std::string &filename, MPI_File &file);
-void closeFile(MPI_File &file);
-void seek(const MPI_File &file, uint64_t position);
-void readUint64(const MPI_File &file, uint64_t &data);
-void readUint64(const MPI_File &file, uint64_t *data, int numData);
-void readChars(const MPI_File &file, char *data, int numData);
-void writeDoublesAt(const MPI_File &file, UINT offset, double *data, UINT numData);
+    // Calculate offset for write
+    // offset is in units of 64 bits
+    // header is 8 offset
+    // rest of the offset is 
+    //     number of cells before times size of data for each cell
+    offset = 8 + numCellsBefore * c_na * c_ng * c_nv;
+    
+    
+    // Write data
+    Comm::openFileForWrite(filename, file);
 
-} // End namespace
+    if (Comm::rank() == 0) {
+        double header[8];
+        memcpy(header, outputName, 4 * sizeof(double));
+        memcpy(&header[4], restOfHeader, 4 * sizeof(double));
+        Comm::writeDoublesAt(file, 0, header, 8);
+    }
 
-#endif
+    Comm::writeDoublesAt(file, offset, c_data, this->size());
+    Comm::closeFile(file);
+}
+
+

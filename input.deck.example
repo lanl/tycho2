@@ -10,6 +10,8 @@ interAngleP     1
 nGroups         2
 sigmaTotal      10
 sigmaScat       5     # sigmaScat < sigmaTotal
+OutputFile      false
+OutputFilename  out.psi
 
 
 # Sweep Types: TraverseGraph is the flagship sweep type

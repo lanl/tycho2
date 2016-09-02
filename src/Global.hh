@@ -48,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SweepSchedule.hh"
 #include "Quadrature.hh"
 #include "Typedef.hh"
+#include <string>
 
 #ifdef NO_EXTERN
 #define EXTERN
@@ -93,6 +94,8 @@ EXTERN TychoMesh *g_spTychoMesh;
 EXTERN SweepSchedule **g_spSweepSchedule;
 EXTERN Quadrature *g_quadrature;
 EXTERN GaussElim g_gaussElim;
+EXTERN bool g_outputFile;
+EXTERN std::string g_outputFilename;
 
 #endif
 

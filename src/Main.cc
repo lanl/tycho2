@@ -144,6 +144,8 @@ void readInput(const string &inputFileName)
     kvr.getInt("nGroups", nGroups);
     kvr.getDouble("sigmaTotal", g_sigmaTotal);
     kvr.getDouble("sigmaScat", g_sigmaScat);
+    kvr.getBool("OutputFile", g_outputFile);
+    kvr.getString("OutputFilename", g_outputFilename);
        
     g_snOrder = snOrder;
     g_iterMax = iterMax;

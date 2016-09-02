@@ -506,6 +506,11 @@ void solve(const UINT iterMax, const double errMax)
         printf("L2 Relative Error: %e\n", psiError);
         printf("Diff between groups: %e\n", diffGroups);
     }
+
+    
+    // Output psi to file
+    if(g_outputFile)
+        psi.writeToFile(g_outputFilename);
 }
 
 }//End namespace Solver
