@@ -1,14 +1,3 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- * \file   mesh/TychoMeshIO.cc
- * \author Kris Garrett
- * \date   Mon Nov 9 2015
- * \brief  \link rtt_mesh::TychoMeshIO TychoMeshIO \endlink IO for TychoMesh
- */
-//---------------------------------------------------------------------------//
-// $Id: TychoMeshIO.cc,v 1.6 2000/04/06 21:45:16 pautz Exp $
-//---------------------------------------------------------------------------//
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -172,6 +161,13 @@ void TychoMesh::readTychoMesh(const std::string &filename)
         c_nodeCoords(node, 0) = partData.nodeData[node].coords[0];
         c_nodeCoords(node, 1) = partData.nodeData[node].coords[1];
         c_nodeCoords(node, 2) = partData.nodeData[node].coords[2];
+    }
+
+
+    // c_lGCells
+    c_lGCells = Mat1<UINT>(c_nCells);
+    for (UINT cell = 0; cell < c_nCells; cell++) {
+        c_lGCells(cell) = partData.cellData[cell].globalID;
     }
     
     

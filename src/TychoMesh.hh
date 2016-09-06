@@ -1,14 +1,3 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- * \file   mesh/TychoMesh.hh
- * \author Shawn Pautz
- * \date   Fri Jan 14 16:21:46 2000
- * \brief  TychoMesh class header file.
- */
-//---------------------------------------------------------------------------//
-// $Id: TychoMesh.hh,v 1.7 2000/04/06 21:45:16 pautz Exp $
-//---------------------------------------------------------------------------//
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -100,6 +89,8 @@ public:
         { return c_lGSides(side); }
     UINT getGLSide(const UINT side) const
         { return c_gLSides.find(side)->second; }
+    UINT getLGCell(const UINT cell) const
+        { return c_lGCells(cell); }
     UINT getAdjRank(const UINT cell, const UINT face) const
         { return c_adjProc(cell, face); }
     UINT getFaceToCellVrtx(const UINT cell, const UINT face, const UINT fvrtx) const
@@ -147,6 +138,7 @@ private:
     Mat1<UINT> c_sideCell; // side -> cell
     Mat2<UINT> c_side; // (cell, face) -> side
     Mat1<UINT> c_lGSides; // local to global side numbering.
+    Mat1<UINT> c_lGCells; // local to global side numbering.
     std::map<UINT, UINT> c_gLSides; // global to local side numbering.
     Mat2<UINT> c_adjProc; // (cell, face) -> adjacent proc
     Mat3<double> c_omegaDotN; // (angle, cell, face) -> omega dot n

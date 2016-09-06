@@ -1,10 +1,4 @@
 /*
-    PsiData.cc
-
-    Implements writing psi to a file in parallel.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -55,17 +49,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
     Data Format:
     char[32]: "Tycho 2 Psi Output" (zeros for any trailing characters
-    uint64_t: version
+    uint64_t: version of file format
     uint64_t: number of cells
     uint64_t: number of angles
     uint64_t: number of energy groups
-    double[]: psi(group, vrtx, angle, cells)
+    CellData[]: array of cell data
+
+    CellData Format:
+    double[]: psi(:, :, :, global cell index)
 */
 void PsiData::writeToFile(const std::string &filename)
 {
     MPI_File file;
-    uint64_t numCellsBefore;
-    uint64_t offset;
     char outputName[32] = {
         'T', 'y', 'c', 'h', 'o', ' ', '2', ' ', 'P', 's', 'i', ' ', 
         'O', 'u', 't', 'p', 'u', 't', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
@@ -82,21 +77,11 @@ void PsiData::writeToFile(const std::string &filename)
     restOfHeader[3] = c_ng;
 
 
-    // Get number of cells before this MPI rank
-    numCellsBefore = Comm::exscan(c_nc);
-
-
-    // Calculate offset for write
-    // offset is in units of 64 bits
-    // header is 8 offset
-    // rest of the offset is 
-    //     number of cells before times size of data for each cell
-    offset = 8 + numCellsBefore * c_na * c_ng * c_nv;
-    
-    
-    // Write data
+    // Open file
     Comm::openFileForWrite(filename, file);
+    
 
+    // If rank 0, write header data
     if (Comm::rank() == 0) {
         double header[8];
         memcpy(header, outputName, 4 * sizeof(double));
@@ -104,7 +89,18 @@ void PsiData::writeToFile(const std::string &filename)
         Comm::writeDoublesAt(file, 0, header, 8);
     }
 
-    Comm::writeDoublesAt(file, offset, c_data, this->size());
+
+    // Write data one cell at a time
+    for (size_t cell = 0; cell < c_nc; cell++) {
+        int dataSize = c_na * c_ng * c_nv;
+        uint64_t globalCell = g_spTychoMesh->getLGCell(cell);
+        uint64_t offset = 8 + globalCell * dataSize;
+        double *data = &c_data[index(0, 0, 0, cell)];
+        Comm::writeDoublesAt(file, offset, data, dataSize);
+    }
+
+
+    // Close file
     Comm::closeFile(file);
 }
 
