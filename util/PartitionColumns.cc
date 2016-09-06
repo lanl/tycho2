@@ -285,7 +285,8 @@ void createParallelMesh(const SerialMesh &serialMesh,
     
     
     // Bytes Offset
-    parallelMesh.c_bytesOffset[0] = (2 + numPartitions) * sizeof(uint64_t);
+    parallelMesh.c_bytesOffset[0] = 
+        32 * sizeof(char) + (3 + numPartitions) * sizeof(uint64_t);
     for (uint64_t part = 0; part < parallelMesh.c_numPartitions; part++) {
         
         // Structure sizes in bytes
