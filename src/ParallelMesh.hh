@@ -83,6 +83,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     (uint64_t) global ID
 */
 
+#include "SerialMesh.hh"
 #include <string>
 #include <vector>
 #include <limits>
@@ -144,10 +145,13 @@ public:
     void write(const std::string &filename);
     void read(const std::string &filename);
     void print(bool printVerbose);
+    void createFromSerialMesh(const SerialMesh &serialMesh, 
+                              const std::vector<uint64_t> &partitionVector,
+                              const int numPartitions);
     
     static
     void printPartitionData(const PartitionData &partData, bool printVerbose);
-    
+
     #ifndef PARALLEL_MESH_READ_SERIAL_ONLY
     static
     void readInParallel(const std::string &filename, PartitionData &partData);
