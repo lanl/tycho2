@@ -12,7 +12,8 @@ cp ../util/cube-208.smesh ./
 
 ### TEST 1 ###
 sh regression/run1.sh > out1.regression.txt
-diff -q regression/gold.psi out.psi
+#diff -q regression/gold.psi out.psi
+python diff.py regression/gold.psi out.psi 1e-10
 if [ $? -eq 0 ]
     then echo "Test1: pass"
     else echo "Test1: fail"
