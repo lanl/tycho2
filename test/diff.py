@@ -15,9 +15,14 @@ if len(sys.argv) < 3:
     sys.exit(1)
 
 
-# Get the file names
+# Get the vectors from file
 v1 = numpy.fromfile(sys.argv[1])
 v2 = numpy.fromfile(sys.argv[2])
+
+
+# Get rid of header data
+v1 = v1[8:]
+v2 = v2[8:]
 
 
 # Check vector lengths

@@ -2,10 +2,10 @@
 
 NX=2
 NY=2
-NUM_PARTS=4
+NUM_PARTS=$((NX*NY))
 IN_FILE="cube-208.smesh"
 OUT_FILE="temp.pmesh"
-INPUT_DECK="regression/input1.deck"
+INPUT_DECK="regression/input-inter2.deck"
 export OMP_NUM_THREADS=1
 
 ./PartitionColumns.x $NX $NY $IN_FILE $OUT_FILE
