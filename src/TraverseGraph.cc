@@ -418,7 +418,7 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Set size of sendBuffers and commDark
     UINT numAdjRanks = adjRankIndexToRank.size();
-    sendBuffers = Mat2<vector<char>>(g_nThreads, numAdjRanks);
+    sendBuffers.resize(g_nThreads, numAdjRanks);
     sendBuffers1.resize(numAdjRanks);
     commDark.resize(numAdjRanks, false);
     

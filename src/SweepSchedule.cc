@@ -1,8 +1,4 @@
 /*
-    SweepSchedule.cc
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -490,7 +486,8 @@ UINT calcLevels(Mat2<UINT> &cellLevels,
 {
     Mat2<UINT> nChildrenNeeded(numAngles, g_tychoMesh->getNCells());
     calcNumDependents(numAngles, hasChild, nChildrenNeeded);
-    Mat2<UINT> priorities(numAngles, g_tychoMesh->getNCells(), 0.0);
+    Mat2<UINT> priorities(numAngles, g_tychoMesh->getNCells());
+    priorities.setAll(0.0);
     
     priority_queue<PriorityWork> availableWork;
     initializeWorkQ(numAngles, nChildrenNeeded, priorities, availableWork);
@@ -606,7 +603,8 @@ void neighborPriorities(const Mat2<UINT> &sideLevels,
         }
     }}}
 
-    Mat2<UINT> dummyPriorities(numAngles, g_tychoMesh->getNCells(), 0.0);
+    Mat2<UINT> dummyPriorities(numAngles, g_tychoMesh->getNCells());
+    dummyPriorities.setAll(0.0);
     priority_queue<PriorityWork> availableWork;
     initializeWorkQ(numAngles, nChildrenNeeded, dummyPriorities, availableWork);
     UINT nSolved = 0;
@@ -696,14 +694,14 @@ SweepSchedule::SweepSchedule(const std::vector<UINT> &angles,
     
     
     // Calculate B-Levels
-    Mat2<UINT> cellLevels(angles.size(), g_tychoMesh->getNCells(), (UINT)0);
-    Mat2<UINT> sideLevels(angles.size(), g_tychoMesh->getNSides(), (UINT)0);
+    Mat2<UINT> cellLevels(angles.size(), g_tychoMesh->getNCells()/*, (UINT)0*/);
+    Mat2<UINT> sideLevels(angles.size(), g_tychoMesh->getNSides()/*, (UINT)0*/);
     UINT nlevels = calcLevels(cellLevels, sideLevels, hasChild, hasParent, 
                              neighborProcs, angles, angles.size(), maxCellsPerStep);
     
     
     // Calculate intra-angle priorities
-    Mat2<UINT> priorities(angles.size(), g_tychoMesh->getNCells(), (UINT)0);
+    Mat2<UINT> priorities(angles.size(), g_tychoMesh->getNCells()/*, (UINT)0*/);
     switch (intraAngleP)
     {
       case 0:  // random

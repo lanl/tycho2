@@ -75,7 +75,8 @@ public:
       c_localFaceData(g_nThreads)
     {
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
+            //c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
+            c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
         }
     }
     
@@ -115,7 +116,8 @@ public:
     */
     virtual void setSideData(UINT side, UINT angle, const char *data)
     {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups, (double*)data);
+        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);//, (double*)data);
+        localFaceData.setData((double*)data);
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
@@ -198,8 +200,9 @@ Sweeper2::Sweeper2(const UINT maxComputePerStep,
 {
     c_maxComputePerStep = maxComputePerStep;
     c_sigmaTotal = sigmaTotal;
-    c_priorities = 
-        Mat2<UINT>(g_tychoMesh->getNCells(), g_quadrature->getNumAngles());
+    //c_priorities = 
+    //    Mat2<UINT>(g_tychoMesh->getNCells(), g_quadrature->getNumAngles());
+    c_priorities.resize(g_tychoMesh->getNCells(), g_quadrature->getNumAngles());
     Priorities::calcPriorities(c_maxComputePerStep, intraAngleP, interAngleP, 
                                c_priorities);
 }

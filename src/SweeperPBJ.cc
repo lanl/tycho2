@@ -54,6 +54,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <math.h>
 #include <string.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -77,7 +78,7 @@ public:
       c_localFaceData(g_nThreads)
     {
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
+            c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
         }
     }
     
@@ -117,8 +118,9 @@ public:
     */
     virtual void setSideData(UINT side, UINT angle, const char *data)
     {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups, (double*)data);
-        
+        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);//, (double*)data);
+        localFaceData.setData((double*)data);
+
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
             c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);

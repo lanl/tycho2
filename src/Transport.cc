@@ -1,10 +1,4 @@
 /*
-    Transport.cc
-    
-    Implements sweep on one cell given incoming boundary data.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -642,10 +636,11 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
            const Mat3<double> &localPsiBound, const Mat2<double> &localSource,
            Mat2<double> &localPsi)
 {
-    Mat2<double> cellSource(g_nVrtxPerCell, g_nGroups, 0.0);
+    Mat2<double> cellSource(g_nVrtxPerCell, g_nGroups);
     double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
     double matrix2[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
     double solution[g_nVrtxPerCell];
+    cellSource.setAll(0.0);
     
         
     // form local source term

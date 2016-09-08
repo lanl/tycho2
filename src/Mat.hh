@@ -41,9 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __MAT_HH__
 
 #include "Assert.hh"
-#include "Typedef.hh"
-#include <algorithm>
-#include <memory>
+#include <stddef.h>
 
 
 /*
@@ -52,21 +50,24 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     Implements 1D Array
 */
 template< class T >
-class Mat1 {
+class Mat1
+{
 private:
     
-    // Private data
+    // Data members
     size_t c_xlen;
     T *c_v;
     
     
-    // Private functions
-    size_t index( size_t i ) const
+    // Check size before returning
+    size_t index(size_t i) const
     {
-        Assert( i < c_xlen );
+        Assert(i < c_xlen);
         return i;
     }
     
+
+    // Delete data
     void detach()
     {
         if (c_v != NULL) {
@@ -79,15 +80,30 @@ private:
 public:
     
     // Accessors
-    T&       operator[]( size_t i )       { return c_v[ index(i) ]; }
-    const T& operator[]( size_t i ) const { return c_v[ index(i) ]; }
+    T& operator[](size_t i)
+    {
+        return c_v[index(i)];
+    }
+    const T& operator[](size_t i) const
+    {
+        return c_v[index(i)];
+    }
 
-    T&       operator()( size_t i )       { return c_v[ index(i) ]; }
-    const T& operator()( size_t i ) const { return c_v[ index(i) ]; }
+    T& operator()(size_t i)
+    {
+        return c_v[index(i)];
+    }
+    const T& operator()(size_t i) const
+    {
+        return c_v[index(i)];
+    }
 
 
     // Size of Mat
-    size_t size() const { return c_xlen; }
+    size_t size() const
+    {
+        return c_xlen;
+    }
     
     
     // Constructors
@@ -97,20 +113,16 @@ public:
         c_v = NULL;
     }
     
-    Mat1( size_t xmax, const T& t = T() )
+    Mat1(size_t xmax)
     {
         c_xlen = xmax;
         c_v = new T[size()];
-        std::uninitialized_fill( c_v, c_v + size(), t );
+
+        for (size_t i = 0; i < size(); i++) {
+            c_v[i] = T();
+        }
     }
 
-    Mat1( const Mat1<T>& m )
-    {
-        c_xlen = m.c_xlen;
-        c_v = new T[size()];
-        std::uninitialized_copy( m.c_v, m.c_v + m.size(), c_v );
-    }
-    
     
     // Destructor
     ~Mat1()
@@ -119,54 +131,21 @@ public:
     }
     
     
-    // Assignment operators
-    Mat1& operator=( const T& t )
-    {
-        Assert(c_v != NULL);
-        std::fill( c_v, c_v + size(), t );
-        return *this;
-    }
+    // Don't allow copy or assignment operators
+    Mat1(const Mat1<T> &m) = delete;
+    Mat1& operator=(const Mat1 &m) = delete;
     
-    Mat1& operator=( const Mat1& m )
-    {
-        if (this == &m)
-            return *this;
-
-        if ( m.c_xlen != c_xlen ) {
-            detach();
-            c_xlen = m.c_xlen;
-            c_v = new T[size()];
-            std::uninitialized_copy( m.c_v, m.c_v + m.size(), c_v );
-        }
-        else {
-            if (c_v != NULL)
-                std::copy( m.c_v, m.c_v + m.size(), c_v );
-        }
-
-        return *this;
-    }
-
     
-    // Arithmetic
-    Mat1& operator+=( const Mat1<T>& m )
+    // Resize matrix
+    void resize(size_t nxmax)
     {
-        Assert(c_xlen == m.c_xlen);
-        for(size_t i = 0; i < size(); i++) {
-            c_v[i] += m.c_v[i];
-        }
-        return *this;
-    }
-    
-
-    // Utility support
-    void redim( size_t nxmax, const T& t = T() )
-    {
-        if (c_v != NULL) {
-            detach();
-        }
+        detach();
         c_xlen = nxmax;
         c_v = new T[size()];
-        std::uninitialized_fill( c_v, c_v + size(), t );
+        
+        for (size_t i = 0; i < size(); i++) {
+            c_v[i] = T();
+        }
     }
 };
 
@@ -245,32 +224,18 @@ public:
         c_v = NULL;
     }
 
-    Mat2( size_t xmax, size_t ymax, const T& t = T() )
+    Mat2(size_t xmax, size_t ymax)
     {
         c_xlen = xmax;
         c_ylen = ymax;
         c_v = new T[size()];
-        std::uninitialized_fill( c_v, c_v + size(), t );
+        
+        for (size_t i = 0; i < size(); i++) {
+            c_v[i] = T();
+        }
     }
     
-    Mat2( size_t xmax, size_t ymax, const T *data )
-    {
-        c_xlen = xmax;
-        c_ylen = ymax;
-        c_v = new T[size()];
-        for (size_t i = 0; i < xmax * ymax; i++) 
-            c_v[i] = data[i];
-    }
-
-    Mat2( const Mat2<T>& m )// = delete;
-    {
-        c_xlen = m.c_xlen;
-        c_ylen = m.c_ylen;
-        c_v = new T[size()];
-        std::uninitialized_copy( m.c_v, m.c_v + m.size(), c_v );
-    }
-
-
+    
     // Destructor
     ~Mat2()
     {
@@ -278,57 +243,40 @@ public:
     }
 
 
-    // Assignment operators
-    Mat2& operator=( const T& t )
+    // Don't allow copy or assignment operators
+    Mat2(const Mat2<T> &m) = delete;
+    Mat2& operator=(const Mat2 &m) = delete;
+    
+    
+    // Set all values to a constant
+    void setAll(const T &t)
     {
-        std::fill( c_v, c_v + size(), t );
-        return *this;
-    }
-
-    Mat2& operator=( const Mat2& m )// = delete;
-    {
-        if (this == &m) return *this;
-
-        if ( m.c_xlen != c_xlen ||
-             m.c_ylen != c_ylen ) {
-            detach();
-            c_xlen = m.c_xlen;
-            c_ylen = m.c_ylen;
-            c_v = new T[size()];
-            std::uninitialized_copy( m.c_v, m.c_v + m.size(), c_v );
+        for (size_t i = 0; i < size(); i++) {
+            c_v[i] = t;
         }
-        else {
-            if (c_v)
-            std::copy( m.c_v, m.c_v + m.size(), c_v );
-        }
-
-        return *this;
     }
 
     
-    // Arithmetic
-    Mat2& operator+=( const Mat2<T>& m )
+    // Set raw data pointer
+    void setData(const T *data)
     {
-        Assert( c_xlen == m.c_xlen );
-        Assert( c_ylen == m.c_ylen );
-        
-        for(size_t i = 0; i < size(); i++) {
-            c_v[i] += m.c_v[i];
+        for (size_t i = 0; i < size(); i++) {
+            c_v[i] = data[i];
         }
-        return *this;
     }
     
-    
-    // Utility Support
-    void resize( size_t nxmax, size_t nymax, const T& t = T() )
+
+    // Resize matrix
+    void resize( size_t nxmax, size_t nymax)
     {
-        if (c_v != NULL) {
-            detach();
-        }
+        detach();
         c_xlen = nxmax;
         c_ylen = nymax;
         c_v = new T[size()];
-        std::uninitialized_fill( c_v, c_v + size(), t );
+
+        for (size_t i = 0; i < size(); i++) {
+            c_v[i] = T();
+        }
     }
 };
 
@@ -430,8 +378,8 @@ public:
 
 
     // Don't allow copy or assignment operators
-    Mat3& operator=(const Mat3 &m) = delete;
     Mat3(const Mat3<T> &m) = delete;
+    Mat3& operator=(const Mat3 &m) = delete;
     
 
     // Resize matrix

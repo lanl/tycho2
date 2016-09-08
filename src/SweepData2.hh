@@ -1,14 +1,3 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- *  SweepData2.hh
- *
- *  Class for data for sweeps for use by PBJ and Schur algorithms.  Want the ability to change order of data
- *         data structures. The 2 distinguishes it from the SweepData for sweeps.
- */
-//---------------------------------------------------------------------------//
-// $Id: Mat.hh,v 1.17 2003/03/14 19:55:03 tme Exp $
-//---------------------------------------------------------------------------//
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -76,7 +65,6 @@ public:
       c_localFaceData(g_nThreads)
     {
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            //c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
             c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
         }
     }
@@ -116,7 +104,8 @@ public:
     */
     virtual void setSideData(UINT side, UINT angle, const char *data)
     {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups, (double*)data);
+        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
+        localFaceData.setData((double*)data);
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {

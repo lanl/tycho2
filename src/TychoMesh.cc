@@ -200,8 +200,8 @@ TychoMesh::TychoMesh(const std::string &filename)
     
     
     // Cell volumes and face areas
-    c_cellVolume = Mat1<double>(c_nCells);
-    c_faceArea = Mat2<double>(c_nCells, g_nFacePerCell);
+    c_cellVolume.resize(c_nCells);
+    c_faceArea.resize(c_nCells, g_nFacePerCell);
     for(size_t cell = 0; cell < c_nCells; cell++) {
         c_cellVolume(cell) = getTetVolume(getCellVrtxCoords(cell));
         for(UINT face = 0; face < g_nFacePerCell; face++) {

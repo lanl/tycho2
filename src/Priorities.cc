@@ -67,10 +67,10 @@ public:
     {
         // Initialize all to 0 b-level
         c_maxBLevel = 0;
-        bLevels = 0;
-        sideBLevels = 0;
-        c_bLevels = 0;
-        c_sideBLevels = 0;
+        bLevels.setAll(0);
+        sideBLevels.setAll(0);
+        c_bLevels.setAll(0);
+        c_sideBLevels.setAll(0);
     }
     
     
@@ -200,7 +200,7 @@ public:
     : c_priorities(priorities), c_sideBLevels(sideBLevels), 
       c_boundScale(boundScale), c_boundShift(boundShift), c_parentShift(parentShift)
     {
-        c_priorities = 0;
+        c_priorities.setAll(0);
     }
     
     
@@ -418,8 +418,8 @@ void calcPriorities(const UINT maxComputePerStep,
                     Mat2<UINT> &priorities)
 {
     UINT numAngles = g_quadrature->getNumAngles();
-    Mat2<UINT> bLevels(g_tychoMesh->getNCells(), numAngles, (UINT)0);
-    Mat2<UINT> sideBLevels(g_tychoMesh->getNSides(), numAngles, (UINT)0);
+    Mat2<UINT> bLevels(g_tychoMesh->getNCells(), numAngles);//, (UINT)0);
+    Mat2<UINT> sideBLevels(g_tychoMesh->getNSides(), numAngles);//, (UINT)0);
     
     UINT maxBLevel = calcBLevels(maxComputePerStep, bLevels, sideBLevels);
     
