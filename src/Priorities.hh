@@ -42,14 +42,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Mat.hh"
 #include "Typedef.hh"
-#include <vector>
 
 namespace Priorities
 {
 
-void calcPriorities(const UINT maxComputePerStep,
-                    const UINT intraAngleP, const UINT interAngleP, 
-                    Mat2<UINT> &priorities);
+void calcPriorities(Mat2<UINT> &priorities);
 
 }
 

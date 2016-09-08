@@ -193,18 +193,12 @@ private:
 /*
     Sweeper2 constructor
 */
-Sweeper2::Sweeper2(const UINT maxComputePerStep,
-                   const UINT intraAngleP, 
-                   const UINT interAngleP, 
-                   const double sigmaTotal)
+Sweeper2::Sweeper2()
 {
-    c_maxComputePerStep = maxComputePerStep;
-    c_sigmaTotal = sigmaTotal;
-    //c_priorities = 
-    //    Mat2<UINT>(g_tychoMesh->getNCells(), g_quadrature->getNumAngles());
+    c_maxComputePerStep = g_maxCellsPerStep;
+    c_sigmaTotal = g_sigmaTotal;
     c_priorities.resize(g_tychoMesh->getNCells(), g_quadrature->getNumAngles());
-    Priorities::calcPriorities(c_maxComputePerStep, intraAngleP, interAngleP, 
-                               c_priorities);
+    Priorities::calcPriorities(c_priorities);
 }
 
 

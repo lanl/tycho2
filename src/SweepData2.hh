@@ -116,8 +116,8 @@ public:
     /*
         getSideData
     */
-    PsiBoundData getSideData()
-    {return c_psiBound;};
+    //PsiBoundData getSideData()
+    //{return c_psiBound;}
     
 
     /*

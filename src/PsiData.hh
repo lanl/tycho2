@@ -1,11 +1,4 @@
 /*
-    PsiData.hh
-    
-    Class for data for psi.  Want the ability to change order of data
-    data structures.
- */
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -80,64 +73,40 @@ public:
     
     double& operator[](size_t i)
     {
-        check(i);
+        Assert(i < size());
         return c_data[i];
     }
 
     const double& operator[](size_t i) const
     {
-        check(i);
+        Assert(i < size());
         return c_data[i];
     }
 
 
     // Size of data structure
-    size_t size() const { return c_ng * c_nv * c_na * c_nc; }
+    size_t size() const
+    {
+        return c_ng * c_nv * c_na * c_nc;
+    }
 
 
     // Constructor
-    PsiData(double initValue = 0.0)
+    PsiData()
     {
         c_ng = g_nGroups;
         c_nv = g_nVrtxPerCell;
         c_na = g_quadrature->getNumAngles();
         c_nc = g_tychoMesh->getNCells();
         c_data = new double[size()];
-        setToValue(initValue);
+        setToValue(0.0);
     }
     
-    // Copy constructor
-    PsiData(const PsiData &other)
-    {
-        c_ng = g_nGroups;
-        c_nv = g_nVrtxPerCell;
-        c_na = g_quadrature->getNumAngles();
-        c_nc = g_tychoMesh->getNCells();
-        c_data = new double[size()];
-        for (size_t i = 0; i < size(); i++) {
-            c_data[i] = other.c_data[i];
-        }
-    }
 
-    // Assignment Operator
-    PsiData & operator= (const PsiData &other)
-    {
-        if (this != &other) {
-            if (c_data != NULL) {
-               delete[] c_data;
-            }
-
-            c_ng = g_nGroups;
-            c_nv = g_nVrtxPerCell;
-            c_na = g_quadrature->getNumAngles();
-            c_nc = g_tychoMesh->getNCells();
-            c_data = new double[size()];
-            for (size_t i = 0; i < size(); i++) {
-                c_data[i] = other.c_data[i];
-            }
-        }    
-    }
-
+    // Don't allow copy constructor or assignment operator
+    PsiData(const PsiData &other) = delete;
+    PsiData & operator= (const PsiData &other) = delete;
+    
 
     //Destructor
     ~PsiData()
@@ -181,14 +150,6 @@ private:
         
         return ((c * c_na + a) * c_nv + v) * c_ng + g;
     }
-
-
-    // Make sure a bare integer index is within the appropriate range.
-    void check(size_t i) const
-    {
-        UNUSED_VARIABLE(i);     // Needed when Assert does nothing
-        Assert( i < size() );
-    }
 };
 
 
@@ -216,63 +177,39 @@ public:
     
     double& operator[](size_t i)
     {
-        check(i);
+        Assert(i < size());
         return c_data[i];
     }
 
     const double& operator[](size_t i) const
     {
-        check(i);
+        Assert(i < size());
         return c_data[i];
     }
 
 
     // Size of data structure
-    size_t size() const { return c_ng * c_nv * c_na * c_ns; }
+    size_t size() const
+    {
+        return c_ng * c_nv * c_na * c_ns;
+    }
 
 
     // Constructor
-    PsiBoundData(double initValue = 0.0)
+    PsiBoundData()
     {
         c_ng = g_nGroups;
         c_nv = g_nVrtxPerFace;
         c_na = g_quadrature->getNumAngles();
         c_ns = g_tychoMesh->getNSides();
         c_data = new double[size()];
-        setToValue(initValue);
+        setToValue(0.0);
     }
     
-    // Copy constructor
-    PsiBoundData(const PsiBoundData &other)
-    {
-        c_ng = g_nGroups;
-        c_nv = g_nVrtxPerFace;
-        c_na = g_quadrature->getNumAngles();
-        c_ns = g_tychoMesh->getNSides();
-        c_data = new double[size()];
-        for (size_t i = 0; i < size(); i++) {
-            c_data[i] = other.c_data[i];
-        }
-    }
 
-    // Assignment Operator
-    PsiBoundData & operator= (const PsiBoundData &other)
-    {
-        if (this != &other) {
-            if (c_data != NULL) {
-               delete[] c_data;
-            }
-
-            c_ng = g_nGroups;
-            c_nv = g_nVrtxPerFace;
-            c_na = g_quadrature->getNumAngles();
-            c_ns = g_tychoMesh->getNSides();
-            c_data = new double[size()];
-            for (size_t i = 0; i < size(); i++) {
-                c_data[i] = other.c_data[i];
-            }
-        }    
-    }
+    // Don't allow copy constructor or assignment operator
+    PsiBoundData(const PsiBoundData &other) = delete;
+    PsiBoundData & operator= (const PsiBoundData &other) = delete;
 
 
     //Destructor
@@ -313,78 +250,61 @@ private:
         
         return ((s * c_na + a) * c_nv + v) * c_ng + g;
     }
-
-
-    // Make sure a bare integer index is within the appropriate range.
-    void check(size_t i) const
-    {
-        UNUSED_VARIABLE(i);     // Needed when Assert does nothing
-        Assert( i < size() );
-    }
 };
 
 
-
-
-
-
-
-class PhiData {
+/*
+    PhiData
+*/
+/*class PhiData {
 public:
     
     // Accessors
-    double& operator()( size_t i, size_t j, size_t k ) 
-        { return c_data[index(i,j,k)]; }
+    double& operator()(size_t i, size_t j, size_t k) 
+    {
+        return c_data[index(i,j,k)];
+    }
     
-    const double& operator()( size_t i, size_t j, size_t k ) const 
-        { return c_data[index(i,j,k)]; }
+    const double& operator()(size_t i, size_t j, size_t k) const 
+    {
+        return c_data[index(i,j,k)];
+    }
     
-    double& operator[]( size_t i ) { check(i); return c_data[i]; }
-    const double& operator[]( size_t i ) const { check(i); return c_data[i]; }
+    double& operator[](size_t i)
+    {
+        Assert(i < size());
+        return c_data[i];
+    }
+    
+    const double& operator[](size_t i) const
+    {
+        Assert(i < size());
+        return c_data[i];
+    }
 
 
     // Size of Mat
-    size_t size() const { return c_len1 * c_len2 * c_len3; }
+    size_t size() const
+    {
+        return c_len1 * c_len2 * c_len3;
+    }
 
 
     // Constructor
-    PhiData( size_t len1, size_t len2, size_t len3, double initValue = 0.0 )
+    PhiData(size_t len1, size_t len2, size_t len3)
     {
         c_len1 = len1;
         c_len2 = len2;
         c_len3 = len3;
         c_data = new double[size()];
-        setToValue(initValue);
+        setToValue(0.0);
     }
 
-    //Copy constructor
-    PhiData(const PhiData &other)
-    {
-        c_len1=other.c_len1;
-        c_len2=other.c_len2;
-        c_len3=other.c_len3;
-        c_data = new double[size()];
-        for (size_t i=0; i<size(); i++)
-            {c_data[i] = other.c_data[i];}
-    }
 
-    //Assignment Operator
-    PhiData & operator= (const PhiData &other) //= delete;
-    {
-        if (this != &other)
-        {
-            if (c_data != NULL) {
-               delete[] c_data;
-            }
-            c_len1=other.c_len1;
-            c_len2=other.c_len2;
-            c_len3=other.c_len3;
-            c_data = new double[size()];
-            for (size_t i=0; i<size(); i++)
-                {c_data[i] = other.c_data[i];}
-
-        }    
-    }
+    // Don't allow copy constructor or assignment operator
+    PhiData(const PhiData &other) = delete;
+    PhiData & operator= (const PhiData &other) = delete;
+    
 
     // Destructor
     ~PhiData()
@@ -396,6 +316,7 @@ public:
     }
     
     
+    // Set to a constant value
     void setToValue(double value)
     {
         if(c_data == NULL)
@@ -413,26 +334,112 @@ private:
     double *c_data;
 
     // Compute the offset into the data array.
-    size_t index( size_t i, size_t j, size_t k ) const
+    size_t index(size_t i, size_t j, size_t k) const
     {
-        //Assert( i >= 0);
         Assert( i < c_len1 );
-        //Assert( j >= 0);
         Assert( j < c_len2 );
-        //Assert( k >= 0);
         Assert( k < c_len3 );
         
         return c_len1 * (c_len2 * k + j) + i;
     }
+};*/
 
-    // Make sure a bare integer index is within the appropriate range.
-    void check( size_t i ) const
+
+/*
+    PhiData
+
+    g = group
+    v = vertex
+    c = cell
+*/
+class PhiData {
+public:
+    
+    // Accessors
+    double& operator()(size_t g, size_t v, size_t c) 
     {
-        UNUSED_VARIABLE(i);
-        //Assert( i >= 0 );
-        Assert( i < size() );
+        return c_data[index(g,v,c)];
+    }
+    
+    const double& operator()(size_t g, size_t v, size_t c) const 
+    {
+        return c_data[index(g,v,c)];
+    }
+    
+    double& operator[](size_t i)
+    {
+        Assert(i < size());
+        return c_data[i];
+    }
+    
+    const double& operator[](size_t i) const
+    {
+        Assert(i < size());
+        return c_data[i];
+    }
+
+
+    // Size of Mat
+    size_t size() const
+    {
+        return c_ng * c_nv * c_nc;
+    }
+
+
+    // Constructor
+    PhiData()
+    {
+        c_ng = g_nGroups;
+        c_nv = g_nVrtxPerCell;
+        c_nc = g_tychoMesh->getNCells();
+        c_data = new double[size()];
+        setToValue(0.0);
+    }
+
+
+    // Don't allow copy constructor or assignment operator
+    PhiData(const PhiData &other) = delete;
+    PhiData & operator= (const PhiData &other) = delete;
+    
+
+    // Destructor
+    ~PhiData()
+    {
+        if (c_data != NULL) {
+            delete[] c_data;
+            c_data = NULL;
+        }
+    }
+    
+    
+    // Set to a constant value
+    void setToValue(double value)
+    {
+        if(c_data == NULL)
+            return;
+        
+        for(size_t i = 0; i < size(); i++) {
+            c_data[i] = value;
+        }
+    }
+
+
+// Private    
+private:
+    size_t c_ng, c_nv, c_nc;
+    double *c_data;
+
+    // Compute the offset into the data array.
+    size_t index(size_t g, size_t v, size_t c) const
+    {
+        Assert(g < c_ng);
+        Assert(v < c_nv);
+        Assert(c < c_nc);
+        
+        return (c * c_nv + v) * c_ng + g;
     }
 };
+
 
 
 #endif

@@ -1,10 +1,4 @@
 /*
-    Quadrature.cc
-    
-    Implements 3D Level Symmetric Quadrature
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 

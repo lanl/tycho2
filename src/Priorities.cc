@@ -407,24 +407,24 @@ void anglePriorities(const UINT numAngles, const UINT interAngleP,
     }
 }
 
+
 namespace Priorities
 {
 
 /*
     calcPriorities
 */
-void calcPriorities(const UINT maxComputePerStep,
-                    const UINT intraAngleP, const UINT interAngleP, 
-                    Mat2<UINT> &priorities)
+void calcPriorities(Mat2<UINT> &priorities)
 {
     UINT numAngles = g_quadrature->getNumAngles();
-    Mat2<UINT> bLevels(g_tychoMesh->getNCells(), numAngles);//, (UINT)0);
-    Mat2<UINT> sideBLevels(g_tychoMesh->getNSides(), numAngles);//, (UINT)0);
+    Mat2<UINT> bLevels(g_tychoMesh->getNCells(), numAngles);
+    Mat2<UINT> sideBLevels(g_tychoMesh->getNSides(), numAngles);
     
-    UINT maxBLevel = calcBLevels(maxComputePerStep, bLevels, sideBLevels);
+    UINT maxBLevel = calcBLevels(g_maxCellsPerStep, bLevels, sideBLevels);
     
     
-    switch (intraAngleP)
+    // Calculate intra-angle priorities
+    switch (g_intraAngleP)
     {
       case 0:  // random
         randomPriorities(numAngles, priorities);
@@ -434,23 +434,23 @@ void calcPriorities(const UINT maxComputePerStep,
         break;
       case 2:  // breadth-first dependent seeking
         neighborPriorities(sideBLevels, 1, 0, 0, 
-                           maxComputePerStep, priorities);
+                           g_maxCellsPerStep, priorities);
         break;
       case 3:  // depth-first dependent seeking
         neighborPriorities(sideBLevels, 
                            1, maxBLevel, -1, 
-                           maxComputePerStep, priorities);
+                           g_maxCellsPerStep, priorities);
         break;
       case 4:  // strict depth-first dependent seeking
         neighborPriorities(sideBLevels, 
                            maxBLevel, maxBLevel, -1, 
-                           maxComputePerStep, priorities);
+                           g_maxCellsPerStep, priorities);
         break;
     }
     
     
     // Calculate inter-angle priorities
-    anglePriorities(numAngles, interAngleP, maxBLevel, priorities);
+    anglePriorities(numAngles, g_interAngleP, maxBLevel, priorities);
 }
 
 } // End namespace

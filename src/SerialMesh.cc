@@ -1,10 +1,4 @@
 /*
-    SerialMesh.cc
-    
-    Implements a tetrahedral mesh.  Look at SerialMesh.hh for file format.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -96,19 +90,22 @@ void SerialMesh::print(bool printVerbose)
     // Face Data
     for (uint64_t face = 0; face < c_numFaces; face++) {
         printf("Face %" PRIu64 "\n", face);
-        printf("   Cells %" PRIu64 " %" PRIu64 "\n", c_faceData[face].boundingCells[0],
-                                       c_faceData[face].boundingCells[1]);
-        printf("   Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", c_faceData[face].boundingNodes[0],
-                                            c_faceData[face].boundingNodes[1],
-                                            c_faceData[face].boundingNodes[2]);
+        printf("   Cells %" PRIu64 " %" PRIu64 "\n", 
+               c_faceData[face].boundingCells[0],
+               c_faceData[face].boundingCells[1]);
+        printf("   Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
+               c_faceData[face].boundingNodes[0],
+               c_faceData[face].boundingNodes[1],
+               c_faceData[face].boundingNodes[2]);
     }
     
     
     // Node Data
     for (uint64_t node = 0; node < c_numNodes; node++) {
-        printf("Node %" PRIu64 ": (%f, %f, %f)\n", node, c_nodeData[node].coords[0],
-                                                  c_nodeData[node].coords[1],
-                                                  c_nodeData[node].coords[2]);
+        printf("Node %" PRIu64 ": (%f, %f, %f)\n", node, 
+               c_nodeData[node].coords[0],
+               c_nodeData[node].coords[1],
+               c_nodeData[node].coords[2]);
     }
 }
 

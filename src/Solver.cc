@@ -281,7 +281,7 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
-        phi(vertex, cell, group) +=
+        phi(group, vertex, cell) +=
             psi(group, vertex, angle, cell) * g_quadrature->getWt(angle);
     }}}}
 }
@@ -299,7 +299,7 @@ void calcScatterSource(PsiData &scatSource, const PhiData &phiOld)
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
         scatSource(group, vertex, angle, cell) =
-            g_sigmaScat / (4.0 * M_PI) *  phiOld(vertex, cell, group);
+            g_sigmaScat / (4.0 * M_PI) *  phiOld(group, vertex, cell);
     }}}}
 }
 
@@ -382,8 +382,8 @@ void solve()
     PsiData totalSource;
     PsiData psi;
     
-    PhiData phiNew(g_nVrtxPerCell, g_tychoMesh->getNCells(), g_nGroups);
-    PhiData phiOld(g_nVrtxPerCell, g_tychoMesh->getNCells(), g_nGroups);
+    PhiData phiNew;
+    PhiData phiOld;
     
     
     // Calculate fixed source
@@ -430,8 +430,7 @@ void solve()
     if (g_sweepType == SweepType_TraverseGraph) {
         //vector<vector<UINT>> anglesVector(g_nAngleGroups);
         //splitAnglesAcrossThreads(anglesVector);
-        sweeper2 = new Sweeper2(g_maxCellsPerStep,
-                                g_intraAngleP, g_interAngleP, g_sigmaTotal);
+        sweeper2 = new Sweeper2();
     }
 
 
@@ -510,9 +509,8 @@ void solve()
         timer3.start();
         psiToPhi(phiNew, psi);
         error = 0.0;
-        for (UINT element = 0; element < phiNew.size(); ++element) {
-            error = max(error, 
-                fabs(phiNew[element] - phiOld[element]) / phiNew[element]);
+        for (UINT i = 0; i < phiNew.size(); i++) {
+            error = max(error, fabs(phiNew[i] - phiOld[i]) / phiNew[i]);
         }
         Comm::gmax(error);
         timer3.stop();

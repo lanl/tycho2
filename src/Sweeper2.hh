@@ -49,11 +49,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 class Sweeper2
 {
 public:
-    Sweeper2(const UINT maxComputePerStep,
-             const UINT intraAngleP, 
-             const UINT interAngleP, 
-             const double sigmaTotal);
-    
+    Sweeper2();
     void sweep(PsiData &psi, const PsiData &source);
 
 private:

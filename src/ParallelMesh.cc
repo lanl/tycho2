@@ -1,13 +1,4 @@
 /*
-    ParallelMesh.cc
-    
-    Implements a tetrahedral mesh that has been partitioned.
-    Look at ParallelMesh.hh for the file format.
-    This class can read in, store, and write the entire partitioned mesh.
-    Alternatively, it can read in just one partition per MPI process in parallel.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -68,11 +59,6 @@ static const char MESH_FORMAT_NAME[ParallelMesh::MESH_FORMAT_NAME_LEN] =
 */
 void ParallelMesh::print(bool printVerbose)
 {
-    const char *boundaryNames[NumBoundaryTypes] = {
-        "MeshBoundary", "PartitionBoundary", "NotBoundary"
-    };
-    
-    
     // Header Data
     printf("Mesh Format Name: %s\n", c_meshFormatName);
     printf("Mesh Version: %" PRIu64 "\n", c_version);
@@ -85,68 +71,8 @@ void ParallelMesh::print(bool printVerbose)
     
     // Partition Data
     for (uint64_t i = 0; i < c_numPartitions; i++) {
-        
-        PartitionData &partData = c_partitionData[i];
         printf("Partition %" PRIu64 "\n", i);
-        printf("   Num Cells: %" PRIu64 "\n", partData.numCells);
-        printf("   Num Faces: %" PRIu64 "\n", partData.numFaces);
-        printf("   Num Nodes: %" PRIu64 "\n", partData.numNodes);
-        
-        
-        // Skip the rest if not verbose print
-        if (!printVerbose)
-            continue;
-
-        
-        // Cell Data
-        for (uint64_t cell = 0; cell < partData.numCells; cell++) {
-            printf("   Cell %" PRIu64 "\n", cell);
-            printf("      Faces %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
-                   partData.cellData[cell].boundingFaces[0],
-                   partData.cellData[cell].boundingFaces[1],
-                   partData.cellData[cell].boundingFaces[2],
-                   partData.cellData[cell].boundingFaces[3]);
-            printf("      Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
-                   partData.cellData[cell].boundingNodes[0],
-                   partData.cellData[cell].boundingNodes[1],
-                   partData.cellData[cell].boundingNodes[2],
-                   partData.cellData[cell].boundingNodes[3]);
-            printf("      globalID: %" PRIu64 "\n", 
-                   partData.cellData[cell].globalID);
-        }
-        
-        
-        // Face Data
-        for (uint64_t face = 0; face < partData.numFaces; face++) {
-            printf("   Face %" PRIu64 "\n", face);
-            printf("      Cells %" PRIu64 " %" PRIu64 "\n", 
-                   partData.faceData[face].boundingCells[0],
-                   partData.faceData[face].boundingCells[1]);
-            printf("      Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
-                   partData.faceData[face].boundingNodes[0],
-                   partData.faceData[face].boundingNodes[1],
-                   partData.faceData[face].boundingNodes[2]);
-            printf("      globalID: %" PRIu64 "\n", 
-                   partData.faceData[face].globalID);
-            printf("      partition: %" PRIu64 " %" PRIu64 "\n", 
-                   partData.faceData[face].partition[0],
-                   partData.faceData[face].partition[1]);
-            assert(partData.faceData[face].boundaryType < NumBoundaryTypes);
-            printf("      boundaryType: %s\n", 
-                   boundaryNames[partData.faceData[face].boundaryType]);
-        }
-        
-        
-        // Node Data
-        for (uint64_t node = 0; node < partData.numNodes; node++) {
-            printf("   Node %" PRIu64 "\n", node);
-            printf("      coords: (%f, %f, %f)\n", 
-                   partData.nodeData[node].coords[0],
-                   partData.nodeData[node].coords[1],
-                   partData.nodeData[node].coords[2]);
-            printf("      globalID: %" PRIu64 "\n", 
-                   partData.nodeData[node].globalID);
-        }
+        printPartitionData(c_partitionData[i], printVerbose);
     }
 }
 
@@ -164,65 +90,65 @@ void ParallelMesh::printPartitionData(const PartitionData &partData,
     };
     
     
-        printf("   Num Cells: %" PRIu64 "\n", partData.numCells);
-        printf("   Num Faces: %" PRIu64 "\n", partData.numFaces);
-        printf("   Num Nodes: %" PRIu64 "\n", partData.numNodes);
-        
-        
-        // Skip the rest if not verbose print
-        if (!printVerbose)
-            return;
+    printf("   Num Cells: %" PRIu64 "\n", partData.numCells);
+    printf("   Num Faces: %" PRIu64 "\n", partData.numFaces);
+    printf("   Num Nodes: %" PRIu64 "\n", partData.numNodes);
+    
+    
+    // Skip the rest if not verbose print
+    if (!printVerbose)
+        return;
 
-        
-        // Cell Data
-        for (uint64_t cell = 0; cell < partData.numCells; cell++) {
-            printf("   Cell %" PRIu64 "\n", cell);
-            printf("      Faces %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
-                   partData.cellData[cell].boundingFaces[0],
-                   partData.cellData[cell].boundingFaces[1],
-                   partData.cellData[cell].boundingFaces[2],
-                   partData.cellData[cell].boundingFaces[3]);
-            printf("      Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
-                   partData.cellData[cell].boundingNodes[0],
-                   partData.cellData[cell].boundingNodes[1],
-                   partData.cellData[cell].boundingNodes[2],
-                   partData.cellData[cell].boundingNodes[3]);
-            printf("      globalID: %" PRIu64 "\n", 
-                   partData.cellData[cell].globalID);
-        }
-        
-        
-        // Face Data
-        for (uint64_t face = 0; face < partData.numFaces; face++) {
-            printf("   Face %" PRIu64 "\n", face);
-            printf("      Cells %" PRIu64 " %" PRIu64 "\n", 
-                   partData.faceData[face].boundingCells[0],
-                   partData.faceData[face].boundingCells[1]);
-            printf("      Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
-                   partData.faceData[face].boundingNodes[0],
-                   partData.faceData[face].boundingNodes[1],
-                   partData.faceData[face].boundingNodes[2]);
-            printf("      globalID: %" PRIu64 "\n", 
-                   partData.faceData[face].globalID);
-            printf("      partition: %" PRIu64 " %" PRIu64 "\n", 
-                   partData.faceData[face].partition[0],
-                   partData.faceData[face].partition[1]);
-            assert(partData.faceData[face].boundaryType < NumBoundaryTypes);
-            printf("      boundaryType: %s\n", 
-                   boundaryNames[partData.faceData[face].boundaryType]);
-        }
-        
-        
-        // Node Data
-        for (uint64_t node = 0; node < partData.numNodes; node++) {
-            printf("   Node %" PRIu64 "\n", node);
-            printf("      coords: (%f, %f, %f)\n", 
-                   partData.nodeData[node].coords[0],
-                   partData.nodeData[node].coords[1],
-                   partData.nodeData[node].coords[2]);
-            printf("      globalID: %" PRIu64 "\n", 
-                   partData.nodeData[node].globalID);
-        }
+    
+    // Cell Data
+    for (uint64_t cell = 0; cell < partData.numCells; cell++) {
+        printf("   Cell %" PRIu64 "\n", cell);
+        printf("      Faces %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
+               partData.cellData[cell].boundingFaces[0],
+               partData.cellData[cell].boundingFaces[1],
+               partData.cellData[cell].boundingFaces[2],
+               partData.cellData[cell].boundingFaces[3]);
+        printf("      Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
+               partData.cellData[cell].boundingNodes[0],
+               partData.cellData[cell].boundingNodes[1],
+               partData.cellData[cell].boundingNodes[2],
+               partData.cellData[cell].boundingNodes[3]);
+        printf("      globalID: %" PRIu64 "\n", 
+               partData.cellData[cell].globalID);
+    }
+    
+    
+    // Face Data
+    for (uint64_t face = 0; face < partData.numFaces; face++) {
+        printf("   Face %" PRIu64 "\n", face);
+        printf("      Cells %" PRIu64 " %" PRIu64 "\n", 
+               partData.faceData[face].boundingCells[0],
+               partData.faceData[face].boundingCells[1]);
+        printf("      Nodes %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", 
+               partData.faceData[face].boundingNodes[0],
+               partData.faceData[face].boundingNodes[1],
+               partData.faceData[face].boundingNodes[2]);
+        printf("      globalID: %" PRIu64 "\n", 
+               partData.faceData[face].globalID);
+        printf("      partition: %" PRIu64 " %" PRIu64 "\n", 
+               partData.faceData[face].partition[0],
+               partData.faceData[face].partition[1]);
+        assert(partData.faceData[face].boundaryType < NumBoundaryTypes);
+        printf("      boundaryType: %s\n", 
+               boundaryNames[partData.faceData[face].boundaryType]);
+    }
+    
+    
+    // Node Data
+    for (uint64_t node = 0; node < partData.numNodes; node++) {
+        printf("   Node %" PRIu64 "\n", node);
+        printf("      coords: (%f, %f, %f)\n", 
+               partData.nodeData[node].coords[0],
+               partData.nodeData[node].coords[1],
+               partData.nodeData[node].coords[2]);
+        printf("      globalID: %" PRIu64 "\n", 
+               partData.nodeData[node].globalID);
+    }
 }
 
 
@@ -261,10 +187,6 @@ void ParallelMesh::write(const std::string &filename)
     for (uint64_t part = 0; part < c_numPartitions + 1; part++) {
         bufferUint.push_back(c_bytesOffset[part]);
     }
-    numWritten = fwrite(bufferUint.data(), sizeof(uint64_t),
-                        bufferUint.size(), file);
-    assert(numWritten == bufferUint.size());
-    bufferUint.clear();
 
     
     // Partition Data
@@ -318,14 +240,13 @@ void ParallelMesh::write(const std::string &filename)
             bufferUint.push_back(*((uint64_t*)(&partData.nodeData[node].coords[2])));
             bufferUint.push_back(partData.nodeData[node].globalID);
         }
-
-
-        // Write data and clear buffers
-        numWritten = fwrite(bufferUint.data(), sizeof(uint64_t),
-                            bufferUint.size(), file);
-        assert(numWritten == bufferUint.size());
-        bufferUint.clear();
     }
+
+
+    // Write data
+    numWritten = fwrite(bufferUint.data(), sizeof(uint64_t),
+                        bufferUint.size(), file);
+    assert(numWritten == bufferUint.size());
     
     
     // Close file
@@ -480,7 +401,7 @@ void ParallelMesh::createFromSerialMesh(const SerialMesh &serialMesh,
     vector<set<uint64_t>> facesInPartition(numPartitions);
     vector<set<uint64_t>> nodesInPartition(numPartitions);
     for (uint64_t cell = 0; cell < serialMesh.c_numCells; cell++) {
-        int partition = partitionVector[cell];
+        uint64_t partition = partitionVector[cell];
         
         // cells
         cellsInPartition[partition].insert(cell);
@@ -700,8 +621,8 @@ void ParallelMesh::readInParallel(const std::string &filename,
         partData.cellData[cell].boundingFaces[0] = bufferUint[cell * 9 + 0];
         partData.cellData[cell].boundingFaces[1] = bufferUint[cell * 9 + 1];
         partData.cellData[cell].boundingFaces[2] = bufferUint[cell * 9 + 2];
-        partData.cellData[cell].boundingFaces[3] = bufferUint[cell * 9 + 3]
-        ;
+        partData.cellData[cell].boundingFaces[3] = bufferUint[cell * 9 + 3];
+
         partData.cellData[cell].boundingNodes[0] = bufferUint[cell * 9 + 4];
         partData.cellData[cell].boundingNodes[1] = bufferUint[cell * 9 + 5];
         partData.cellData[cell].boundingNodes[2] = bufferUint[cell * 9 + 6];

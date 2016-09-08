@@ -1,8 +1,4 @@
 /*
-    Quadrature.hh
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
