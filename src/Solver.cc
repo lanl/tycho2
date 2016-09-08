@@ -305,7 +305,7 @@ void calcScatterSource(PsiData &scatSource, const PhiData &phiOld)
 
 
 
-static
+/*static
 void splitAnglesAcrossThreads(vector<vector<UINT>> &anglesVector)
 {
     // Get the angle indices for each angle group
@@ -327,7 +327,45 @@ void splitAnglesAcrossThreads(vector<vector<UINT>> &anglesVector)
             angles[angle] = angle + angleBdryIndices[angleGroup];
         }
     }
+}*/
+
+
+/*
+    createSweepSchedule
+    
+    Splits all the angles into sets of angle groups.
+    One angle group per OMP thread.
+    Creates an array of SweepSchedules, one entry for each angle group.
+*/
+static
+void createSweepSchedule()
+{
+    // SweepSchedule for each angle group
+    g_sweepSchedule = new SweepSchedule*[g_nAngleGroups];
+    
+    // Get the angle indices for each angle group
+    vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
+    angleBdryIndices[0] = 0;
+    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
+        UINT numAngles = g_quadrature->getNumAngles() / g_nAngleGroups;
+        if (angleGroup < g_quadrature->getNumAngles() % g_nAngleGroups)
+            numAngles++;
+        angleBdryIndices[angleGroup+1] = angleBdryIndices[angleGroup] + numAngles;
+    }
+    
+    // Create a SweepSchedule for each angle group
+    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
+        UINT numAngles = angleBdryIndices[angleGroup+1] - angleBdryIndices[angleGroup];
+        vector<UINT> angles(numAngles);
+        for (UINT angle = 0; angle < numAngles; angle++) {
+            angles[angle] = angle + angleBdryIndices[angleGroup];
+        }
+        g_sweepSchedule[angleGroup] = 
+            new SweepSchedule(angles, g_maxCellsPerStep, g_intraAngleP, 
+                              g_interAngleP);
+    }
 }
+
 
 
 namespace Solver
@@ -336,7 +374,7 @@ namespace Solver
 /*
     Solve problem
 */
-void solve(const UINT iterMax, const double errMax)
+void solve()
 {
     // Data for problem
     PsiData fixedSource;
@@ -361,13 +399,28 @@ void solve(const UINT iterMax, const double errMax)
     if(Comm::rank() == 0) {
         printf("Volume of mesh: %e\n", volume);
     }
+
+
+    // Solver initialization
+    // Make Sweep Schedule
+    if (g_sweepType == SweepType_OriginalTycho1 || 
+        g_sweepType == SweepType_OriginalTycho2)
+    {
+        Comm::barrier();
+        if(Comm::rank() == 0)
+            printf("Create sweep schedule.\n");
+        createSweepSchedule();
+        Comm::barrier();
+        if(Comm::rank() == 0)
+            printf("Create sweep schedule done.\n");
+    }
     
     
     // Solver PBJ class
     SweeperPBJ *sweeperPBJ = NULL;
     if (g_sweepType == SweepType_PBJ) {
-        vector<vector<UINT>> anglesVector(g_nAngleGroups);
-        splitAnglesAcrossThreads(anglesVector);
+        //vector<vector<UINT>> anglesVector(g_nAngleGroups);
+        //splitAnglesAcrossThreads(anglesVector);
         sweeperPBJ = new SweeperPBJ(g_sigmaTotal);
     }
 
@@ -375,8 +428,8 @@ void solve(const UINT iterMax, const double errMax)
     // Solver 2 class
     Sweeper2 *sweeper2 = NULL;
     if (g_sweepType == SweepType_TraverseGraph) {
-        vector<vector<UINT>> anglesVector(g_nAngleGroups);
-        splitAnglesAcrossThreads(anglesVector);
+        //vector<vector<UINT>> anglesVector(g_nAngleGroups);
+        //splitAnglesAcrossThreads(anglesVector);
         sweeper2 = new Sweeper2(g_maxCellsPerStep,
                                 g_intraAngleP, g_interAngleP, g_sigmaTotal);
     }
@@ -386,8 +439,8 @@ void solve(const UINT iterMax, const double errMax)
     //Solver Schur class
     SweeperSchur *sweeperSchur = NULL;
     if (g_sweepType == SweepType_Schur) {
-        vector<vector<UINT>> anglesVector(g_nAngleGroups);
-        splitAnglesAcrossThreads(anglesVector);
+        //vector<vector<UINT>> anglesVector(g_nAngleGroups);
+        //splitAnglesAcrossThreads(anglesVector);
         sweeperSchur = new SweeperSchur(g_sigmaTotal);
     }
     #endif
@@ -398,7 +451,7 @@ void solve(const UINT iterMax, const double errMax)
     double error = 1.0;
     Timer innerTimer;
     innerTimer.start();
-    while (iter < iterMax && error > errMax)
+    while (iter < g_iterMax && error > g_errMax)
     {
         Timer timer, timer2, timer3, timer4;
         double wallClockTime = 0.0;

@@ -76,7 +76,8 @@ public:
       c_localFaceData(g_nThreads)
     {
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
+            //c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
+            c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
         }
     }
     

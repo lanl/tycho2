@@ -1,15 +1,3 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- * \file   mesh/TychoMesh.cc
- * \author Shawn Pautz
- * \date   Fri Jan 14 16:21:46 2000
- * \brief  \link rtt_mesh::TychoMesh TychoMesh \endlink unstructured mesh
- *         class implementation file.
- */
-//---------------------------------------------------------------------------//
-// $Id: TychoMesh.cc,v 1.6 2000/04/06 21:45:16 pautz Exp $
-//---------------------------------------------------------------------------//
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -81,18 +69,18 @@ void getCrossProduct(double a[3], double b[3], double c[3])
     points is indexed by points(index, dim)
 */
 static 
-double getTriangleArea(Mat2<double> points)
+double getTriangleArea(TychoMesh::FaceCoords points)
 {
     double a[3], b[3];
     double crossProduct[3];
     
-    a[0] = points(1,0) - points(0,0);
-    a[1] = points(1,1) - points(0,1);
-    a[2] = points(1,2) - points(0,2);
+    a[0] = points.c[1][0] - points.c[0][0];
+    a[1] = points.c[1][1] - points.c[0][1];
+    a[2] = points.c[1][2] - points.c[0][2];
     
-    b[0] = points(2,0) - points(0,0);
-    b[1] = points(2,1) - points(0,1);
-    b[2] = points(2,2) - points(0,2);
+    b[0] = points.c[2][0] - points.c[0][0];
+    b[1] = points.c[2][1] - points.c[0][1];
+    b[2] = points.c[2][2] - points.c[0][2];
     
     getCrossProduct(a, b, crossProduct);
     
@@ -109,22 +97,22 @@ double getTriangleArea(Mat2<double> points)
     points is indexed by points(index, dim)
 */
 static 
-double getTetVolume(Mat2<double> points)
+double getTetVolume(TychoMesh::CellCoords points)
 {
     double a[3], b[3], c[3];
     double crossProduct[3];
     
-    a[0] = points(1,0) - points(0,0);
-    a[1] = points(1,1) - points(0,1);
-    a[2] = points(1,2) - points(0,2);
+    a[0] = points.c[1][0] - points.c[0][0];
+    a[1] = points.c[1][1] - points.c[0][1];
+    a[2] = points.c[1][2] - points.c[0][2];
     
-    b[0] = points(2,0) - points(0,0);
-    b[1] = points(2,1) - points(0,1);
-    b[2] = points(2,2) - points(0,2);
+    b[0] = points.c[2][0] - points.c[0][0];
+    b[1] = points.c[2][1] - points.c[0][1];
+    b[2] = points.c[2][2] - points.c[0][2];
     
-    c[0] = points(3,0) - points(0,0);
-    c[1] = points(3,1) - points(0,1);
-    c[2] = points(3,2) - points(0,2);
+    c[0] = points.c[3][0] - points.c[0][0];
+    c[1] = points.c[3][1] - points.c[0][1];
+    c[2] = points.c[3][2] - points.c[0][2];
     
     getCrossProduct(a, b, crossProduct);
     
@@ -138,7 +126,7 @@ double getTetVolume(Mat2<double> points)
     The extra cell point gives the outward normal direction.
 */
 static
-vector<double> getNormal(Mat2<double> facePoints, Mat2<double> cellPoints)
+vector<double> getNormal(TychoMesh::FaceCoords facePoints, TychoMesh::CellCoords cellPoints)
 {
     double a[3], b[3];
     double crossProduct[3];
@@ -149,13 +137,13 @@ vector<double> getNormal(Mat2<double> facePoints, Mat2<double> cellPoints)
     
     
     // Get two vectors to cross
-    a[0] = facePoints(1,0) - facePoints(0,0);
-    a[1] = facePoints(1,1) - facePoints(0,1);
-    a[2] = facePoints(1,2) - facePoints(0,2);
+    a[0] = facePoints.c[1][0] - facePoints.c[0][0];
+    a[1] = facePoints.c[1][1] - facePoints.c[0][1];
+    a[2] = facePoints.c[1][2] - facePoints.c[0][2];
     
-    b[0] = facePoints(2,0) - facePoints(0,0);
-    b[1] = facePoints(2,1) - facePoints(0,1);
-    b[2] = facePoints(2,2) - facePoints(0,2);
+    b[0] = facePoints.c[2][0] - facePoints.c[0][0];
+    b[1] = facePoints.c[2][1] - facePoints.c[0][1];
+    b[2] = facePoints.c[2][2] - facePoints.c[0][2];
     
     
     // Get a normal vector
@@ -174,9 +162,9 @@ vector<double> getNormal(Mat2<double> facePoints, Mat2<double> cellPoints)
     for(vertIndex = 0; vertIndex < 4; vertIndex++) {
         bool pointEqual = false;
         for(UINT vert = 0; vert < 3; vert++) {
-            if(cellPoints(vertIndex,0) == facePoints(vert,0) && 
-               cellPoints(vertIndex,1) == facePoints(vert,1) && 
-               cellPoints(vertIndex,2) == facePoints(vert,2))
+            if(cellPoints.c[vertIndex][0] == facePoints.c[vert][0] && 
+               cellPoints.c[vertIndex][1] == facePoints.c[vert][1] && 
+               cellPoints.c[vertIndex][2] == facePoints.c[vert][2])
             {
                 pointEqual = true;
             }
@@ -188,9 +176,9 @@ vector<double> getNormal(Mat2<double> facePoints, Mat2<double> cellPoints)
     
     
     // Make sure normal vector is outward normal
-    dotProduct = normal[0] * (cellPoints(vertIndex, 0) - facePoints(0,0)) + 
-                 normal[1] * (cellPoints(vertIndex, 1) - facePoints(0,1)) + 
-                 normal[2] * (cellPoints(vertIndex, 2) - facePoints(0,2));
+    dotProduct = normal[0] * (cellPoints.c[vertIndex][0] - facePoints.c[0][0]) + 
+                 normal[1] * (cellPoints.c[vertIndex][1] - facePoints.c[0][1]) + 
+                 normal[2] * (cellPoints.c[vertIndex][2] - facePoints.c[0][2]);
     if(dotProduct > 0) {
         normal[0] = -normal[0];
         normal[1] = -normal[1];
@@ -218,13 +206,12 @@ TychoMesh::TychoMesh(const std::string &filename)
         c_cellVolume(cell) = getTetVolume(getCellVrtxCoords(cell));
         for(UINT face = 0; face < g_nFacePerCell; face++) {
             c_faceArea(cell, face) = getTriangleArea(getFaceVrtxCoords(cell, face));
-            Mat2<double> fc = getFaceVrtxCoords(cell, face);
         }
     }
     
     
     // Calculates Omega dot N for every face
-    c_omegaDotN = Mat3<double>(g_quadrature->getNumAngles(), c_nCells, g_nFacePerCell);
+    c_omegaDotN.resize(g_quadrature->getNumAngles(), c_nCells, g_nFacePerCell);
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
         const vector<double> omega = g_quadrature->getOmega(angle);
         for (size_t cell = 0; cell < c_nCells; ++cell) {
@@ -258,7 +245,7 @@ TychoMesh::TychoMesh(const std::string &filename)
     }
     
     // Neighbor vertices
-    c_neighborVrtx = Mat3<UINT>(c_nCells, g_nFacePerCell, g_nVrtxPerFace);
+    c_neighborVrtx.resize(c_nCells, g_nFacePerCell, g_nVrtxPerFace);
     for(size_t cell = 0; cell < c_nCells; cell++) {
     for(UINT face = 0; face < g_nFacePerCell; face++) {
     for(UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
@@ -279,13 +266,13 @@ TychoMesh::TychoMesh(const std::string &filename)
 /*
     Cell vertex coords
 */
-Mat2<double> TychoMesh::getCellVrtxCoords(UINT cell) const
+TychoMesh::CellCoords TychoMesh::getCellVrtxCoords(UINT cell) const
 {
-    Mat2<double> cellVrtxCoords(g_nVrtxPerCell, g_ndim);
+    CellCoords cellVrtxCoords;
     
     for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; ++vrtx) {
     for (UINT dim = 0; dim < g_ndim; ++dim) {
-        cellVrtxCoords(vrtx, dim) =
+        cellVrtxCoords.c[vrtx][dim] =
             c_nodeCoords(c_cellNodes(cell, vrtx), dim);
     }}
     
@@ -296,15 +283,15 @@ Mat2<double> TychoMesh::getCellVrtxCoords(UINT cell) const
 /*
     Face vertex coords
 */
-Mat2<double> TychoMesh::getFaceVrtxCoords(UINT cell, UINT face) const 
+TychoMesh::FaceCoords TychoMesh::getFaceVrtxCoords(UINT cell, UINT face) const 
 {
-    Mat2<double> faceVrtxCoords(g_nVrtxPerFace, g_ndim);
+    FaceCoords faceVrtxCoords;
 
     for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; ++fvrtx) {
         UINT cvrtx = getFaceToCellVrtx(cell, face, fvrtx);
         size_t node = getCellNode(cell, cvrtx);
         for (UINT dim = 0; dim < g_ndim; ++dim)
-            faceVrtxCoords(fvrtx, dim) = c_nodeCoords(node, dim);
+            faceVrtxCoords.c[fvrtx][dim] = c_nodeCoords(node, dim);
     }
 
     return faceVrtxCoords;

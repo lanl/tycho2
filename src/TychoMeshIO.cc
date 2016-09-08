@@ -250,8 +250,8 @@ void TychoMesh::readTychoMesh(const std::string &filename)
     
     
     // c_faceToCellVrtx, c_cellToFaceVrtx
-    c_faceToCellVrtx = Mat3<UINT>(c_nCells, g_nFacePerCell, g_nVrtxPerFace);
-    c_cellToFaceVrtx = Mat3<UINT>(c_nCells, g_nFacePerCell, g_nVrtxPerCell);
+    c_faceToCellVrtx.resize(c_nCells, g_nFacePerCell, g_nVrtxPerFace);
+    c_cellToFaceVrtx.resize(c_nCells, g_nFacePerCell, g_nVrtxPerCell);
     for(UINT cell = 0; cell < c_nCells; cell++) {
     for(UINT lface = 0; lface < g_nFacePerCell; lface++) {
         UINT order[3];

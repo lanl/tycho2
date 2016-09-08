@@ -1,10 +1,4 @@
 /*
-    Main.cc
-    
-    Beginning of the program.  Sets up everything and starts the solver.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -83,43 +77,6 @@ void signalHandler(int sig)
 
 
 /*
-    createSweepSchedule
-    
-    Splits all the angles into sets of angle groups.
-    One angle group per OMP thread.
-    Creates an array of SweepSchedules, one entry for each angle group.
-*/
-static
-void createSweepSchedule()
-{
-    // SweepSchedule for each angle group
-    g_sweepSchedule = new SweepSchedule*[g_nAngleGroups];
-    
-    // Get the angle indices for each angle group
-    vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
-    angleBdryIndices[0] = 0;
-    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
-        UINT numAngles = g_quadrature->getNumAngles() / g_nAngleGroups;
-        if (angleGroup < g_quadrature->getNumAngles() % g_nAngleGroups)
-            numAngles++;
-        angleBdryIndices[angleGroup+1] = angleBdryIndices[angleGroup] + numAngles;
-    }
-    
-    // Create a SweepSchedule for each angle group
-    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
-        UINT numAngles = angleBdryIndices[angleGroup+1] - angleBdryIndices[angleGroup];
-        vector<UINT> angles(numAngles);
-        for (UINT angle = 0; angle < numAngles; angle++) {
-            angles[angle] = angle + angleBdryIndices[angleGroup];
-        }
-        g_sweepSchedule[angleGroup] = 
-            new SweepSchedule(angles, g_maxCellsPerStep, g_intraAngleP, 
-                              g_interAngleP);
-    }
-}
-
-
-/*
     readInput
 */
 static
@@ -191,12 +148,8 @@ void readInput(const string &inputFileName)
     
     Start of the program.
 */
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
-    //static const double sigmaTotal = 10.0;
-    //static const double sigmaScat = 5.0;
-    
-    
     // For Debugging (prints a backtrace)
     signal(SIGSEGV, signalHandler);
     signal(SIGABRT, signalHandler);
@@ -211,19 +164,16 @@ int main( int argc, char *argv[] )
     
 
     // Input data.
+    if (argc < 3) {
+        if (Comm::rank() == 0) {
+            printf("Usage: ./sweep.x <parallel mesh> <input deck>\n");
+        }
+        MPI_Finalize();
+        return 0;
+    }
     readInput(argv[2]);
     
 
-    // Check inputs
-    if (Comm::rank() == 0) {
-        if (argc != 3) {
-            printf("Incorrect number of arguments\n");
-            printf("Usage: ./sweep.x <.pmesh file> <input.deck file>\n\n\n");
-            MPI_Abort(MPI_COMM_WORLD, 6);
-        }
-    }
-    
-    
     // Print initial stuff
     if(Comm::rank() == 0) {
         printf("\n\n--- Initiating test of parallel sweeps. ---\n");
@@ -264,22 +214,8 @@ int main( int argc, char *argv[] )
     }
     
     
-    // Make Sweep schedule object.
-    if (g_sweepType == SweepType_OriginalTycho1 || 
-        g_sweepType == SweepType_OriginalTycho2)
-    {
-        Comm::barrier();
-        if(Comm::rank() == 0)
-            printf("Create sweep schedule.\n");
-        createSweepSchedule();
-        Comm::barrier();
-        if(Comm::rank() == 0)
-            printf("Create sweep schedule done.\n");
-    }
-    
-    
     // Do source iterations.
-    Solver::solve(g_iterMax, g_errMax);
+    Solver::solve();
 
     
     // End program

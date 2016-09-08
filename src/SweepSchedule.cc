@@ -135,9 +135,9 @@ void calcDependencies(const vector<UINT> &angles,
     calcNumDependents
 */
 static
-Mat2<UINT> calcNumDependents(UINT numAngles, const Mat3<bool> &hasChild)
+void calcNumDependents(UINT numAngles, const Mat3<bool> &hasChild, Mat2<UINT> &nDependents)
 {
-    Mat2<UINT> nDependents(numAngles, g_tychoMesh->getNCells(), (UINT)0);
+    //Mat2<UINT> nDependents(numAngles, g_tychoMesh->getNCells(), (UINT)0);
 
     for (UINT angle = 0; angle < numAngles; ++angle) {
     for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
@@ -146,7 +146,7 @@ Mat2<UINT> calcNumDependents(UINT numAngles, const Mat3<bool> &hasChild)
             ++nDependents(angle, cell);
     }}}
 
-    return nDependents;
+    //return nDependents;
 }
 
 
@@ -443,7 +443,8 @@ void calcOrdering(const Mat3<bool> &hasChild,
                   vector<vector<UINT> > &sendProcs,
                   vector<vector<UINT> > &recvProcs)
 {
-    Mat2<UINT> nParentsNeeded = calcNumDependents(numAngles, hasParent);
+    Mat2<UINT> nParentsNeeded(numAngles, g_tychoMesh->getNCells());
+    calcNumDependents(numAngles, hasParent, nParentsNeeded);
     priority_queue<PriorityWork> availableWork;
     initializeWorkQ(numAngles, nParentsNeeded, priorities, availableWork);
 
@@ -487,7 +488,8 @@ UINT calcLevels(Mat2<UINT> &cellLevels,
                const UINT numAngles, 
                const UINT maxCellsPerStep)
 {
-    Mat2<UINT> nChildrenNeeded = calcNumDependents(numAngles, hasChild);
+    Mat2<UINT> nChildrenNeeded(numAngles, g_tychoMesh->getNCells());
+    calcNumDependents(numAngles, hasChild, nChildrenNeeded);
     Mat2<UINT> priorities(numAngles, g_tychoMesh->getNCells(), 0.0);
     
     priority_queue<PriorityWork> availableWork;
@@ -584,7 +586,8 @@ void neighborPriorities(const Mat2<UINT> &sideLevels,
                         const UINT maxCellsPerStep,
                         Mat2<UINT> &priorities)
 {
-    Mat2<UINT> nChildrenNeeded = calcNumDependents(numAngles, hasChild);
+    Mat2<UINT> nChildrenNeeded(numAngles, g_tychoMesh->getNCells());
+    calcNumDependents(numAngles, hasChild, nChildrenNeeded);
 
     for (UINT angle = 0; angle < numAngles; ++angle) {
     for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {

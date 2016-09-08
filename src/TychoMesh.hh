@@ -121,11 +121,22 @@ public:
     static const UINT NOT_BOUNDARY_FACE = UINT64_MAX;
     static const UINT BAD_RANK = UINT64_MAX;
     
+
+    // Structures
+    struct FaceCoords
+    {
+        double c[3][3];
+    };
+
+    struct CellCoords
+    {
+        double c[4][3];
+    };
     
 private:
     void readTychoMesh(const std::string &filename);
-    Mat2<double> getCellVrtxCoords(UINT cell) const;
-    Mat2<double> getFaceVrtxCoords(UINT cell, UINT face) const;
+    CellCoords getCellVrtxCoords(UINT cell) const;
+    FaceCoords getFaceVrtxCoords(UINT cell, UINT face) const;
     UINT getCellVrtx(const UINT cell, const UINT node) const;
     
     UINT c_nCells;

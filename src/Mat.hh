@@ -1,10 +1,4 @@
 /*
-    Mat.hh
-    
-    Implements 1, 2, and 3 dimensional arrays.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -50,8 +44,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Typedef.hh"
 #include <algorithm>
 #include <memory>
-#include <map>
-#include <vector>
 
 
 /*
@@ -71,7 +63,6 @@ private:
     // Private functions
     size_t index( size_t i ) const
     {
-        Assert( i >= 0 );
         Assert( i < c_xlen );
         return i;
     }
@@ -187,30 +178,26 @@ public:
 */
 
 template< class T >
-class Mat2 {
+class Mat2
+{
 private:
+    
+    // Data members
     size_t c_xlen, c_ylen;
     T *c_v;
 
-    // Compute the offset into the data array, of the i,j th element.
-    size_t index( size_t i, size_t j ) const
-    {
-        Assert( i >= 0 );
-        Assert( i < c_xlen );
-        Assert( j >= 0 );
-        Assert( j < c_ylen );
 
-        return c_xlen * j + i;
+    // Compute the offset into the data array, of the (i,j) element.
+    size_t index(size_t i, size_t j) const
+    {
+        Assert(i < c_xlen);
+        Assert(j < c_ylen);
+
+        return j * c_xlen + i;
     }
 
-    // Make sure a bare integer index is within the appropriate range.
-    void check( size_t i ) const
-    {
-        UNUSED_VARIABLE(i);
-        Assert( i >= 0 );
-        Assert( i < size() );
-    }
 
+    // Delete data
     void detach()
     {
         if (c_v != NULL) {
@@ -222,15 +209,32 @@ private:
 public:
 
     // Accessors
-    T&       operator()( size_t i, size_t j )       { return c_v[ index(i,j) ]; }
-    const T& operator()( size_t i, size_t j ) const { return c_v[ index(i,j) ]; }
+    T& operator()(size_t i, size_t j)
+    {
+        return c_v[index(i, j)];
+    }
+    const T& operator()(size_t i, size_t j) const
+    {
+        return c_v[index(i, j)];
+    }
 
-    T& operator[]( size_t i ) { check(i); return c_v[i]; }
-    const T& operator[]( size_t i ) const { check(i); return c_v[i]; }
+    T& operator[](size_t i)
+    {
+        Assert(i < size());
+        return c_v[i];
+    }
+    const T& operator[](size_t i) const
+    {
+        Assert(i < size());
+        return c_v[i];
+    }
     
     
     // Size of Mat
-    size_t size() const { return c_xlen * c_ylen; }
+    size_t size() const
+    {
+        return c_xlen * c_ylen;
+    }
     
     
     // Constructors
@@ -258,7 +262,7 @@ public:
             c_v[i] = data[i];
     }
 
-    Mat2( const Mat2<T>& m )
+    Mat2( const Mat2<T>& m )// = delete;
     {
         c_xlen = m.c_xlen;
         c_ylen = m.c_ylen;
@@ -281,7 +285,7 @@ public:
         return *this;
     }
 
-    Mat2& operator=( const Mat2& m )
+    Mat2& operator=( const Mat2& m )// = delete;
     {
         if (this == &m) return *this;
 
@@ -316,7 +320,7 @@ public:
     
     
     // Utility Support
-    void redim( size_t nxmax, size_t nymax, const T& t = T() )
+    void resize( size_t nxmax, size_t nymax, const T& t = T() )
     {
         if (c_v != NULL) {
             detach();
@@ -335,31 +339,27 @@ public:
     Implements 3D Array
 */
 template< class T >
-class Mat3 {
+class Mat3
+{
 private:
+    
+    // Data members
     size_t c_xlen, c_ylen, c_zlen;
     T *c_v;
 
-    // Compute the offset into the data array, of the i,j th element.
-    size_t index( size_t i, size_t j, size_t k ) const
-    {
-        Assert( i >= 0 );
-        Assert( i < c_xlen );
-        Assert( j >= 0 );
-        Assert( j < c_ylen );
-        Assert( k >= 0 );
-        Assert( k < c_zlen );
 
-        return c_xlen * (k * c_ylen + j) + i;
+    // Compute the offset into the data array, of the (i,j,k) element.
+    size_t index(size_t i, size_t j, size_t k) const
+    {
+        Assert(i < c_xlen);
+        Assert(j < c_ylen);
+        Assert(k < c_zlen);
+
+        return (k * c_ylen + j) * c_xlen + i;
     }
 
-    // Make sure a bare integer index is within the appropriate range.
-    void check( size_t i ) const
-    {
-        Assert( i >= 0 );
-        Assert( i < size() );
-    }
-
+    
+    // Delete data
     void detach()
     {
         if (c_v != NULL) {
@@ -372,15 +372,32 @@ private:
 public:
 
     // Accessors
-    T&       operator()( size_t i, size_t j, size_t k )       { return c_v[ index(i,j,k) ]; }
-    const T& operator()( size_t i, size_t j, size_t k ) const { return c_v[ index(i,j,k) ]; }
+    T& operator()(size_t i, size_t j, size_t k)
+    {
+        return c_v[index(i, j, k)];
+    }
+    const T& operator()(size_t i, size_t j, size_t k) const
+    {
+        return c_v[index(i, j, k)];
+    }
 
-    T& operator[]( size_t i ) { check(i); return c_v[i]; }
-    const T& operator[]( size_t i ) const { check(i); return c_v[i]; }
+    T& operator[](size_t i)
+    {
+        Assert(i < size());
+        return c_v[i];
+    }
+    const T& operator[](size_t i) const
+    {
+        Assert(i < size());
+        return c_v[i];
+    }
 
 
     // Size of Mat
-    size_t size() const { return c_xlen * c_ylen * c_zlen; }
+    size_t size() const
+    {
+        return c_xlen * c_ylen * c_zlen;
+    }
 
 
     // Constructors
@@ -392,25 +409,19 @@ public:
         c_v = NULL;
     }
 
-    Mat3( size_t xmax, size_t ymax, size_t zmax, const T& t = T() )
+    Mat3(size_t xmax, size_t ymax, size_t zmax)
     {
         c_xlen = xmax;
         c_ylen = ymax;
         c_zlen = zmax;
         c_v = new T[size()];
-        std::uninitialized_fill( c_v, c_v + size(), t );
+
+        for (size_t i = 0; i < size(); i++) {
+            c_v[i] = T();
+        }
     }
 
-    Mat3( const Mat3<T>& m )
-    {
-        c_xlen = m.c_xlen;
-        c_ylen = m.c_ylen;
-        c_zlen = m.c_zlen;
-        c_v = new T[size()];
-        std::uninitialized_copy( m.c_v, m.c_v + m.size(), c_v );
-    }
-
-
+    
     // Destructor
     ~Mat3()
     {
@@ -418,82 +429,25 @@ public:
     }
 
 
-    // Assignment operators
-    Mat3& operator=( const T& t )
-    {
-        std::fill( c_v, c_v + size(), t );
-        return *this;
-    }
-
-    Mat3& operator=( const Mat3& m )
-    {
-        if (this == &m) return *this;
-
-        if ( m.c_xlen != c_xlen ||
-             m.c_ylen != c_ylen ||
-             m.c_zlen != c_zlen ) {
-            detach();
-            c_xlen = m.c_xlen;
-            c_ylen = m.c_ylen;
-            c_zlen = m.c_zlen;
-            c_v = new T[size()];
-            std::uninitialized_copy( m.c_v, m.c_v + m.size(), c_v );
-        }
-        else {
-            if (c_v)
-            std::copy( m.c_v, m.c_v + m.size(), c_v );
-        }
-
-        return *this;
-    }
-
+    // Don't allow copy or assignment operators
+    Mat3& operator=(const Mat3 &m) = delete;
+    Mat3(const Mat3<T> &m) = delete;
     
-    // Arithmetic
-    Mat3& operator+=( const Mat3<T>& m )
-    {
-        Assert( c_xlen == m.c_xlen );
-        Assert( c_ylen == m.c_ylen );
-        Assert( c_zlen == m.c_zlen );
-        
-        for(size_t i = 0; i < size(); i++) {
-            c_v[i] += m.c_v[i];
-        }
-        return *this;
-    }
 
-
-    // Utility support
-    void redim( size_t nxmax, size_t nymax, size_t nzmax, const T& t = T() )
+    // Resize matrix
+    void resize(size_t nxmax, size_t nymax, size_t nzmax)
     {
-        if (c_v != NULL) {
-            detach();
-        }
+        detach();
         c_xlen = nxmax;
         c_ylen = nymax;
         c_zlen = nzmax;
         c_v = new T[size()];
-        std::uninitialized_fill( c_v, c_v + size(), t );
+        
+        for (size_t i = 0; i < size(); i++) {
+            c_v[i] = T();
+        }
     }
 };
-
-
-
-// extern template class Mat1<double>;
-// extern template class Mat1<bool>;
-// extern template class Mat1<UINT>;
-// 
-// extern template class Mat2<double>;
-// extern template class Mat2<bool>;
-// extern template class Mat2<UINT>;
-// 
-// extern template class Mat3<double>;
-// extern template class Mat3<bool>;
-// extern template class Mat3<UINT>;
-// 
-// extern template class std::map<UINT,UINT>;
-// extern template class std::vector<double>;
-// extern template class std::vector<int>;
-// extern template class std::vector<UINT>;
 
 
 #endif

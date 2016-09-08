@@ -1,4 +1,9 @@
 /*
+    Obtained from
+    https://github.com/ckrisgarrett/KeyValueReader
+*/
+
+/*
 The MIT License (MIT)
 
 Copyright (c) 2016 C. Kristopher Garrett
