@@ -91,7 +91,7 @@ public:
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            UINT vrtx = g_spTychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
+            UINT vrtx = g_tychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
             localFaceData(fvrtx, group) = c_psi(group, vrtx, angle, cell);
         }}
         

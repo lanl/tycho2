@@ -65,12 +65,12 @@ static const double cubeSize = 100.0;
 //     
 //     for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
 //     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-//     for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+//     for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
 //     for(UINT group = 0; group < g_nGroups; group++) {
-//         UINT node = g_spTychoMesh->getCellNode(cell, vrtx);
-//         double x = g_spTychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-//         double y = g_spTychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-//         double z = g_spTychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
+//         UINT node = g_tychoMesh->getCellNode(cell, vrtx);
+//         double x = g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
+//         double y = g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
+//         double z = g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
 //         
 //         double xi  = g_quadrature->getXi(angle);
 //         double eta = g_quadrature->getEta(angle);
@@ -93,12 +93,12 @@ void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
 {
     for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-    for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
         
-        UINT node = g_spTychoMesh->getCellNode(cell, vrtx);
-        double x = g_spTychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-        double y = g_spTychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-        double z = g_spTychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
+        UINT node = g_tychoMesh->getCellNode(cell, vrtx);
+        double x = g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
+        double y = g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
+        double z = g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
         
         double xi  = g_quadrature->getXi(angle);
         double eta = g_quadrature->getEta(angle);
@@ -131,7 +131,7 @@ void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
 //     double norm = 0.0;
 //     
 //     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-//     for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+//     for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
 //     for(UINT group = 0; group < g_nGroups; group++) {
 //         double x = 0.0;
 //         double y = 0.0;
@@ -139,10 +139,10 @@ void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
 //         double psiVal = 0.0;
 //         
 //         for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-//             UINT node = g_spTychoMesh->getCellNode(cell, vrtx);
-//             x += g_spTychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-//             y += g_spTychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-//             z += g_spTychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
+//             UINT node = g_tychoMesh->getCellNode(cell, vrtx);
+//             x += g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
+//             y += g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
+//             z += g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
 //             psiVal += psi(group, vrtx, angle, cell);
 //         }
 //         
@@ -172,7 +172,7 @@ double hatL2Error(const PsiData &psi)
     
     
     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-    for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
     for(UINT group = 0; group < g_nGroups; group++) {
         double x = 0.0;
         double y = 0.0;
@@ -180,10 +180,10 @@ double hatL2Error(const PsiData &psi)
         double psiVal = 0.0;
         
         for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            UINT node = g_spTychoMesh->getCellNode(cell, vrtx);
-            x += g_spTychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-            y += g_spTychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-            z += g_spTychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
+            UINT node = g_tychoMesh->getCellNode(cell, vrtx);
+            x += g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
+            y += g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
+            z += g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
             psiVal += psi(group, vrtx, angle, cell);
         }
         
@@ -222,7 +222,7 @@ double diffBetweenGroups(const PsiData &psi)
     
     for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-    for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
         
         double psi0 = psi(0, vrtx, angle, cell);
         
@@ -250,7 +250,7 @@ double calcMass(const PsiData &psi)
 {
     double mass = 0.0;
     
-    for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
         double sumVrtxMass = 0.0;
         for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
             double localMass = 0.0;
@@ -259,7 +259,7 @@ double calcMass(const PsiData &psi)
             }
             sumVrtxMass += localMass;
         }
-        mass += sumVrtxMass / g_nVrtxPerCell * g_spTychoMesh->getCellVolume(cell);
+        mass += sumVrtxMass / g_nVrtxPerCell * g_tychoMesh->getCellVolume(cell);
     }
     
     Comm::gsum(mass);
@@ -277,7 +277,7 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
     
     //for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     #pragma omp parallel for
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
@@ -294,7 +294,7 @@ static
 void calcScatterSource(PsiData &scatSource, const PhiData &phiOld) 
 {
     #pragma omp parallel for
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
@@ -344,8 +344,8 @@ void solve(const UINT iterMax, const double errMax)
     PsiData totalSource;
     PsiData psi;
     
-    PhiData phiNew(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
-    PhiData phiOld(g_nVrtxPerCell, g_spTychoMesh->getNCells(), g_nGroups);
+    PhiData phiNew(g_nVrtxPerCell, g_tychoMesh->getNCells(), g_nGroups);
+    PhiData phiOld(g_nVrtxPerCell, g_tychoMesh->getNCells(), g_nGroups);
     
     
     // Calculate fixed source
@@ -354,8 +354,8 @@ void solve(const UINT iterMax, const double errMax)
     
     // Volume of mesh
     double volume = 0.0;
-    for(UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
-        volume += g_spTychoMesh->getCellVolume(cell);
+    for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+        volume += g_tychoMesh->getCellVolume(cell);
     }
     Comm::gsum(volume);
     if(Comm::rank() == 0) {

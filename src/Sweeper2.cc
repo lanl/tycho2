@@ -91,7 +91,7 @@ public:
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            UINT vrtx = g_spTychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
+            UINT vrtx = g_tychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
             localFaceData(fvrtx, group) = c_psi(group, vrtx, angle, cell);
         }}
         
@@ -199,7 +199,7 @@ Sweeper2::Sweeper2(const UINT maxComputePerStep,
     c_maxComputePerStep = maxComputePerStep;
     c_sigmaTotal = sigmaTotal;
     c_priorities = 
-        Mat2<UINT>(g_spTychoMesh->getNCells(), g_quadrature->getNumAngles());
+        Mat2<UINT>(g_tychoMesh->getNCells(), g_quadrature->getNumAngles());
     Priorities::calcPriorities(c_maxComputePerStep, intraAngleP, interAngleP, 
                                c_priorities);
 }

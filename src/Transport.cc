@@ -66,7 +66,7 @@ void calcLocalSource(const UINT cell,
                      Mat2<double> &cellSource)//,
                      //const UINT group) 
 {
-    double volume = g_spTychoMesh->getCellVolume(cell);
+    double volume = g_tychoMesh->getCellVolume(cell);
     
     #pragma omp simd
     for (UINT group = 0; group < g_nGroups; group++) {
@@ -94,10 +94,10 @@ void streamPlusColl(const UINT cell, const UINT angle,
     double volume, area[4];
 
     // Get cell volume and face areas
-    volume = g_spTychoMesh->getCellVolume(cell);
+    volume = g_tychoMesh->getCellVolume(cell);
     for(UINT face = 0; face < 4; face++) {
-        area[face] = g_spTychoMesh->getFaceArea(cell, face) * 
-                     g_spTychoMesh->getOmegaDotN(angle, cell, face);
+        area[face] = g_tychoMesh->getFaceArea(cell, face) * 
+                     g_tychoMesh->getOmegaDotN(angle, cell, face);
     }
     
     // Setup LHS volume integrals
@@ -125,8 +125,8 @@ void faceDependence(const UINT cell, const UINT angle,
     
     // Get face areas
     for(UINT face = 0; face < 4; face++) {
-        area[face] = g_spTychoMesh->getFaceArea(cell, face) * 
-                     g_spTychoMesh->getOmegaDotN(angle, cell, face);
+        area[face] = g_tychoMesh->getFaceArea(cell, face) * 
+                     g_tychoMesh->getOmegaDotN(angle, cell, face);
     }
     
     
@@ -134,7 +134,7 @@ void faceDependence(const UINT cell, const UINT angle,
     /*for(UINT face = 0; face < 4; face++) {
     for(UINT col = 0; col < 4; col++) {
         if(face != col)
-            cellToFaceVrtx[face][col] = g_spTychoMesh->getCellToFaceVrtx(cell, face, col);
+            cellToFaceVrtx[face][col] = g_tychoMesh->getCellToFaceVrtx(cell, face, col);
     }}*/
     
     
@@ -179,8 +179,8 @@ void faceDependence1(const UINT cell, const UINT angle,
 
     // Get face areas
     for(UINT face = 0; face < 4; face++) {
-        area[face] = g_spTychoMesh->getFaceArea(cell, face) * 
-                    g_spTychoMesh->getOmegaDotN(angle, cell, face);
+        area[face] = g_tychoMesh->getFaceArea(cell, face) * 
+                    g_tychoMesh->getOmegaDotN(angle, cell, face);
     }
 
 
@@ -188,7 +188,7 @@ void faceDependence1(const UINT cell, const UINT angle,
     for(UINT face = 0; face < 4; face++) {
     for(UINT col = 0; col < 4; col++) {
         if(face != col)
-            cellToFaceVrtx[face][col] = g_spTychoMesh->getCellToFaceVrtx(cell, face, col);
+            cellToFaceVrtx[face][col] = g_tychoMesh->getCellToFaceVrtx(cell, face, col);
     }}
     
 
@@ -691,23 +691,23 @@ void populateLocalPsiBound(const UINT angle, const UINT cell,
     #pragma omp simd
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
-        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
-            UINT neighborCell = g_spTychoMesh->getAdjCell(cell, face);
+        if (g_tychoMesh->isIncoming(angle, cell, face)) {
+            UINT neighborCell = g_tychoMesh->getAdjCell(cell, face);
             
             // In local mesh
             if (neighborCell != TychoMesh::BOUNDARY_FACE) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
                     UINT neighborVrtx = 
-                        g_spTychoMesh->getNeighborVrtx(cell, face, fvrtx);
+                        g_tychoMesh->getNeighborVrtx(cell, face, fvrtx);
                     localPsiBound(fvrtx, face, group) = 
                         psi(group, neighborVrtx, angle, neighborCell);
                 }
             }
             
             // Not in local mesh
-            else if (g_spTychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
+            else if (g_tychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    UINT side = g_spTychoMesh->getSide(cell, face);
+                    UINT side = g_tychoMesh->getSide(cell, face);
                     localPsiBound(fvrtx, face, group) = 
                         psiBound(group, fvrtx, angle, side);
                 }

@@ -93,7 +93,7 @@ void PsiData::writeToFile(const std::string &filename)
     // Write data one cell at a time
     for (size_t cell = 0; cell < c_nc; cell++) {
         int dataSize = c_na * c_ng * c_nv;
-        uint64_t globalCell = g_spTychoMesh->getLGCell(cell);
+        uint64_t globalCell = g_tychoMesh->getLGCell(cell);
         uint64_t offset = 8 + globalCell * dataSize;
         double *data = &c_data[index(0, 0, 0, cell)];
         Comm::writeDoublesAt(file, offset, data, dataSize);

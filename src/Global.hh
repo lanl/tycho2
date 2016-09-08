@@ -1,8 +1,4 @@
 /*
-    Global.hh
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -90,8 +86,8 @@ EXTERN UINT g_maxCellsPerStep;
 EXTERN UINT g_intraAngleP;
 EXTERN UINT g_interAngleP;
 EXTERN SweepType g_sweepType;
-EXTERN TychoMesh *g_spTychoMesh;
-EXTERN SweepSchedule **g_spSweepSchedule;
+EXTERN TychoMesh *g_tychoMesh;
+EXTERN SweepSchedule **g_sweepSchedule;
 EXTERN Quadrature *g_quadrature;
 EXTERN GaussElim g_gaussElim;
 EXTERN bool g_outputFile;

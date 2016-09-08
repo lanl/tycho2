@@ -101,7 +101,7 @@ public:
         c_ng = g_nGroups;
         c_nv = g_nVrtxPerCell;
         c_na = g_quadrature->getNumAngles();
-        c_nc = g_spTychoMesh->getNCells();
+        c_nc = g_tychoMesh->getNCells();
         c_data = new double[size()];
         setToValue(initValue);
     }
@@ -112,7 +112,7 @@ public:
         c_ng = g_nGroups;
         c_nv = g_nVrtxPerCell;
         c_na = g_quadrature->getNumAngles();
-        c_nc = g_spTychoMesh->getNCells();
+        c_nc = g_tychoMesh->getNCells();
         c_data = new double[size()];
         for (size_t i = 0; i < size(); i++) {
             c_data[i] = other.c_data[i];
@@ -130,7 +130,7 @@ public:
             c_ng = g_nGroups;
             c_nv = g_nVrtxPerCell;
             c_na = g_quadrature->getNumAngles();
-            c_nc = g_spTychoMesh->getNCells();
+            c_nc = g_tychoMesh->getNCells();
             c_data = new double[size()];
             for (size_t i = 0; i < size(); i++) {
                 c_data[i] = other.c_data[i];
@@ -237,7 +237,7 @@ public:
         c_ng = g_nGroups;
         c_nv = g_nVrtxPerFace;
         c_na = g_quadrature->getNumAngles();
-        c_ns = g_spTychoMesh->getNSides();
+        c_ns = g_tychoMesh->getNSides();
         c_data = new double[size()];
         setToValue(initValue);
     }
@@ -248,7 +248,7 @@ public:
         c_ng = g_nGroups;
         c_nv = g_nVrtxPerFace;
         c_na = g_quadrature->getNumAngles();
-        c_ns = g_spTychoMesh->getNSides();
+        c_ns = g_tychoMesh->getNSides();
         c_data = new double[size()];
         for (size_t i = 0; i < size(); i++) {
             c_data[i] = other.c_data[i];
@@ -266,7 +266,7 @@ public:
             c_ng = g_nGroups;
             c_nv = g_nVrtxPerFace;
             c_na = g_quadrature->getNumAngles();
-            c_ns = g_spTychoMesh->getNSides();
+            c_ns = g_tychoMesh->getNSides();
             c_data = new double[size()];
             for (size_t i = 0; i < size(); i++) {
                 c_data[i] = other.c_data[i];

@@ -65,7 +65,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //Initial definition of static variables
 static std::vector<UINT> s_adjRanks;
-static std::vector<std::vector<MetaData>> s_sendMetaData;
+static std::vector<std::vector<CommSides::MetaData>> s_sendMetaData;
 static std::vector<UINT> s_numSendPackets;
 static std::vector<UINT> s_numRecvPackets; 
 static PsiData s_psi;
@@ -98,18 +98,18 @@ void psiBoundToArray(PetscScalar Array[], const PsiBoundData &psiBound)
       
     // Incoming flux
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
-        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
-            UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-            UINT adjRank = g_spTychoMesh->getAdjRank(cell,face);
+        if (g_tychoMesh->isIncoming(angle, cell, face)) {
+            UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
+            UINT adjRank = g_tychoMesh->getAdjRank(cell,face);
             
             // In local mesh
             if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
                     Array[ArrayIndex] = 
-                        psiBound(group, fvrtx, angle, g_spTychoMesh->getSide(cell,face));
+                        psiBound(group, fvrtx, angle, g_tychoMesh->getSide(cell,face));
                     ArrayIndex++;
                 }
             }
@@ -128,17 +128,17 @@ void arrayToPsiBound(const PetscScalar Array[], PsiBoundData &psiBound)
       
     //Incoming flux
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
-        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
-            UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-            UINT adjRank = g_spTychoMesh->getAdjRank(cell,face);
+        if (g_tychoMesh->isIncoming(angle, cell, face)) {
+            UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
+            UINT adjRank = g_tychoMesh->getAdjRank(cell,face);
             
             // In local mesh
             if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    psiBound(group, fvrtx, angle, g_spTychoMesh->getSide(cell,face)) = Array[ArrayIndex];
+                    psiBound(group, fvrtx, angle, g_tychoMesh->getSide(cell,face)) = Array[ArrayIndex];
                     ArrayIndex++;
                 }
             }
@@ -157,12 +157,12 @@ int getVecSize()
       
     // Incoming flux
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
-        if (g_spTychoMesh->isIncoming(angle, cell, face)) {
-            UINT neighborCell = g_spTychoMesh->getAdjCell(cell, face);
-            UINT adjRank = g_spTychoMesh->getAdjRank(cell,face);
+        if (g_tychoMesh->isIncoming(angle, cell, face)) {
+            UINT neighborCell = g_tychoMesh->getAdjCell(cell, face);
+            UINT adjRank = g_tychoMesh->getAdjRank(cell,face);
             // In local mesh
             if (neighborCell == TychoMesh::BOUNDARY_FACE &&  adjRank != TychoMesh::BAD_RANK) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
@@ -197,7 +197,8 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b)
 
     //Traverse the graph to get the values on the outward facing boundary, call commSides to transfer boundary data
     traverseGraph(maxComputePerStep, s_sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);     
-    commSides(s_adjRanks, s_sendMetaData, s_numSendPackets, s_numRecvPackets, s_sweepData);	
+    CommSides::commSides(s_adjRanks, s_sendMetaData, s_numSendPackets, 
+                         s_numRecvPackets, s_sweepData);	
 
      
     //Take the values of s_psi from the sweep and put them in b
@@ -251,17 +252,17 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
  
     //Put old psi values into PsiBound as a guess
   //  for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
- //   for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); ++cell) {
+ //   for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
   //  for (UINT group = 0; group < g_nGroups; group++) {
    // for (UINT face = 0; face < g_nFacePerCell; face++) {
-    //    if (g_spTychoMesh->isIncoming(angle, cell, face)) {
-    //        UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-     //       UINT adjRank = g_spTychoMesh->getAdjRank(cell,face);
+    //    if (g_tychoMesh->isIncoming(angle, cell, face)) {
+    //        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
+     //       UINT adjRank = g_tychoMesh->getAdjRank(cell,face);
             
             // In local mesh
      //       if (adjCell == TychoMesh::BOUNDARY_FACE && adjRank != TychoMesh::BAD_RANK) {
       //          for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-      //              psiBound(group, fvrtx, angle, g_spTychoMesh->getSide(cell,face)) = psi(group, g_spTychoMesh->getFaceToCellVrtx(cell,face,fvrtx), angle, cell);
+      //              psiBound(group, fvrtx, angle, g_tychoMesh->getSide(cell,face)) = psi(group, g_tychoMesh->getFaceToCellVrtx(cell,face,fvrtx), angle, cell);
         //        }
         //    }
        // }
@@ -273,11 +274,11 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
 
     //Get adjacent ranks
     std::vector<UINT> adjRanks;
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         
-        UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-        UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
+        UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
+        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
         
         if (adjCell == TychoMesh::BOUNDARY_FACE && 
             adjRank != TychoMesh::BAD_RANK &&
@@ -289,7 +290,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     
     
     // Populate sendMetaData, numSendPackets, and numRecvPackets
-    std::vector<std::vector<MetaData>> sendMetaData(adjRanks.size());
+    std::vector<std::vector<CommSides::MetaData>> sendMetaData(adjRanks.size());
     std::vector<UINT> numSendPackets(adjRanks.size());
     std::vector<UINT> numRecvPackets(adjRanks.size());
     
@@ -297,16 +298,16 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
         
         numSendPackets[rankIndex] = 0;
         numRecvPackets[rankIndex] = 0;
-        for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+        for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
         for (UINT face = 0; face < g_nFacePerCell; face++) {
         
-            UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);        
+            UINT adjRank = g_tychoMesh->getAdjRank(cell, face);        
             if (adjRank == adjRanks[rankIndex]) {
                 for (UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-                    if (g_spTychoMesh->isOutgoing(angle, cell, face)) {
-                        MetaData md;
-                        UINT side = g_spTychoMesh->getSide(cell, face);
-                        md.gSide = g_spTychoMesh->getLGSide(side);
+                    if (g_tychoMesh->isOutgoing(angle, cell, face)) {
+                        CommSides::MetaData md;
+                        UINT side = g_tychoMesh->getSide(cell, face);
+                        md.gSide = g_tychoMesh->getLGSide(side);
                         md.angle = angle;
                         md.cell  = cell;
                         md.face  = face;
@@ -394,7 +395,8 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
 
 
     //Input source into BIn
-    commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, sourceData);    
+    CommSides::commSides(adjRanks, sendMetaData, numSendPackets, 
+                         numRecvPackets, sourceData);    
     PetscScalar *BIn; 
     VecGetArray(b,&BIn);
     psiBoundToArray(BIn, sourceData.getSideData()); 

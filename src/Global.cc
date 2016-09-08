@@ -1,10 +1,4 @@
 /*
-    Global.cc
-    
-    This is a hack to define the global variables in Global.hh.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -43,6 +37,8 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
+// This is a hack to define the global variables in Global.hh.
 #define NO_EXTERN
 #include "Global.hh"
 

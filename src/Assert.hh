@@ -1,12 +1,4 @@
 /*
-    Assert.hh
-    
-    Macros for assert and insist.
-    Assert can be turned on/off via ASSERT_ON.
-    Insist is always checked.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 

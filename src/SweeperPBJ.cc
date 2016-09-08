@@ -93,7 +93,7 @@ public:
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            UINT vrtx = g_spTychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
+            UINT vrtx = g_tychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
             localFaceData(fvrtx, group) = c_psi(group, vrtx, angle, cell);
         }}
         
@@ -229,11 +229,11 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     // Get adjacent ranks
     vector<UINT> adjRanks;
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         
-        UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-        UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
+        UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
+        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
         
         if (adjCell == TychoMesh::BOUNDARY_FACE && 
             adjRank != TychoMesh::BAD_RANK &&
@@ -245,7 +245,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     
     // Populate sendMetaData, numSendPackets, and numRecvPackets
-    vector<vector<MetaData>> sendMetaData(adjRanks.size());
+    vector<vector<CommSides::MetaData>> sendMetaData(adjRanks.size());
     vector<UINT> numSendPackets(adjRanks.size());
     vector<UINT> numRecvPackets(adjRanks.size());
     
@@ -254,16 +254,16 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         numSendPackets[rankIndex] = 0;
         numRecvPackets[rankIndex] = 0;
         
-        for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+        for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
         for (UINT face = 0; face < g_nFacePerCell; face++) {
         
-            UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);        
+            UINT adjRank = g_tychoMesh->getAdjRank(cell, face);        
             if (adjRank == adjRanks[rankIndex]) {
                 for (UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-                    if (g_spTychoMesh->isOutgoing(angle, cell, face)) {
-                        MetaData md;
-                        UINT side = g_spTychoMesh->getSide(cell, face);
-                        md.gSide = g_spTychoMesh->getLGSide(side);
+                    if (g_tychoMesh->isOutgoing(angle, cell, face)) {
+                        CommSides::MetaData md;
+                        UINT side = g_tychoMesh->getSide(cell, face);
+                        md.gSide = g_tychoMesh->getLGSide(side);
                         md.angle = angle;
                         md.cell  = cell;
                         md.face  = face;
@@ -307,8 +307,8 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         
         
         // Communicate
-        commSides(adjRanks, sendMetaData, numSendPackets, numRecvPackets, 
-                  sweepData);
+        CommSides::commSides(adjRanks, sendMetaData, numSendPackets, 
+                             numRecvPackets, sweepData);
         
         
         // Increment iter

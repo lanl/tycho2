@@ -93,7 +93,7 @@ static
 void createSweepSchedule()
 {
     // SweepSchedule for each angle group
-    g_spSweepSchedule = new SweepSchedule*[g_nAngleGroups];
+    g_sweepSchedule = new SweepSchedule*[g_nAngleGroups];
     
     // Get the angle indices for each angle group
     vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
@@ -112,7 +112,7 @@ void createSweepSchedule()
         for (UINT angle = 0; angle < numAngles; angle++) {
             angles[angle] = angle + angleBdryIndices[angleGroup];
         }
-        g_spSweepSchedule[angleGroup] = 
+        g_sweepSchedule[angleGroup] = 
             new SweepSchedule(angles, g_maxCellsPerStep, g_intraAngleP, 
                               g_interAngleP);
     }
@@ -256,7 +256,7 @@ int main( int argc, char *argv[] )
         printf("Create Tycho Mesh\n");
         meshTimer.start();
     }
-    g_spTychoMesh = new TychoMesh(argv[1]);
+    g_tychoMesh = new TychoMesh(argv[1]);
     Comm::barrier();
     if(Comm::rank() == 0) {
         meshTimer.stop();

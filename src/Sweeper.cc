@@ -125,8 +125,8 @@ void send(const UINT step, const UINT angleGroup,
           Mat2<vector<UINT>> &commSidesAngles, Mat2<vector<double>> &commPsi,
           vector<MPI_Request> &mpiRequests)
 {
-    if (step < g_spSweepSchedule[angleGroup]->nSteps()) {
-        for (UINT proc : g_spSweepSchedule[angleGroup]->getSendProcs(step)) {
+    if (step < g_sweepSchedule[angleGroup]->nSteps()) {
+        for (UINT proc : g_sweepSchedule[angleGroup]->getSendProcs(step)) {
             
             MPI_Request mpiRequest;
             UINT nSides = commSidesAngles(angleGroup, proc).size()/2;
@@ -162,8 +162,8 @@ void send(const UINT step, const UINT angleGroup,
 static
 void recv(const UINT step, const UINT angleGroup, PsiBoundData &psiBound)
 {
-    if (step < g_spSweepSchedule[angleGroup]->nSteps()) {
-        for (UINT proc : g_spSweepSchedule[angleGroup]->getRecvProcs(step)) {
+    if (step < g_sweepSchedule[angleGroup]->nSteps()) {
+        for (UINT proc : g_sweepSchedule[angleGroup]->getRecvProcs(step)) {
             
             // Get num sides and data size
             vector<UINT> nSidesData(2);
@@ -188,7 +188,7 @@ void recv(const UINT step, const UINT angleGroup, PsiBoundData &psiBound)
                 vector<UINT> commSides(nSides);
                 vector<UINT> commAngles(nSides);
                 for (UINT side = 0; side < nSides; ++side) {
-                    commSides[side] = g_spTychoMesh->getGLSide(commSidesAngles[2*side]);
+                    commSides[side] = g_tychoMesh->getGLSide(commSidesAngles[2*side]);
                     commAngles[side] = commSidesAngles[2*side+1];
                 }
 
@@ -214,15 +214,15 @@ void updateComm(const UINT cell, const UINT angle,
     UINT angleGroup = omp_get_thread_num();
     vector<double> psiSide(g_nVrtxPerFace * g_nGroups);
     for (UINT face = 0; face < g_nFacePerCell; ++face) {
-        size_t neighborCell = g_spTychoMesh->getAdjCell(cell, face);
-        UINT proc = g_spTychoMesh->getAdjRank(cell, face);
+        size_t neighborCell = g_tychoMesh->getAdjCell(cell, face);
+        UINT proc = g_tychoMesh->getAdjRank(cell, face);
         
-        if (neighborCell == g_spTychoMesh->BOUNDARY_FACE && 
-            g_spTychoMesh->isOutgoing(angle, cell, face) &&
+        if (neighborCell == g_tychoMesh->BOUNDARY_FACE && 
+            g_tychoMesh->isOutgoing(angle, cell, face) &&
             proc != TychoMesh::BAD_RANK)
         {
-            UINT side = g_spTychoMesh->getSide(cell, face);
-            UINT globalSide = g_spTychoMesh->getLGSide(side);
+            UINT side = g_tychoMesh->getSide(cell, face);
+            UINT globalSide = g_tychoMesh->getLGSide(side);
             getBoundData(psiBound, side, angle, psiSide);
             commPsi(angleGroup, proc).insert(commPsi(angleGroup, proc).end(), psiSide.begin(), psiSide.end());
             commSidesAngles(angleGroup, proc).push_back(globalSide);
@@ -244,15 +244,15 @@ void updateBoundData(const UINT cell, const UINT angle, PsiBoundData &psiBound,
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; ++face) {
         
-        size_t neighborCell = g_spTychoMesh->getAdjCell(cell, face);
-        if (neighborCell == g_spTychoMesh->BOUNDARY_FACE) {
+        size_t neighborCell = g_tychoMesh->getAdjCell(cell, face);
+        if (neighborCell == g_tychoMesh->BOUNDARY_FACE) {
             
             // if outgoing face
-            if (g_spTychoMesh->isOutgoing(angle, cell, face)) {
-                UINT side = g_spTychoMesh->getSide(cell, face);
+            if (g_tychoMesh->isOutgoing(angle, cell, face)) {
+                UINT side = g_tychoMesh->getSide(cell, face);
                 for (UINT vertex = 0; vertex < g_nVrtxPerFace; ++vertex) {
                     psiBound(group, vertex, angle, side) =
-                        localPsi(g_spTychoMesh->getFaceToCellVrtx(cell, face, vertex), group);
+                        localPsi(g_tychoMesh->getFaceToCellVrtx(cell, face, vertex), group);
                 }
             }
         }
@@ -281,10 +281,10 @@ void doComputation(const UINT step,
     Mat3<double> localPsiBound(g_nVrtxPerFace, g_nFacePerCell, g_nGroups);            
     
     // Do work
-    if (step < g_spSweepSchedule[angleGroup]->nSteps()) {
+    if (step < g_sweepSchedule[angleGroup]->nSteps()) {
         // get work to solve in this step
         for (const SweepSchedule::Work &work : 
-             g_spSweepSchedule[angleGroup]->getWork(step)) {
+             g_sweepSchedule[angleGroup]->getWork(step)) {
             
             UINT cell = work.getCell();
             UINT angle = work.getAngle();
@@ -332,9 +332,9 @@ void sweep(PsiData &psi, const PsiData &source, const double sigmaTotal)
     
     
     // Get max steps for all OpenMP threads
-    UINT maxNSteps = g_spSweepSchedule[0]->nSteps();
+    UINT maxNSteps = g_sweepSchedule[0]->nSteps();
     for(UINT angleGroup = 1; angleGroup < g_nAngleGroups; angleGroup++) {
-        maxNSteps = max(maxNSteps, g_spSweepSchedule[angleGroup]->nSteps());
+        maxNSteps = max(maxNSteps, g_sweepSchedule[angleGroup]->nSteps());
     }
     
     

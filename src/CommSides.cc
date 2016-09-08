@@ -1,11 +1,4 @@
 /*
-    CommSides.cc
-
-    Communicates boundary values between the sides
- */
-
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 Copyright 2016. Los Alamos National Security, LLC. This software was produced 
@@ -56,6 +49,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include "CommSides.hh"
 
+
+namespace CommSides
+{
 
 /*
     commSides
@@ -165,7 +161,7 @@ void commSides(const std::vector<UINT> &adjRanks,
             ptr += sizeof(UINT);
             memcpy(&angle, ptr, sizeof(UINT));
             ptr += sizeof(UINT);
-            UINT side = g_spTychoMesh->getGLSide(gSide);
+            UINT side = g_tychoMesh->getGLSide(gSide);
             sweepData.setSideData(side, angle, ptr);
         }
     }
@@ -179,4 +175,5 @@ void commSides(const std::vector<UINT> &adjRanks,
     }
 }
 
+} // End namespace
 

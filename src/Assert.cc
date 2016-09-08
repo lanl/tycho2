@@ -1,14 +1,4 @@
 /*
-    Assert.cc
-    
-    Implements assertions for code that can be turned on and off.
-    These should only be accessed by the macros defined in Assert.hh
-    
-    Authors:
-        Kris Garrett - ckgarrett@lanl.gov
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -50,7 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Assert.hh"
 #include <stdio.h>
 #include <stdlib.h>
-//#include <mpi.h>
 
 
 namespace Assert

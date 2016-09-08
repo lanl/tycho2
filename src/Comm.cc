@@ -1,10 +1,3 @@
-/*!
-    \file   Comm.cc
-    \author Kris Garrett
-    \date   2016
-    \brief  Implements several MPI requests.
-*/
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -47,7 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "Assert.hh"
 #include <mpi.h>
-#include <omp.h>
 
 
 static const int INT_TAG = 1;
@@ -57,8 +49,10 @@ static const int DOUBLE_TAG = 2;
 namespace Comm
 {
 
-/*! 
-    \brief Returns MPI rank.
+/* 
+    rank
+
+    Returns MPI rank.
 */
 int rank()
 {
@@ -69,20 +63,24 @@ int rank()
 }
 
 
-/*! 
-    \brief Returns MPI rank.
+/*
+    rank
+    
+    Returns MPI rank for a communicator.
 */
 int rank(MPI_Comm comm)
 {
     int rank = 0;
     int result = MPI_Comm_rank(comm, &rank);
-    Insist(result == MPI_SUCCESS, "Comm::rank MPI error.\n");
+    Insist(result == MPI_SUCCESS, "Comm::rank(comm) MPI error.\n");
     return rank;
 }
 
 
-/*!
-    \brief Returns number of MPI ranks.
+/*
+    numRanks
+    
+    Returns number of MPI ranks.
 */
 int numRanks()
 {
@@ -93,187 +91,134 @@ int numRanks()
 }
 
 
-/*!
-    \brief Sums x from all ranks.
+/*
+    gsum
+
+    Sums x from all ranks.
 */
 void gsum(double &x)
 {
     double send = x;
     double recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_SUM, 
+                               MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::gsum(double) MPI error.\n");
     x = recv;
 }
 
 
-/*!
-    \brief Sums x from all ranks.
-*/
-void gsum(int &x)
-{
-    int send = x;
-    int recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    Insist(result == MPI_SUCCESS, "Comm::gsum(int) MPI error.\n");
-    x = recv;
-}
-
-
-/*!
-    \brief Sums x from all ranks.
+/*
+    gsum
+    
+    Sums x from all ranks.
 */
 void gsum(UINT &x)
 {
     UINT send = x;
     UINT recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
+    int result = MPI_Allreduce(&send, &recv, 1, MPI_UINT64_T, MPI_SUM, 
+                               MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::gsum(UINT) MPI error.\n");
     x = recv;
 }
 
 
-/*!
-    \brief Calculates max of x from all ranks.
+/*
+    gmax
+    
+    Calculates max of x from all ranks.
 */
 void gmax(double &x)
 {
     double send = x;
     double recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_MAX, 
+                               MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::gmax(double) MPI error.\n");
     x = recv;
 }
 
 
-/*!
-    \brief Calculates max of x from all ranks.
+/*
+    gmax
+    
+    Calculates max of x from all ranks.
 */
 void gmax(double &x, MPI_Comm comm)
 {
     double send = x;
     double recv = 0;
     int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_MAX, comm);
-    Insist(result == MPI_SUCCESS, "Comm::gmax(double) MPI error.\n");
+    Insist(result == MPI_SUCCESS, "Comm::gmax(double, comm) MPI error.\n");
     x = recv;
 }
 
 
-/*!
-    \brief Calculates max of x from all ranks.
-*/
-void gmax(int &x)
-{
-    int send = x;
-    int recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-    Insist(result == MPI_SUCCESS, "Comm::gmax(int) MPI error.\n");
-    x = recv;
-}
-
-
-/*!
-    \brief Calculates max of x from all ranks.
+/*
+    gmax
+    
+    Calculates max of x from all ranks.
 */
 void gmax(UINT &x)
 {
     UINT send = x;
     UINT recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
+    int result = MPI_Allreduce(&send, &recv, 1, MPI_UINT64_T, MPI_MAX, 
+                               MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::gmax(int) MPI error.\n");
     x = recv;
 }
 
 
 /*
-    exscan
-    
-    Performs an exclusive scan across all ranks.
-*/
-UINT exscan(UINT x)
-{
-    UINT send = x;
-    UINT recv = 0;
-    int result = MPI_Exscan(&send, &recv, 1, MPI_UINT64_T, MPI_SUM, MPI_COMM_WORLD);
-    Insist(result == MPI_SUCCESS, "Comm::exscan MPI error.\n");
-    return recv;
-}
+    sendUint
 
-
-/*!
-    \brief Blocking send of a single integer value.
-*/
-void sendInt(int i, int destination)
-{
-    int result = MPI_Send(&i, 1, MPI_INT, destination, INT_TAG, MPI_COMM_WORLD);
-    Insist(result == MPI_SUCCESS, "Comm::sendInt MPI error.\n");
-}
-
-
-/*!
-    \brief Blocking send of a single integer value.
+    Blocking send of a single integer value.
 */
 void sendUInt(UINT i, int destination)
 {
-    int result = MPI_Send(&i, 1, MPI_UINT64_T, destination, INT_TAG, MPI_COMM_WORLD);
+    int result = MPI_Send(&i, 1, MPI_UINT64_T, destination, INT_TAG, 
+                          MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::sendUInt MPI error.\n");
 }
 
 
-/*!
-    \brief Blocking send of a vector of integer values.
-*/
-void sendIntVector(const std::vector<int> &buffer, int destination)
-{
-    int *buffer1 = const_cast<int*>(buffer.data());
-    int result = MPI_Send(buffer1, buffer.size(), MPI_INT, destination, INT_TAG, 
-                          MPI_COMM_WORLD);
-    Insist(result == MPI_SUCCESS, "Comm::sendIntVector MPI error.\n");
-}
-
-
-/*!
-    \brief Blocking send of a vector of integer values.
+/*
+    sendUintVector
+    
+    Blocking send of a vector of integer values.
 */
 void sendUIntVector(const std::vector<UINT> &buffer, int destination)
 {
     UINT *buffer1 = const_cast<UINT*>(buffer.data());
-    int result = MPI_Send(buffer1, buffer.size(), MPI_UINT64_T, destination, INT_TAG, 
-                          MPI_COMM_WORLD);
+    int result = MPI_Send(buffer1, buffer.size(), MPI_UINT64_T, destination, 
+                          INT_TAG, MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::sendUIntVector MPI error.\n");
 }
 
 
-/*!
-    \brief Asynchronous send of int vector for a given tag.
-*/
-void iSendIntVector(const std::vector<int> &buffer, int destination, int tag, 
-                    MPI_Request &request)
-{
-    int *buffer1 = const_cast<int*>(buffer.data());
-    int result = MPI_Isend(buffer1, buffer.size(), MPI_INT, destination, tag, 
-                           MPI_COMM_WORLD, &request);
-    Insist(result == MPI_SUCCESS, "Comm::iSendIntVector MPI error.\n");
-}
-
-
-/*!
-    \brief Asynchronous send of int vector for a given tag.
+/*
+    iSendUIntVector
+    
+    Asynchronous send of int vector for a given tag.
 */
 void iSendUIntVector(const std::vector<UINT> &buffer, int destination, int tag, 
-                    MPI_Request &request)
+                     MPI_Request &request)
 {
     UINT *buffer1 = const_cast<UINT*>(buffer.data());
-    int result = MPI_Isend(buffer1, buffer.size(), MPI_UINT64_T, destination, tag, 
-                           MPI_COMM_WORLD, &request);
+    int result = MPI_Isend(buffer1, buffer.size(), MPI_UINT64_T, destination, 
+                           tag, MPI_COMM_WORLD, &request);
     Insist(result == MPI_SUCCESS, "Comm::iSendUIntVector MPI error.\n");
 }
 
 
-/*!
-    \brief Asynchronous send of double vector for a given tag.
+/*
+    iSendDoubleVector
+
+    Asynchronous send of double vector for a given tag.
 */
-void iSendDoubleVector(const std::vector<double> &buffer, int destination, int tag, 
-                       MPI_Request &request)
+void iSendDoubleVector(const std::vector<double> &buffer, int destination, 
+                       int tag, MPI_Request &request)
 {
     double *buffer1 = const_cast<double*>(buffer.data());
     int result = MPI_Isend(buffer1, buffer.size(), MPI_DOUBLE, destination, tag, 
@@ -282,85 +227,62 @@ void iSendDoubleVector(const std::vector<double> &buffer, int destination, int t
 }
 
 
-/*!
-    \brief Blocking receive of a single integer value or a vector of integer values.
-*/
-void recvInt(int &i, int destination)
-{
-    int result = MPI_Recv(&i, 1, MPI_INT, destination, INT_TAG, MPI_COMM_WORLD, 
-                          MPI_STATUS_IGNORE);
-    Insist(result == MPI_SUCCESS, "Comm::recvInt MPI error.\n");
-}
+/*
+    recvUInt
 
-
-/*!
-    \brief Blocking receive of a single integer value or a vector of integer values.
+    Blocking receive of a single integer value or a vector of integer values.
 */
 void recvUInt(UINT &i, int destination)
 {
-    int result = MPI_Recv(&i, 1, MPI_UINT64_T, destination, INT_TAG, MPI_COMM_WORLD, 
-                          MPI_STATUS_IGNORE);
+    int result = MPI_Recv(&i, 1, MPI_UINT64_T, destination, INT_TAG, 
+                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::recvUInt MPI error.\n");
 }
 
 
-/*!
-    \brief Blocking receive of a single integer value or a vector of integer values.
-*/
-void recvIntVector(std::vector<int> &buffer, int destination)
-{
-    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_INT, destination, INT_TAG, 
-                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    Insist(result == MPI_SUCCESS, "Comm::recvIntVector MPI error.\n");
-}
-
-
-/*!
-    \brief Blocking receive of a single integer value or a vector of integer values.
+/*
+    recvUIntVector
+    
+    Blocking receive of a single integer value or a vector of integer values.
 */
 void recvUIntVector(std::vector<UINT> &buffer, int destination)
 {
-    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_UINT64_T, destination, INT_TAG, 
-                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_UINT64_T, destination, 
+                          INT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::recvUIntVector MPI error.\n");
 }
 
 
-/*!
-    \brief Blocking receive of int/double vector for a given tag.
-*/
-void recvIntVector(std::vector<int> &buffer, int destination, int tag)
-{
-    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_INT, destination, tag, 
-                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    Insist(result == MPI_SUCCESS, "Comm::recvIntVector with tag MPI error.\n");
-}
-
-
-/*!
-    \brief Blocking receive of int/double vector for a given tag.
+/*
+    recvUIntVector
+    
+    Blocking receive of int/double vector for a given tag.
 */
 void recvUIntVector(std::vector<UINT> &buffer, int destination, int tag)
 {
-    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_UINT64_T, destination, tag, 
-                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_UINT64_T, destination, 
+                          tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::recvUIntVector with tag MPI error.\n");
 }
 
 
-/*!
-    \brief Blocking receive of int/double vector for a given tag.
+/*
+    recvDoubleVector
+    
+    Blocking receive of int/double vector for a given tag.
 */
 void recvDoubleVector(std::vector<double> &buffer, int destination, int tag)
 {
-    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_DOUBLE, destination, tag, 
-                          MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_DOUBLE, destination, 
+                          tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::recvDoubleVector MPI error.\n");
 }
 
 
-/*!
-    \brief Global MPI barrier.
+/*
+    barrier
+    
+    Global MPI barrier.
 */
 void barrier()
 {
@@ -394,7 +316,7 @@ void openFileForWrite(const std::string &filename, MPI_File &file)
     int result;
     
     // Try to open file
-    // If file exists this will fail and we have to delete the file and open again.
+    // If file exists this will fail, so delete the file and open again.
     result = MPI_File_open(MPI_COMM_WORLD, filename1, 
                            MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_EXCL, 
                            MPI_INFO_NULL, &file);
@@ -404,7 +326,8 @@ void openFileForWrite(const std::string &filename, MPI_File &file)
 
     if (Comm::rank() == 0) {
         result = MPI_File_delete(filename1, MPI_INFO_NULL);
-        Insist(result == MPI_SUCCESS, "Comm::openFileForWrite MPI error (delete).\n");
+        Insist(result == MPI_SUCCESS, 
+               "Comm::openFileForWrite MPI error (delete).\n");
     }
     
     result = MPI_File_open(MPI_COMM_WORLD, filename1, 
@@ -483,7 +406,8 @@ void readChars(const MPI_File &file, char *data, int numData)
 
     Writes an array of doubles to specified location in file.
 */
-void writeDoublesAt(const MPI_File &file, UINT offset, double *data, UINT numData)
+void writeDoublesAt(const MPI_File &file, UINT offset, double *data, 
+                    UINT numData)
 {
     int result = MPI_File_write_at(file, offset * 8, data, numData, MPI_DOUBLE, 
                                    MPI_STATUS_IGNORE);

@@ -129,9 +129,9 @@ static
 bool isIncoming(UINT angle, UINT cell, UINT face, Direction direction)
 {
     if (direction == Direction_Forward)
-        return g_spTychoMesh->isIncoming(angle, cell, face);
+        return g_tychoMesh->isIncoming(angle, cell, face);
     else if (direction == Direction_Backward)
-        return g_spTychoMesh->isOutgoing(angle, cell, face);
+        return g_tychoMesh->isOutgoing(angle, cell, face);
     
     // Should never get here
     Assert(false);
@@ -322,7 +322,7 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
                 UINT angle;
                 splitPacket(&packet, globalSide, angle);
                 
-                UINT localSide = g_spTychoMesh->getGLSide(globalSide);
+                UINT localSide = g_tychoMesh->getGLSide(globalSide);
                 traverseData.setSideData(localSide, angle, packet);
                 sideRecv.insert(make_pair(localSide,angle));
             }
@@ -349,7 +349,7 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
 /*
     traverseGraph
     
-    Traverses g_spTychoMesh.
+    Traverses g_tychoMesh.
     If doComm is true, this is done globally.
     If doComm is false, each mesh partition is traversed locally with no
     consideration for boundaries between partitions.
@@ -358,7 +358,7 @@ void traverseGraph(const UINT maxComputePerStep,
                    TraverseData &traverseData, bool doComm,
                    MPI_Comm mpiComm, Direction direction)
 {
-    UINT numCells = g_spTychoMesh->getNCells();
+    UINT numCells = g_tychoMesh->getNCells();
     UINT numAngles = g_quadrature->getNumAngles();
     vector<priority_queue<Tuple>> canCompute(g_nThreads);
     Mat2<UINT> numDependencies(numCells, numAngles);
@@ -379,14 +379,14 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Calc num dependencies for each (cell, angle) pair
     for (UINT angle = 0; angle < numAngles; angle++) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
         
         numDependencies(cell, angle) = 0;
         for (UINT face = 0; face < g_nFacePerCell; face++) {
             
             bool incoming = isIncoming(angle, cell, face, direction);
-            UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-            UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
+            UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
+            UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
             
             if (doComm && incoming && adjRank != TychoMesh::BAD_RANK) {
                 numDependencies(cell, angle)++;
@@ -399,11 +399,11 @@ void traverseGraph(const UINT maxComputePerStep,
     
     
     // Get adjacent ranks
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         
-        UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
-        UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
+        UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
+        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
         
         if (adjCell == TychoMesh::BOUNDARY_FACE && 
             adjRank != TychoMesh::BAD_RANK &&
@@ -425,7 +425,7 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Initialize canCompute queue
     for (UINT angle = 0; angle < numAngles; angle++) {
-    for (UINT cell = 0; cell < g_spTychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
         if (numDependencies(cell, angle) == 0) {
             UINT priority = traverseData.getPriority(cell, angle);
             canCompute[angleGroupIndex(angle)].push(Tuple(cell, angle, priority));
@@ -459,17 +459,17 @@ void traverseGraph(const UINT maxComputePerStep,
                 UINT adjCellsSides[g_nFacePerCell];
                 for (UINT face = 0; face < g_nFacePerCell; face++) {
                     
-                    UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-                    UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
+                    UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
+                    UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
                     adjCellsSides[face] = adjCell;
                     
-                    if (g_spTychoMesh->isOutgoing(angle, cell, face)) {
+                    if (g_tychoMesh->isOutgoing(angle, cell, face)) {
                         
                         if (adjCell == TychoMesh::BOUNDARY_FACE && 
                             adjRank != TychoMesh::BAD_RANK)
                         {
                             bdryType[face] = BoundaryType_OutIntBdry;
-                            adjCellsSides[face] = g_spTychoMesh->getSide(cell, face);
+                            adjCellsSides[face] = g_tychoMesh->getSide(cell, face);
                         }
                         
                         else if (adjCell == TychoMesh::BOUNDARY_FACE && 
@@ -488,7 +488,7 @@ void traverseGraph(const UINT maxComputePerStep,
                             adjRank != TychoMesh::BAD_RANK)
                         {
                             bdryType[face] = BoundaryType_InIntBdry;
-                            adjCellsSides[face] = g_spTychoMesh->getSide(cell, face);
+                            adjCellsSides[face] = g_tychoMesh->getSide(cell, face);
                         }
                         
                         else if (adjCell == TychoMesh::BOUNDARY_FACE && 
@@ -516,8 +516,8 @@ void traverseGraph(const UINT maxComputePerStep,
                     
                     if (!isIncoming(angle, cell, face, direction)) {
                         
-                        UINT adjCell = g_spTychoMesh->getAdjCell(cell, face);
-                        UINT adjRank = g_spTychoMesh->getAdjRank(cell, face);
+                        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
+                        UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
                         
                         if (adjCell != TychoMesh::BOUNDARY_FACE) {
                             numDependencies(adjCell, angle)--;
@@ -529,8 +529,8 @@ void traverseGraph(const UINT maxComputePerStep,
                         
                         else if (doComm && adjRank != TychoMesh::BAD_RANK) {
                             UINT rankIndex = adjRankToRankIndex.at(adjRank);
-                            UINT side = g_spTychoMesh->getSide(cell, face);
-                            UINT globalSide = g_spTychoMesh->getLGSide(side);
+                            UINT side = g_tychoMesh->getSide(cell, face);
+                            UINT globalSide = g_tychoMesh->getLGSide(side);
                             
                             vector<char> packet;
                             createPacket(packet, globalSide, angle, 
@@ -585,7 +585,7 @@ void traverseGraph(const UINT maxComputePerStep,
             for (auto sideAngle : sideRecv) {
                 UINT side = sideAngle.first;
                 UINT angle = sideAngle.second;
-                UINT cell = g_spTychoMesh->getSideCell(side);
+                UINT cell = g_tychoMesh->getSideCell(side);
                 numDependencies(cell, angle)--;
                 if (numDependencies(cell, angle) == 0) {
                     UINT priority = traverseData.getPriority(cell, angle);

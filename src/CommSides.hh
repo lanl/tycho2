@@ -1,8 +1,4 @@
 /*
-    CommSides.hh
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 Copyright 2016. Los Alamos National Security, LLC. This software was produced 
@@ -39,13 +35,16 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <vector>
 #include "SweepData2.hh"
+#include <vector>
 
 
 #ifndef __COMMSIDES_HH__
 #define __COMMSIDES_HH__
 
+
+namespace CommSides
+{
 
 struct MetaData
 {
@@ -60,5 +59,7 @@ void commSides(const std::vector<UINT> &adjRanks,
                const std::vector<UINT> &numSendPackets,
                const std::vector<UINT> &numRecvPackets,
                SweepData2 &sweepData);
+
+} // end namespace
 
 #endif
