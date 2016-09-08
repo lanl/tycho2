@@ -1,8 +1,4 @@
 /*
-    Sweeper2.cc
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -42,152 +38,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Sweeper2.hh"
+#include "SweepData.hh"
 #include "Global.hh"
 #include "TraverseGraph.hh"
 #include "Priorities.hh"
-#include "Transport.hh"
 #include "PsiData.hh"
-#include <omp.h>
-#include <vector>
 
 using namespace std;
-
-
-/*
-    SweepData
-    
-    Holds psi and other data for the sweep.
-    Note: OpenMP assumes threading across angle.
-          Without this assumption, there could be a race condition.
-*/
-class SweepData : public TraverseData
-{
-public:
-    
-    /*
-        Constructor
-    */
-    SweepData(PsiData &psi, const PsiData &source,
-              const double sigmaTotal,
-              const Mat2<UINT> &priorities)
-    : c_psi(psi), c_psiBound(),
-      c_source(source), c_sigmaTotal(sigmaTotal), c_priorities(priorities),
-      c_localFaceData(g_nThreads)
-    {
-        for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            //c_localFaceData[angleGroup] = Mat2<double>(g_nVrtxPerFace, g_nGroups);
-            c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
-        }
-    }
-    
-    
-    /*
-        data
-        
-        Return psi for vertices and groups at the given (cell,face,angle) tuple
-    */
-    virtual const char* getData(UINT cell, UINT face, UINT angle)
-    {
-        Mat2<double> &localFaceData = c_localFaceData[omp_get_thread_num()];
-        
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            UINT vrtx = g_tychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
-            localFaceData(fvrtx, group) = c_psi(group, vrtx, angle, cell);
-        }}
-        
-        return (char*) (&localFaceData[0]);
-    }
-    
-    
-    /*
-        getDataSize
-    */
-    virtual size_t getDataSize()
-    {
-        return g_nGroups * g_nVrtxPerFace * sizeof(double);
-    }
-    
-    
-    /*
-        sideData
-        
-        Set psiBound for the (side, angle) pair.
-    */
-    virtual void setSideData(UINT side, UINT angle, const char *data)
-    {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);//, (double*)data);
-        localFaceData.setData((double*)data);
-        
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
-        }}
-    }
-    
-    
-    /*
-        getPriority
-        
-        Return priority for the cell/angle pair.
-    */
-    virtual UINT getPriority(UINT cell, UINT angle)
-    {
-        return c_priorities(cell, angle);
-    }
-    
-    
-    /*
-        update
-        
-        Does a transport update for the given cell/angle pair.
-    */
-    virtual void update(UINT cell, UINT angle, 
-                        UINT adjCellsSides[g_nFacePerCell], 
-                        BoundaryType bdryType[g_nFacePerCell])
-    {
-        UNUSED_VARIABLE(adjCellsSides);
-        UNUSED_VARIABLE(bdryType);
-        
-        Mat2<double> localSource(g_nVrtxPerCell, g_nGroups);
-        Mat2<double> localPsi(g_nVrtxPerCell, g_nGroups);
-        Mat3<double> localPsiBound(g_nVrtxPerFace, g_nFacePerCell, g_nGroups);
-        
-        
-        // Populate localSource
-        #pragma omp simd
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
-        }}
-        
-        
-        // Populate localPsiBound
-        Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound, 
-                                         localPsiBound);
-        
-        
-        // Transport solve
-        Transport::solve(cell, angle, c_sigmaTotal, 
-                         localPsiBound, localSource, localPsi);
-        
-        
-        // localPsi -> psi
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            c_psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
-        }}
-    }
-    
-    
-private:
-    PsiData &c_psi;
-    PsiBoundData c_psiBound;
-    const PsiData &c_source;
-    const double c_sigmaTotal;
-    const Mat2<UINT> &c_priorities;
-    vector<Mat2<double>> c_localFaceData;
-};
 
 
 /*

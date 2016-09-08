@@ -35,7 +35,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "SweepData2.hh"
+#include "SweepData.hh"
 #include <vector>
 
 
@@ -58,7 +58,7 @@ void commSides(const std::vector<UINT> &adjRanks,
                const std::vector<std::vector<MetaData>> &sendMetaData,
                const std::vector<UINT> &numSendPackets,
                const std::vector<UINT> &numRecvPackets,
-               SweepData2 &sweepData);
+               SweepData &sweepData);
 
 } // end namespace
 

@@ -41,15 +41,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Mat.hh"
 #include "PsiData.hh"
 #include "Typedef.hh"
+#include "SweeperAbstract.hh"
 #include <vector>
 
 
-class SweeperPBJ
+class SweeperPBJ : public SweeperAbstract
 {
 public:
     SweeperPBJ(const double sigmaTotal);
-    
     void sweep(PsiData &psi, const PsiData &source);
+    
 private:
     double c_sigmaTotal;
 };

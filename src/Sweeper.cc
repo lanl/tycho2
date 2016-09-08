@@ -1,10 +1,4 @@
 /*
-    Inner.cc
-    
-    Implements source iteration to solve the transport problem.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -317,14 +311,52 @@ void doComputation(const UINT step,
 }
 
 
-namespace Sweeper {
+/*
+    Constructor
+
+    Splits all the angles into sets of angle groups.
+    One angle group per OMP thread.
+    Creates an array of SweepSchedules, one entry for each angle group.
+*/
+Sweeper::Sweeper()
+{
+    // SweepSchedule for each angle group
+    g_sweepSchedule = new SweepSchedule*[g_nAngleGroups];
+    
+
+    // Get the angle indices for each angle group
+    vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
+    angleBdryIndices[0] = 0;
+    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
+        UINT numAngles = g_quadrature->getNumAngles() / g_nAngleGroups;
+        if (angleGroup < g_quadrature->getNumAngles() % g_nAngleGroups)
+            numAngles++;
+        angleBdryIndices[angleGroup+1] = 
+            angleBdryIndices[angleGroup] + numAngles;
+    }
+    
+
+    // Create a SweepSchedule for each angle group
+    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
+        UINT numAngles = angleBdryIndices[angleGroup+1] - 
+                            angleBdryIndices[angleGroup];
+        vector<UINT> angles(numAngles);
+        for (UINT angle = 0; angle < numAngles; angle++) {
+            angles[angle] = angle + angleBdryIndices[angleGroup];
+        }
+        g_sweepSchedule[angleGroup] = 
+            new SweepSchedule(angles, g_maxCellsPerStep, g_intraAngleP, 
+                              g_interAngleP);
+    }
+}
+
 
 /*
     sweep
     
     Does an Sn transport sweep.
 */
-void sweep(PsiData &psi, const PsiData &source, const double sigmaTotal)
+void Sweeper::sweep(PsiData &psi, const PsiData &source)
 {
     // Time the sweep
     Timer totalTimer;
@@ -363,7 +395,7 @@ void sweep(PsiData &psi, const PsiData &source, const double sigmaTotal)
                 Timer timer1;
                 timer1.start();
                 UINT angleGroup = omp_get_thread_num();
-                doComputation(step, angleGroup, sigmaTotal, source, psi, 
+                doComputation(step, angleGroup, g_sigmaTotal, source, psi, 
                               commSidesAngles, commPsi, psiBound);
                 timer1.stop();
                 computationTimes[angleGroup] += timer1.wall_clock();
@@ -405,7 +437,7 @@ void sweep(PsiData &psi, const PsiData &source, const double sigmaTotal)
                 // Computation
                 Timer timer1;
                 timer1.start();
-                doComputation(step, angleGroup, sigmaTotal, source, psi, 
+                doComputation(step, angleGroup, g_sigmaTotal, source, psi, 
                               commSidesAngles, commPsi, psiBound);
                 timer1.stop();
                 computationTimes[angleGroup] += timer1.wall_clock();
@@ -464,6 +496,4 @@ void sweep(PsiData &psi, const PsiData &source, const double sigmaTotal)
         printf("     Sweeper Timer (total time): %fs\n", totalTime);
     }
 }
-
-} // End namespace
 

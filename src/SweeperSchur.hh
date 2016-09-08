@@ -40,14 +40,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if USE_PETSC
 #include "PsiData.hh"
+#include "SweeperAbstract.hh"
 
 
-class SweeperSchur
+class SweeperSchur : public SweeperAbstract
 {
 public:
     SweeperSchur(const double sigmaTotal);
-    
     void sweep(PsiData &psi, PsiData &source);
+
 private:
     double c_sigmaTotal;
 };

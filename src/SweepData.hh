@@ -37,11 +37,13 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __SWEEP_DATA_2_HH__
-#define __SWEEP_DATA_2_HH__
+#ifndef __SWEEP_DATA_HH__
+#define __SWEEP_DATA_HH__
 
 
 #include "Assert.hh"
+#include "TraverseGraph.hh"
+#include "Transport.hh"
 #include "Typedef.hh"
 #include <stddef.h>
 #include <omp.h>
@@ -51,28 +53,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     
     Holds psi and other data for the sweep.
 */
-class SweepData2 : public TraverseData
+class SweepData : public TraverseData
 {
 public:
     
     /*
         Constructor
     */
-    SweepData2(PsiData &psi, const PsiData &source, PsiBoundData &psiBound, 
-              const double sigmaTotal)
-    : c_psi(psi), c_psiBound(psiBound), 
-      c_source(source), c_sigmaTotal(sigmaTotal),
-      c_localFaceData(g_nThreads)
+    SweepData(PsiData &psi, const PsiData &source, 
+               const double sigmaTotal,
+               const Mat2<UINT> &priorities)
+    : c_psi(psi), c_psiBound(), c_source(source), c_sigmaTotal(sigmaTotal),
+      c_priorities(priorities), c_localFaceData(g_nThreads)
     {
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
             c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
         }
     }
     
+
     /*
         data
         
-        Return face data for (cell, angle) pair.
+        Return psi for vertices and groups at the given (cell,face,angle) tuple
     */
     virtual const char* getData(UINT cell, UINT face, UINT angle)
     {
@@ -100,44 +103,35 @@ public:
     /*
         sideData
         
-        Set face data for (side, angle) pair.
+        Set psiBound for the (side, angle) pair.
     */
     virtual void setSideData(UINT side, UINT angle, const char *data)
     {
         Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
         localFaceData.setData((double*)data);
         
-        for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+        for (UINT group = 0; group < g_nGroups; group++) {
             c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
         }}
     }
     
-    /*
-        getSideData
-    */
-    //PsiBoundData getSideData()
-    //{return c_psiBound;}
     
-
     /*
         getPriority
         
         Return a priority for the cell/angle pair.
-        Not needed for this class, so it is just set to a constant.
     */
     virtual UINT getPriority(UINT cell, UINT angle)
     {
-        UNUSED_VARIABLE(cell);
-        UNUSED_VARIABLE(angle);
-        return 1;
+        return c_priorities(cell, angle);
     }
     
     
     /*
         update
         
-        Updates psi for a given (cell, angle) pair.
+        Does a transport update for the given cell/angle pair.
     */
     virtual void update(UINT cell, UINT angle, 
                         UINT adjCellsSides[g_nFacePerCell], 
@@ -152,6 +146,7 @@ public:
         
         
         // Populate localSource
+        #pragma omp simd
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
             localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
@@ -177,9 +172,10 @@ public:
     
 private:
     PsiData &c_psi;
-    PsiBoundData &c_psiBound;
+    PsiBoundData c_psiBound;
     const PsiData &c_source;
     const double c_sigmaTotal;
+    const Mat2<UINT> &c_priorities;
     std::vector<Mat2<double>> c_localFaceData;
 };
 

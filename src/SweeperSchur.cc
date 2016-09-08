@@ -59,7 +59,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <petscmat.h>
 #include <petscvec.h>
 #include <petscksp.h>
-#include "SweepData2.hh"
+#include "SweepData.hh"
 #include "CommSides.hh"
 
 
@@ -192,7 +192,7 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b)
     
  
     //Create a sweepData
-    SweepData2 s_sweepData(s_psi, ZeroSource, s_psiBound, s_sigmaTotal);
+    SweepData s_sweepData(s_psi, ZeroSource, s_psiBound, s_sigmaTotal);
    
 
     //Traverse the graph to get the values on the outward facing boundary, call commSides to transfer boundary data
@@ -384,7 +384,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
 
     //Do a sweep on the source 
     PsiData sourceCopy = source;//I think this is unnecessary, can just use psi
-    SweepData2 sourceData;
+    SweepData sourceData;
     if (rank==0){
         printf("    Sweeping Source\n");
     }
@@ -430,7 +430,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     if (rank==0){
         printf("    Sweeping to solve non-boundary values\n");
     }
-    SweepData2 sweepData(psi, source, psiBound, c_sigmaTotal);
+    SweepData sweepData(psi, source, psiBound, c_sigmaTotal);
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	   
     if (rank==0){
         printf("    Non-boundary values swept\n");

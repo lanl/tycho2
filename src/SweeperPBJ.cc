@@ -48,7 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Transport.hh"
 #include "PsiData.hh"
 #include "Comm.hh"
-#include "SweepData2.hh"
+#include "SweepData.hh"
 #include "CommSides.hh"
 #include <omp.h>
 #include <vector>
@@ -57,140 +57,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 using namespace std;
-
-
-/*
-    SweepData
-    
-    Holds psi and other data for the sweep.
-*/
-class SweepDataPBJ : public TraverseData
-{
-public:
-    
-    /*
-        Constructor
-    */
-    SweepDataPBJ(PsiData &psi, const PsiData &source, PsiBoundData &psiBound, 
-              const double sigmaTotal)
-    : c_psi(psi), c_psiBound(psiBound), 
-      c_source(source), c_sigmaTotal(sigmaTotal),
-      c_localFaceData(g_nThreads)
-    {
-        for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
-        }
-    }
-    
-    
-    /*
-        data
-        
-        Return face data for (cell, angle) pair.
-    */
-    virtual const char* getData(UINT cell, UINT face, UINT angle)
-    {
-        Mat2<double> &localFaceData = c_localFaceData[omp_get_thread_num()];
-        
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            UINT vrtx = g_tychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
-            localFaceData(fvrtx, group) = c_psi(group, vrtx, angle, cell);
-        }}
-        
-        return (char*) (&localFaceData[0]);
-    }
-    
-    
-    /*
-        getDataSize
-    */
-    virtual size_t getDataSize()
-    {
-        return g_nGroups * g_nVrtxPerFace * sizeof(double);
-    }
-    
-    
-    /*
-        sideData
-        
-        Set face data for (side, angle) pair.
-    */
-    virtual void setSideData(UINT side, UINT angle, const char *data)
-    {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);//, (double*)data);
-        localFaceData.setData((double*)data);
-
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-            c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
-        }}
-    }
-    
-    
-    /*
-        getPriority
-        
-        Return a priority for the cell/angle pair.
-        Not needed for this class, so it is just set to a constant.
-    */
-    virtual UINT getPriority(UINT cell, UINT angle)
-    {
-        UNUSED_VARIABLE(cell);
-        UNUSED_VARIABLE(angle);
-        return 1;
-    }
-    
-    
-    /*
-        update
-        
-        Updates psi for a given (cell, angle) pair.
-    */
-    virtual void update(UINT cell, UINT angle, 
-                        UINT adjCellsSides[g_nFacePerCell], 
-                        BoundaryType bdryType[g_nFacePerCell])
-    {
-        UNUSED_VARIABLE(adjCellsSides);
-        UNUSED_VARIABLE(bdryType);
-        
-        Mat2<double> localSource(g_nVrtxPerCell, g_nGroups);
-        Mat2<double> localPsi(g_nVrtxPerCell, g_nGroups);
-        Mat3<double> localPsiBound(g_nVrtxPerFace, g_nFacePerCell, g_nGroups);
-        
-        
-        // Populate localSource
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
-        }}
-        
-        
-        // Populate localPsiBound
-        Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound, 
-                                         localPsiBound);
-        
-        
-        // Transport solve
-        Transport::solve(cell, angle, c_sigmaTotal, 
-                         localPsiBound, localSource, localPsi);
-        
-        
-        // localPsi -> psi
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            c_psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
-        }}
-    }
-    
-private:
-    PsiData &c_psi;
-    PsiBoundData &c_psiBound;
-    const PsiData &c_source;
-    const double c_sigmaTotal;
-    vector<Mat2<double>> c_localFaceData;
-};
-
 
 
 /*
@@ -213,11 +79,6 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     const double tolerance = 1e-5;
     
     
-    // Set initial guess for psiBound
-    PsiBoundData psiBound;
-    psiBound.setToValue(0.0);  // Change to something more reasonable.
-    
-    
     // Set psi0
     PsiData psi0;
     for (UINT i = 0; i < psi.size(); i++) {
@@ -226,7 +87,10 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     
     // Create SweepData for traversal
-    SweepData2 sweepData(psi, source, psiBound, c_sigmaTotal);
+    // Use a dummy set of priorities
+    Mat2<UINT> priorities(g_tychoMesh->getNCells(), 
+                          g_quadrature->getNumAngles());
+    SweepData sweepData(psi, source, c_sigmaTotal, priorities);
     
     
     // Get adjacent ranks

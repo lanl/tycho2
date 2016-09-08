@@ -60,7 +60,7 @@ void commSides(const std::vector<UINT> &adjRanks,
                const std::vector<std::vector<MetaData>> &sendMetaData,
                const std::vector<UINT> &numSendPackets,
                const std::vector<UINT> &numRecvPackets,
-               SweepData2 &sweepData)
+               SweepData &sweepData)
 {
     int mpiError;
     UINT numToRecv;

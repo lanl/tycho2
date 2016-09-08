@@ -37,21 +37,17 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __SWEEPER_HH__
-#define __SWEEPER_HH__
+#ifndef __SWEEPER_ABSTRACT_HH__
+#define __SWEEPER_ABSTRACT_HH__
 
 #include "PsiData.hh"
-#include "SweeperAbstract.hh"
 
-class Sweeper : public SweeperAbstract
+
+class SweeperAbstract
 {
 public:
-    Sweeper();
-    void sweep(PsiData &psi, const PsiData &source);
-
-private:
-    //double c_sigmaTotal;
+    virtual
+    void sweep(PsiData &psi, const PsiData &source) = 0;
 };
-
 
 #endif

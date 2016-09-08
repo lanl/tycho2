@@ -52,37 +52,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 using namespace std;
+
+
+// cubeSize assumes using cube meshes in util folder
 static const double cubeSize = 100.0;
-
-
-/*
-    source_exponential
-*/
-// static
-// void exponentialSource(const double sigmaT, const double sigmaS, PsiData &source)
-// {
-//     double L = 32.0 / (cubeSize / 2.0 * cubeSize / 2.0);
-//     
-//     for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-//     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-//     for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
-//     for(UINT group = 0; group < g_nGroups; group++) {
-//         UINT node = g_tychoMesh->getCellNode(cell, vrtx);
-//         double x = g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-//         double y = g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-//         double z = g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
-//         
-//         double xi  = g_quadrature->getXi(angle);
-//         double eta = g_quadrature->getEta(angle);
-//         double mu  = g_quadrature->getMu(angle);
-//         
-//         double e = exp(-(x*x + y*y + z*z) / (2.0 * L));
-//         
-//         source(group, vrtx, angle, cell) = 
-//             - (x * xi * e / L) - (y * eta * e / L) - (z * mu * e / L)
-//             + (sigmaT - sigmaS) * e;
-//     }}}}
-// }
 
 
 /*
@@ -91,9 +64,9 @@ static const double cubeSize = 100.0;
 static
 void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
 {
-    for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-    for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
     for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+    for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
+    for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
         
         UINT node = g_tychoMesh->getCellNode(cell, vrtx);
         double x = g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
@@ -121,47 +94,6 @@ void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
 
 
 /*
-    exponentialL2Error
-*/
-// static
-// double exponentialL2Error(const PsiData &psi)
-// {
-//     double L = 32.0 / (cubeSize / 2.0 * cubeSize / 2.0);
-//     double diff = 0.0;
-//     double norm = 0.0;
-//     
-//     for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
-//     for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
-//     for(UINT group = 0; group < g_nGroups; group++) {
-//         double x = 0.0;
-//         double y = 0.0;
-//         double z = 0.0;
-//         double psiVal = 0.0;
-//         
-//         for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-//             UINT node = g_tychoMesh->getCellNode(cell, vrtx);
-//             x += g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-//             y += g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-//             z += g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
-//             psiVal += psi(group, vrtx, angle, cell);
-//         }
-//         
-//         x = x / g_nVrtxPerCell;
-//         y = y / g_nVrtxPerCell;
-//         z = z / g_nVrtxPerCell;
-//         psiVal = psiVal / g_nVrtxPerCell;
-//         double psiAct = exp(-(x*x + y*y + z*z) / (2.0 * L));
-//         
-//         double localDiff = psiVal - psiAct;
-//         norm += psiVal * psiVal;
-//         diff += localDiff * localDiff;
-//     }}}
-//     
-//     return sqrt(diff / norm);
-// }
-
-
-/*
     hatL2Error
 */
 static
@@ -171,8 +103,8 @@ double hatL2Error(const PsiData &psi)
     double norm = 0.0;
     
     
-    for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
     for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+    for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
     for(UINT group = 0; group < g_nGroups; group++) {
         double x = 0.0;
         double y = 0.0;
@@ -220,9 +152,9 @@ double diffBetweenGroups(const PsiData &psi)
     double maxDiff = 0.0;
     double maxEntry = 0.0;
     
-    for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-    for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
     for(UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+    for(UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
+    for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
         
         double psi0 = psi(0, vrtx, angle, cell);
         
@@ -275,7 +207,6 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
 {
     phi.setToValue(0.0);
     
-    //for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     #pragma omp parallel for
     for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
@@ -288,84 +219,22 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
 
 
 /*
-    calcScatterSource
+    calcTotalSource
 */
 static
-void calcScatterSource(PsiData &scatSource, const PhiData &phiOld) 
+void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld, 
+                     PsiData &totalSource) 
 {
     #pragma omp parallel for
     for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
     for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
-        scatSource(group, vertex, angle, cell) =
+        totalSource(group, vertex, angle, cell) = 
+            fixedSource(group, vertex, angle, cell) + 
             g_sigmaScat / (4.0 * M_PI) *  phiOld(group, vertex, cell);
     }}}}
 }
-
-
-
-/*static
-void splitAnglesAcrossThreads(vector<vector<UINT>> &anglesVector)
-{
-    // Get the angle indices for each angle group
-    vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
-    angleBdryIndices[0] = 0;
-    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
-        UINT numAngles = g_quadrature->getNumAngles() / g_nAngleGroups;
-        if (angleGroup < g_quadrature->getNumAngles() % g_nAngleGroups)
-            numAngles++;
-        angleBdryIndices[angleGroup+1] = angleBdryIndices[angleGroup] + numAngles;
-    }
-    
-    // Create a SweepSchedule for each angle group
-    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
-        UINT numAngles = angleBdryIndices[angleGroup+1] - angleBdryIndices[angleGroup];
-        anglesVector[angleGroup].resize(numAngles);
-        vector<UINT> &angles = anglesVector[angleGroup];
-        for (UINT angle = 0; angle < numAngles; angle++) {
-            angles[angle] = angle + angleBdryIndices[angleGroup];
-        }
-    }
-}*/
-
-
-/*
-    createSweepSchedule
-    
-    Splits all the angles into sets of angle groups.
-    One angle group per OMP thread.
-    Creates an array of SweepSchedules, one entry for each angle group.
-*/
-static
-void createSweepSchedule()
-{
-    // SweepSchedule for each angle group
-    g_sweepSchedule = new SweepSchedule*[g_nAngleGroups];
-    
-    // Get the angle indices for each angle group
-    vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
-    angleBdryIndices[0] = 0;
-    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
-        UINT numAngles = g_quadrature->getNumAngles() / g_nAngleGroups;
-        if (angleGroup < g_quadrature->getNumAngles() % g_nAngleGroups)
-            numAngles++;
-        angleBdryIndices[angleGroup+1] = angleBdryIndices[angleGroup] + numAngles;
-    }
-    
-    // Create a SweepSchedule for each angle group
-    for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
-        UINT numAngles = angleBdryIndices[angleGroup+1] - angleBdryIndices[angleGroup];
-        vector<UINT> angles(numAngles);
-        for (UINT angle = 0; angle < numAngles; angle++) {
-            angles[angle] = angle + angleBdryIndices[angleGroup];
-        }
-        g_sweepSchedule[angleGroup] = 
-            new SweepSchedule(angles, g_maxCellsPerStep, g_intraAngleP, 
-                              g_interAngleP);
-    }
-}
-
 
 
 namespace Solver
@@ -378,7 +247,6 @@ void solve()
 {
     // Data for problem
     PsiData fixedSource;
-    PsiData scatSource;
     PsiData totalSource;
     PsiData psi;
     
@@ -401,49 +269,29 @@ void solve()
     }
 
 
-    // Solver initialization
-    // Make Sweep Schedule
-    if (g_sweepType == SweepType_OriginalTycho1 || 
-        g_sweepType == SweepType_OriginalTycho2)
-    {
-        Comm::barrier();
-        if(Comm::rank() == 0)
-            printf("Create sweep schedule.\n");
-        createSweepSchedule();
-        Comm::barrier();
-        if(Comm::rank() == 0)
-            printf("Create sweep schedule done.\n");
-    }
-    
-    
-    // Solver PBJ class
-    SweeperPBJ *sweeperPBJ = NULL;
-    if (g_sweepType == SweepType_PBJ) {
-        //vector<vector<UINT>> anglesVector(g_nAngleGroups);
-        //splitAnglesAcrossThreads(anglesVector);
-        sweeperPBJ = new SweeperPBJ(g_sigmaTotal);
-    }
-
-
-    // Solver 2 class
-    Sweeper2 *sweeper2 = NULL;
-    if (g_sweepType == SweepType_TraverseGraph) {
-        //vector<vector<UINT>> anglesVector(g_nAngleGroups);
-        //splitAnglesAcrossThreads(anglesVector);
-        sweeper2 = new Sweeper2();
+    // Setup sweeper
+    SweeperAbstract *sweeper = NULL;
+    switch (g_sweepType) {
+        case SweepType_OriginalTycho1:
+        case SweepType_OriginalTycho2:
+            sweeper = new Sweeper();
+            break;
+        case SweepType_TraverseGraph:
+            sweeper = new Sweeper2();
+            break;
+        #if USE_PETSC
+        case SweepType_Schur:
+            sweeper = new SweeperSchur(g_sigmaTotal);
+            break;
+        #endif
+        case SweepType_PBJ:
+            sweeper = new SweeperPBJ(g_sigmaTotal);
+            break;
+        default:
+            Insist(false, "Sweep type not recognized.");
+            break;
     }
 
-
-    #if USE_PETSC
-    //Solver Schur class
-    SweeperSchur *sweeperSchur = NULL;
-    if (g_sweepType == SweepType_Schur) {
-        //vector<vector<UINT>> anglesVector(g_nAngleGroups);
-        //splitAnglesAcrossThreads(anglesVector);
-        sweeperSchur = new SweeperSchur(g_sigmaTotal);
-    }
-    #endif
-    
 
     // Source iteration
     UINT iter = 0;
@@ -465,16 +313,11 @@ void solve()
         }
 
         
-        // Need to update fixed source with scattering source here
+        // totalSource = fixedSource + phiOld
         timer2.start();
-        calcScatterSource(scatSource, phiOld);
-        
-        #pragma omp parallel for
-        for(UINT i = 0; i < totalSource.size(); i++) {
-            totalSource[i] = fixedSource[i] + scatSource[i];
-        }
-        
+        calcTotalSource(fixedSource, phiOld, totalSource);
         timer2.stop();
+        
         clockTime2 = timer2.wall_clock();
         Comm::gmax(clockTime2);
         if(Comm::rank() == 0) {
@@ -483,27 +326,8 @@ void solve()
 
         
         // Sweep
-        switch (g_sweepType) {
-            case SweepType_OriginalTycho1:
-            case SweepType_OriginalTycho2:
-	        Sweeper::sweep(psi, totalSource, g_sigmaTotal);
-	        break;
-            case SweepType_TraverseGraph:
-                sweeper2->sweep(psi, totalSource);
-                break;
-            #if USE_PETSC
-            case SweepType_Schur:
-                sweeperSchur->sweep(psi, totalSource);
-                break;
-            #endif
-            case SweepType_PBJ:
-                sweeperPBJ->sweep(psi, totalSource);
-                break;
-            default:
-                Insist(false, "Sweep type not recognized.");
-                break;
-        }
-        
+        sweeper->sweep(psi, totalSource);
+                
         
         // Calculate L_inf relative error for phi
         timer3.start();

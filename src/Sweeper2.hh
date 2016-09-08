@@ -43,10 +43,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Mat.hh"
 #include "PsiData.hh"
 #include "Typedef.hh"
-#include <vector>
+#include "SweeperAbstract.hh"
 
 
-class Sweeper2
+class Sweeper2 : public SweeperAbstract
 {
 public:
     Sweeper2();
