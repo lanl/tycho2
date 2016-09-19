@@ -325,8 +325,8 @@ Sweeper::Sweeper()
     vector<UINT> angleBdryIndices(g_nAngleGroups + 1);
     angleBdryIndices[0] = 0;
     for (UINT angleGroup = 0; angleGroup < g_nAngleGroups; angleGroup++) {
-        UINT numAngles = g_quadrature->getNumAngles() / g_nAngleGroups;
-        if (angleGroup < g_quadrature->getNumAngles() % g_nAngleGroups)
+        UINT numAngles = g_nAngles / g_nAngleGroups;
+        if (angleGroup < g_nAngles % g_nAngleGroups)
             numAngles++;
         angleBdryIndices[angleGroup+1] = 
             angleBdryIndices[angleGroup] + numAngles;

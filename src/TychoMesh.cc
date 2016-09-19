@@ -40,10 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TychoMesh.hh"
 #include "Global.hh"
 #include "Quadrature.hh"
-
-#include <map>
-#include <set>
-#include <utility>
 #include <stdio.h>
 #include <math.h>
 
@@ -126,7 +122,8 @@ double getTetVolume(TychoMesh::CellCoords points)
     The extra cell point gives the outward normal direction.
 */
 static
-vector<double> getNormal(TychoMesh::FaceCoords facePoints, TychoMesh::CellCoords cellPoints)
+vector<double> getNormal(TychoMesh::FaceCoords facePoints, 
+                         TychoMesh::CellCoords cellPoints)
 {
     double a[3], b[3];
     double crossProduct[3];
@@ -200,56 +197,56 @@ TychoMesh::TychoMesh(const std::string &filename)
     
     
     // Cell volumes and face areas
-    c_cellVolume.resize(c_nCells);
-    c_faceArea.resize(c_nCells, g_nFacePerCell);
-    for(size_t cell = 0; cell < c_nCells; cell++) {
+    c_cellVolume.resize(g_nCells);
+    c_faceArea.resize(g_nCells, g_nFacePerCell);
+    for(UINT cell = 0; cell < g_nCells; cell++) {
         c_cellVolume(cell) = getTetVolume(getCellVrtxCoords(cell));
         for(UINT face = 0; face < g_nFacePerCell; face++) {
-            c_faceArea(cell, face) = getTriangleArea(getFaceVrtxCoords(cell, face));
+            c_faceArea(cell, face) = 
+                getTriangleArea(getFaceVrtxCoords(cell, face));
         }
     }
     
     
     // Calculates Omega dot N for every face
-    c_omegaDotN.resize(g_quadrature->getNumAngles(), c_nCells, g_nFacePerCell);
-    for (UINT angle = 0; angle < g_quadrature->getNumAngles(); ++angle) {
+    c_omegaDotN.resize(g_nAngles, g_nCells, g_nFacePerCell);
+    for (UINT angle = 0; angle < g_nAngles; ++angle) {
         const vector<double> omega = g_quadrature->getOmega(angle);
-        for (size_t cell = 0; cell < c_nCells; ++cell) {
+        for (UINT cell = 0; cell < g_nCells; ++cell) {
         for (UINT face = 0; face < g_nFacePerCell; ++face) {
             vector<double> normal = getNormal(getFaceVrtxCoords(cell, face), 
                                               getCellVrtxCoords(cell));
-            for (UINT dim = 0; dim < g_ndim; ++dim)
-                c_omegaDotN(angle, cell, face) += omega[dim] * normal[dim];
+            c_omegaDotN(angle, cell, face) = omega[0] * normal[0] + 
+                                             omega[1] * normal[1] + 
+                                             omega[2] * normal[2];
         }}
     }
     
     
-    // CHECK !!!!!!!!
-    for(size_t cell = 0; cell < c_nCells; cell++) {
+    // CHECK getCellToFaceVrtx and getFaceToCellVrtx
+    for(UINT cell = 0; cell < g_nCells; cell++) {
     for(UINT face = 0; face < g_nFacePerCell; face++) {
         for(UINT cvrtx = 0; cvrtx < g_nVrtxPerCell; cvrtx++) {
             if(cvrtx != face) {
                 UINT fvrtx = getCellToFaceVrtx(cell, face, cvrtx);
                 UINT cvrtx1 = getFaceToCellVrtx(cell, face, fvrtx);
-                if(cvrtx != cvrtx1)
-                    printf("Error1\n");
+                Insist(cvrtx == cvrtx1, "Error 1");
             }
         }
         for(UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
             UINT cvrtx = getFaceToCellVrtx(cell, face, fvrtx);
             UINT fvrtx1 = getCellToFaceVrtx(cell, face, cvrtx);
-            if(fvrtx != fvrtx1)
-                printf("Error2\n");
+            Insist(fvrtx == fvrtx1, "Error 2");
         }
-        }
-    }
+    }}
     
+
     // Neighbor vertices
-    c_neighborVrtx.resize(c_nCells, g_nFacePerCell, g_nVrtxPerFace);
-    for(size_t cell = 0; cell < c_nCells; cell++) {
+    c_neighborVrtx.resize(g_nCells, g_nFacePerCell, g_nVrtxPerFace);
+    for(UINT cell = 0; cell < g_nCells; cell++) {
     for(UINT face = 0; face < g_nFacePerCell; face++) {
     for(UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-        size_t neighborCell = getAdjCell(cell, face);
+        UINT neighborCell = getAdjCell(cell, face);
         
         if(neighborCell == BOUNDARY_FACE) {
             c_neighborVrtx(cell, face, fvrtx) = -1;
@@ -257,7 +254,7 @@ TychoMesh::TychoMesh(const std::string &filename)
         }
         
         UINT vrtx = getFaceToCellVrtx(cell, face, fvrtx);
-        size_t node = getCellNode(cell, vrtx);
+        UINT node = getCellNode(cell, vrtx);
         c_neighborVrtx(cell, face, fvrtx) = getCellVrtx(neighborCell, node);
     }}}
 }
@@ -289,7 +286,7 @@ TychoMesh::FaceCoords TychoMesh::getFaceVrtxCoords(UINT cell, UINT face) const
 
     for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; ++fvrtx) {
         UINT cvrtx = getFaceToCellVrtx(cell, face, fvrtx);
-        size_t node = getCellNode(cell, cvrtx);
+        UINT node = getCellNode(cell, cvrtx);
         for (UINT dim = 0; dim < g_ndim; ++dim)
             faceVrtxCoords.c[fvrtx][dim] = c_nodeCoords(node, dim);
     }

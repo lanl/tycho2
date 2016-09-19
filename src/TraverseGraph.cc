@@ -1,8 +1,4 @@
 /*
-    TraverseGraph.cc
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -151,7 +147,7 @@ bool isIncoming(UINT angle, UINT cell, UINT face, Direction direction)
 */
 UINT angleGroupIndex(UINT angle)
 {
-    UINT numAngles = g_quadrature->getNumAngles();
+    UINT numAngles = g_nAngles;
     UINT chunkSize = numAngles / g_nThreads;
     UINT numChunksBigger = numAngles % g_nThreads;
     UINT lowIndex = 0;
@@ -358,8 +354,8 @@ void traverseGraph(const UINT maxComputePerStep,
                    TraverseData &traverseData, bool doComm,
                    MPI_Comm mpiComm, Direction direction)
 {
-    UINT numCells = g_tychoMesh->getNCells();
-    UINT numAngles = g_quadrature->getNumAngles();
+    UINT numCells = g_nCells;
+    UINT numAngles = g_nAngles;
     vector<priority_queue<Tuple>> canCompute(g_nThreads);
     Mat2<UINT> numDependencies(numCells, numAngles);
     UINT numCellAnglePairsToCalculate = numAngles * numCells;
@@ -379,7 +375,7 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Calc num dependencies for each (cell, angle) pair
     for (UINT angle = 0; angle < numAngles; angle++) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_nCells; cell++) {
         
         numDependencies(cell, angle) = 0;
         for (UINT face = 0; face < g_nFacePerCell; face++) {
@@ -399,7 +395,7 @@ void traverseGraph(const UINT maxComputePerStep,
     
     
     // Get adjacent ranks
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_nCells; cell++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         
         UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
@@ -425,7 +421,7 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Initialize canCompute queue
     for (UINT angle = 0; angle < numAngles; angle++) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_nCells; cell++) {
         if (numDependencies(cell, angle) == 0) {
             UINT priority = traverseData.getPriority(cell, angle);
             canCompute[angleGroupIndex(angle)].push(Tuple(cell, angle, priority));

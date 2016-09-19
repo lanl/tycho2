@@ -89,6 +89,7 @@ void readInput(const string &inputFileName)
     
     // Reader only reads int and not UINT type
     int snOrder, iterMax, maxCellsPerStep, intraAngleP, interAngleP, nGroups;
+    int ddIterMax;
     
     
     // Get data
@@ -103,6 +104,8 @@ void readInput(const string &inputFileName)
     kvr.getDouble("sigmaScat", g_sigmaScat);
     kvr.getBool("OutputFile", g_outputFile);
     kvr.getString("OutputFilename", g_outputFilename);
+    kvr.getInt("DD_IterMax", ddIterMax);
+    kvr.getDouble("DD_ErrMax", g_ddErrMax);
        
     g_snOrder = snOrder;
     g_iterMax = iterMax;
@@ -110,6 +113,7 @@ void readInput(const string &inputFileName)
     g_intraAngleP = intraAngleP;
     g_interAngleP = interAngleP;
     g_nGroups = nGroups;
+    g_ddIterMax = ddIterMax;
     
     
     

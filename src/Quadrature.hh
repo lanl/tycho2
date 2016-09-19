@@ -54,10 +54,8 @@ public:
     double getXi(const UINT angle) const;
     double getWt(const UINT angle) const;
     std::vector<double> getOmega(const UINT angle) const;
-    UINT getNumAngles() const;
     
 private:
-    UINT c_numAngles;
     std::vector<double> c_xi;
     std::vector<double> c_eta;
     std::vector<double> c_mu;

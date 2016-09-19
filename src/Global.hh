@@ -92,6 +92,10 @@ EXTERN Quadrature *g_quadrature;
 EXTERN GaussElim g_gaussElim;
 EXTERN bool g_outputFile;
 EXTERN std::string g_outputFilename;
+EXTERN UINT g_nAngles;
+EXTERN UINT g_nCells;
+EXTERN double g_ddErrMax;
+EXTERN UINT g_ddIterMax;
 
 #endif
 

@@ -90,7 +90,7 @@ public:
 static
 void calcNeighborProcs(set<UINT> &neighborProcs)
 {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_nCells; cell++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         UINT proc = g_tychoMesh->getAdjRank(cell, face);
         UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
@@ -109,7 +109,7 @@ void calcDependencies(const vector<UINT> &angles,
                       Mat3<bool> &hasChild, Mat3<bool> &hasParent)
 {
     for (unsigned angle = 0; angle < angles.size(); ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT face = 0; face < g_nFacePerCell; ++face) {
         hasChild(angle, cell, face) = false;
         
@@ -133,7 +133,7 @@ void calcNumDependents(UINT numAngles, const Mat3<bool> &hasChild,
                        Mat2<UINT> &nDependents)
 {
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT face = 0; face < g_nFacePerCell; ++face) {
         if (hasChild(angle, cell, face))
             ++nDependents(angle, cell);
@@ -150,7 +150,7 @@ void initializeWorkQ(const UINT numAngles, const Mat2<UINT> &nNeeded,
                      priority_queue<PriorityWork> &initialWork) 
 {
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
         if (nNeeded(angle, cell) == 0) {
             initialWork.push(PriorityWork(cell, angle, priorities(angle, cell)));
         }
@@ -433,7 +433,7 @@ void calcOrdering(const Mat3<bool> &hasChild,
                   vector<vector<UINT> > &sendProcs,
                   vector<vector<UINT> > &recvProcs)
 {
-    Mat2<UINT> nParentsNeeded(numAngles, g_tychoMesh->getNCells());
+    Mat2<UINT> nParentsNeeded(numAngles, g_nCells);
     calcNumDependents(numAngles, hasParent, nParentsNeeded);
     priority_queue<PriorityWork> availableWork;
     initializeWorkQ(numAngles, nParentsNeeded, priorities, availableWork);
@@ -455,7 +455,7 @@ void calcOrdering(const Mat3<bool> &hasChild,
         elapsed += stepSize;
     }
     
-    UINT totalNCells = g_tychoMesh->getNCells();
+    UINT totalNCells = g_nCells;
     Comm::gsum(totalNCells);
     if (Comm::rank() == 0) {
         printf("   Number of sweep steps: %" PRIu64 "\n", step);
@@ -479,9 +479,9 @@ UINT calcLevels(Mat2<UINT> &cellLevels,
                const UINT numAngles, 
                const UINT maxCellsPerStep)
 {
-    Mat2<UINT> nChildrenNeeded(numAngles, g_tychoMesh->getNCells());
+    Mat2<UINT> nChildrenNeeded(numAngles, g_nCells);
     calcNumDependents(numAngles, hasChild, nChildrenNeeded);
-    Mat2<UINT> priorities(numAngles, g_tychoMesh->getNCells());
+    Mat2<UINT> priorities(numAngles, g_nCells);
     priorities.setAll(0.0);
     
     priority_queue<PriorityWork> availableWork;
@@ -516,7 +516,7 @@ void randomPriorities(const UINT numAngles, Mat2<UINT> &priorities)
 {
     srand(0);
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
         priorities(angle, cell) = rand();
     }}
 }
@@ -530,7 +530,7 @@ void levelPriorities(const Mat2<UINT> &cellLevels, const UINT numAngles,
                      Mat2<UINT> &priorities)
 {
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
         priorities(angle, cell) = cellLevels(angle, cell);
     }}
 }
@@ -578,11 +578,11 @@ void neighborPriorities(const Mat2<UINT> &sideLevels,
                         const UINT maxCellsPerStep,
                         Mat2<UINT> &priorities)
 {
-    Mat2<UINT> nChildrenNeeded(numAngles, g_tychoMesh->getNCells());
+    Mat2<UINT> nChildrenNeeded(numAngles, g_nCells);
     calcNumDependents(numAngles, hasChild, nChildrenNeeded);
 
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT face = 0; face < g_nFacePerCell; ++face) {
         if (hasChild(angle, cell, face) &&
             g_tychoMesh->getAdjCell(cell, face) == TychoMesh::BOUNDARY_FACE)
@@ -600,12 +600,12 @@ void neighborPriorities(const Mat2<UINT> &sideLevels,
         }
     }}}
 
-    Mat2<UINT> dummyPriorities(numAngles, g_tychoMesh->getNCells());
+    Mat2<UINT> dummyPriorities(numAngles, g_nCells);
     dummyPriorities.setAll(0.0);
     priority_queue<PriorityWork> availableWork;
     initializeWorkQ(numAngles, nChildrenNeeded, dummyPriorities, availableWork);
     UINT nSolved = 0;
-    while (nSolved != numAngles * g_tychoMesh->getNCells())
+    while (nSolved != numAngles * g_nCells)
     {
         vector<SweepSchedule::Work> workDone;
         partialTopoSort(availableWork, nChildrenNeeded, hasParent, 
@@ -625,12 +625,12 @@ void anglePriorities(Mat2<UINT> &priorities, const UINT numAngles,
 {
     vector<UINT> highPriorities(numAngles, -1000000);
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
         highPriorities[angle] =
             max(highPriorities[angle], priorities(angle, cell));
     }}
 
-    UINT ncells = g_tychoMesh->getNCells();
+    UINT ncells = g_nCells;
     Comm::gsum(ncells);
 
     switch (interAngleP)
@@ -639,7 +639,7 @@ void anglePriorities(Mat2<UINT> &priorities, const UINT numAngles,
             break;
         case 1:  // globally prioritized angles
             for (UINT angle = 0; angle < numAngles; ++angle) {
-            for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+            for (UINT cell = 0; cell < g_nCells; ++cell) {
                 priorities(angle, cell) += angle * nlevels * ncells;
             }}
             break;
@@ -657,7 +657,7 @@ void anglePriorities(Mat2<UINT> &priorities, const UINT numAngles,
             {
                 ++order;
                 UINT angle = iter->second;
-                for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+                for (UINT cell = 0; cell < g_nCells; ++cell) {
                     priorities(angle, cell) +=
                         (numAngles-order) * nlevels * ncells;
                 }
@@ -683,22 +683,22 @@ SweepSchedule::SweepSchedule(const std::vector<UINT> &angles,
     
     
     // Get which faces are parents/children for specific angles
-    Mat3<bool> hasChild(angles.size(), g_tychoMesh->getNCells(),
+    Mat3<bool> hasChild(angles.size(), g_nCells,
                         g_nFacePerCell);
-    Mat3<bool> hasParent(angles.size(), g_tychoMesh->getNCells(),
+    Mat3<bool> hasParent(angles.size(), g_nCells,
                          g_nFacePerCell);
     calcDependencies(angles, hasChild, hasParent);
     
     
     // Calculate B-Levels
-    Mat2<UINT> cellLevels(angles.size(), g_tychoMesh->getNCells());
+    Mat2<UINT> cellLevels(angles.size(), g_nCells);
     Mat2<UINT> sideLevels(angles.size(), g_tychoMesh->getNSides());
     UINT nlevels = calcLevels(cellLevels, sideLevels, hasChild, hasParent, 
                              neighborProcs, angles, angles.size(), maxCellsPerStep);
     
     
     // Calculate intra-angle priorities
-    Mat2<UINT> priorities(angles.size(), g_tychoMesh->getNCells());
+    Mat2<UINT> priorities(angles.size(), g_nCells);
     switch (intraAngleP)
     {
       case 0:  // random

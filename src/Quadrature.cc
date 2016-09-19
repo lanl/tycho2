@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Quadrature.hh"
 #include "Assert.hh"
+#include "Global.hh"
 #include <stdio.h>
 #include <math.h>
 
@@ -84,7 +85,7 @@ static const double s_w30[] = { 0.0079681924961701, 0.0184664683110921, 0.028784
 */
 double Quadrature::getXi(const UINT angle) const
 {
-    Assert(angle < getNumAngles());
+    Assert(angle < g_nAngles);
     return c_xi[angle];
 }
 
@@ -96,7 +97,7 @@ double Quadrature::getXi(const UINT angle) const
 */
 double Quadrature::getEta(const UINT angle) const
 {
-    Assert(angle < getNumAngles());
+    Assert(angle < g_nAngles);
     return c_eta[angle];
 }
 
@@ -108,7 +109,7 @@ double Quadrature::getEta(const UINT angle) const
 */
 double Quadrature::getMu(const UINT angle) const
 {
-    Assert(angle < getNumAngles());
+    Assert(angle < g_nAngles);
     return c_mu[angle];
 }
 
@@ -120,7 +121,7 @@ double Quadrature::getMu(const UINT angle) const
 */
 double Quadrature::getWt(const UINT angle) const
 {
-    Assert(angle < getNumAngles());
+    Assert(angle < g_nAngles);
     return c_w[angle];
 }
 
@@ -132,24 +133,12 @@ double Quadrature::getWt(const UINT angle) const
 */
 std::vector<double> Quadrature::getOmega(const UINT angle) const
 {
-    Assert(angle < getNumAngles());
+    Assert(angle < g_nAngles);
     std::vector<double> omega(3);
     omega[0] = c_xi[angle];
     omega[1] = c_eta[angle];
     omega[2] = c_mu[angle];
     return omega;
-}
-
-
-/*
-    getNumAngles
-    
-    Returns the number of angles.
-*/
-UINT Quadrature::getNumAngles() const
-{
-    Assert(c_numAngles > 0);
-    return c_numAngles;
 }
 
 
@@ -234,11 +223,11 @@ Quadrature::Quadrature(const UINT snOrder)
     
     
     // Allocate memory for quadrature
-    c_numAngles = 2 * snOrder * snOrder;
-    c_mu.resize(c_numAngles);
-    c_eta.resize(c_numAngles);
-    c_xi.resize(c_numAngles);
-    c_w.resize(c_numAngles);
+    g_nAngles = 2 * snOrder * snOrder;
+    c_mu.resize(g_nAngles);
+    c_eta.resize(g_nAngles);
+    c_xi.resize(g_nAngles);
+    c_w.resize(g_nAngles);
     
     
     // Create quadrature

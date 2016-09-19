@@ -14,6 +14,9 @@ OutputFile      true
 OutputFilename  out.psi
 
 
+DD_IterMax      100
+DD_ErrMax       1e-5
+
 # Types: OriginalTycho1, OriginalTycho2, TraverseGraph
 SweepType TraverseGraph
 

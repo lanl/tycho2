@@ -54,7 +54,7 @@ Sweeper2::Sweeper2()
 {
     c_maxComputePerStep = g_maxCellsPerStep;
     c_sigmaTotal = g_sigmaTotal;
-    c_priorities.resize(g_tychoMesh->getNCells(), g_quadrature->getNumAngles());
+    c_priorities.resize(g_nCells, g_nAngles);
     Priorities::calcPriorities(c_priorities);
 }
 

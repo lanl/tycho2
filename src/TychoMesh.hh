@@ -50,8 +50,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     Face: local indexing of a face from a cell: 0,1,2,3
 */
 
-#ifndef __mesh_TychoMesh_hh__
-#define __mesh_TychoMesh_hh__
+#ifndef __TYCHO_MESH_HH__
+#define __TYCHO_MESH_HH__
 
 #include "Mat.hh"
 #include "Typedef.hh"
@@ -67,8 +67,6 @@ public:
     
     
     // Get data
-    UINT getNCells() const
-        { return c_nCells; }
     UINT getNSides() const
         { return c_nSides; }
     UINT getNNodes() const
@@ -139,27 +137,26 @@ private:
     FaceCoords getFaceVrtxCoords(UINT cell, UINT face) const;
     UINT getCellVrtx(const UINT cell, const UINT node) const;
     
-    UINT c_nCells;
     UINT c_nSides;
     UINT c_nNodes;
-    Mat2<double> c_nodeCoords; // (node, dim) -> coord
-    Mat2<UINT> c_cellNodes; // (cell, vrtx) -> node
-    Mat2<UINT> c_adjCell; // (cell, face) -> cell
-    Mat2<UINT> c_adjFace; // (cell, face) -> face
-    Mat1<UINT> c_sideCell; // side -> cell
-    Mat2<UINT> c_side; // (cell, face) -> side
-    Mat1<UINT> c_lGSides; // local to global side numbering.
-    Mat1<UINT> c_lGCells; // local to global side numbering.
+    Mat2<double> c_nodeCoords;      // (node, dim) -> coord
+    Mat2<UINT> c_cellNodes;         // (cell, vrtx) -> node
+    Mat2<UINT> c_adjCell;           // (cell, face) -> cell
+    Mat2<UINT> c_adjFace;           // (cell, face) -> face
+    Mat1<UINT> c_sideCell;          // side -> cell
+    Mat2<UINT> c_side;              // (cell, face) -> side
+    Mat1<UINT> c_lGSides;           // local to global side numbering.
+    Mat1<UINT> c_lGCells;           // local to global side numbering.
     std::map<UINT, UINT> c_gLSides; // global to local side numbering.
-    Mat2<UINT> c_adjProc; // (cell, face) -> adjacent proc
-    Mat3<double> c_omegaDotN; // (angle, cell, face) -> omega dot n
-    Mat1<double> c_cellVolume; // cell -> volume
-    Mat2<double> c_faceArea; // (cell, face) -> area
-    Mat3<UINT> c_faceToCellVrtx; // (cell, face, fvrtx) -> cvrtx
-    Mat3<UINT> c_cellToFaceVrtx; // (cell, face, cvrtx) -> fvrtx
-    Mat3<UINT> c_neighborVrtx; // (cell, face, fvrtx) -> vrtx
-    Mat1<UINT> c_adjCellFromSide; // side -> adj cell
-    Mat1<UINT> c_adjFaceFromSide; // side -> adj face
+    Mat2<UINT> c_adjProc;           // (cell, face) -> adjacent proc
+    Mat3<double> c_omegaDotN;       // (angle, cell, face) -> omega dot n
+    Mat1<double> c_cellVolume;      // cell -> volume
+    Mat2<double> c_faceArea;        // (cell, face) -> area
+    Mat3<UINT> c_faceToCellVrtx;    // (cell, face, fvrtx) -> cvrtx
+    Mat3<UINT> c_cellToFaceVrtx;    // (cell, face, cvrtx) -> fvrtx
+    Mat3<UINT> c_neighborVrtx;      // (cell, face, fvrtx) -> vrtx
+    Mat1<UINT> c_adjCellFromSide;   // side -> adj cell
+    Mat1<UINT> c_adjFaceFromSide;   // side -> adj face
 };
 
 

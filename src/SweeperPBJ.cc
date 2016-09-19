@@ -1,10 +1,4 @@
 /*
-    SweeperPBJ.cc
-    
-    Implements parallel block Jacobi solver.
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 Copyright 2016. Los Alamos National Security, LLC. This software was produced 
@@ -75,8 +69,6 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
 {
     const bool doComm = false;
     const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-    const UINT maxIter = 100;
-    const double tolerance = 1e-5;
     
     
     // Set psi0
@@ -88,14 +80,13 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     // Create SweepData for traversal
     // Use a dummy set of priorities
-    Mat2<UINT> priorities(g_tychoMesh->getNCells(), 
-                          g_quadrature->getNumAngles());
+    Mat2<UINT> priorities(g_nCells, g_nAngles);
     SweepData sweepData(psi, source, c_sigmaTotal, priorities);
     
     
     // Get adjacent ranks
     vector<UINT> adjRanks;
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+    for (UINT cell = 0; cell < g_nCells; cell++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         
         UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
@@ -120,12 +111,12 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         numSendPackets[rankIndex] = 0;
         numRecvPackets[rankIndex] = 0;
         
-        for (UINT cell = 0; cell < g_tychoMesh->getNCells(); cell++) {
+        for (UINT cell = 0; cell < g_nCells; cell++) {
         for (UINT face = 0; face < g_nFacePerCell; face++) {
         
             UINT adjRank = g_tychoMesh->getAdjRank(cell, face);        
             if (adjRank == adjRanks[rankIndex]) {
-                for (UINT angle = 0; angle < g_quadrature->getNumAngles(); angle++) {
+                for (UINT angle = 0; angle < g_nAngles; angle++) {
                     if (g_tychoMesh->isOutgoing(angle, cell, face)) {
                         CommSides::MetaData md;
                         UINT side = g_tychoMesh->getSide(cell, face);
@@ -148,7 +139,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     
     // Sweep till converged
     UINT iter = 1;
-    while (iter < maxIter) {
+    while (iter < g_ddIterMax) {
         
         // Sweep
         traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
@@ -168,7 +159,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         Comm::gsum(errL1);
         Comm::gsum(normL1);
 
-        if (errL1 / normL1 < tolerance)
+        if (errL1 / normL1 < g_ddErrMax)
             break;
         
         

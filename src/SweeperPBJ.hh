@@ -38,11 +38,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SWEEPER_PBJ_HH__
 #define __SWEEPER_PBJ_HH__
 
-#include "Mat.hh"
 #include "PsiData.hh"
-#include "Typedef.hh"
 #include "SweeperAbstract.hh"
-#include <vector>
 
 
 class SweeperPBJ : public SweeperAbstract

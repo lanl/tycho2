@@ -13,6 +13,9 @@ sigmaScat       5     # sigmaScat < sigmaTotal
 OutputFile      false
 OutputFilename  out.psi
 
+DD_IterMax      100
+DD_ErrMax       1e-5
+
 
 # Sweep Types: TraverseGraph is the flagship sweep type
 #SweepType OriginalTycho1

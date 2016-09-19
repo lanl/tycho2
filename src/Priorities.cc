@@ -318,7 +318,7 @@ void randomPriorities(const UINT numAngles, Mat2<UINT> &priorities)
 {
     srand(0);
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
         priorities(cell, angle) = rand();
     }}
 }
@@ -332,7 +332,7 @@ void levelPriorities(const Mat2<UINT> &bLevels, const UINT numAngles,
                      Mat2<UINT> &priorities)
 {
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
         priorities(cell, angle) = bLevels(cell, angle);
     }}
 }
@@ -366,12 +366,12 @@ void anglePriorities(const UINT numAngles, const UINT interAngleP,
 {
     vector<UINT> highPriorities(numAngles, 0);
     for (UINT angle = 0; angle < numAngles; ++angle) {
-    for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
         highPriorities[angle] =
             max(highPriorities[angle], priorities(cell, angle));
     }}
 
-    UINT ncells = g_tychoMesh->getNCells();
+    UINT ncells = g_nCells;
     Comm::gsum(ncells);
 
     switch (interAngleP)
@@ -380,7 +380,7 @@ void anglePriorities(const UINT numAngles, const UINT interAngleP,
             break;
         case 1:  // globally prioritized angles
             for (UINT angle = 0; angle < numAngles; ++angle) {
-            for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+            for (UINT cell = 0; cell < g_nCells; ++cell) {
                 priorities(cell, angle) += angle * nlevels * ncells;
             }}
             break;
@@ -397,7 +397,7 @@ void anglePriorities(const UINT numAngles, const UINT interAngleP,
             {
                 ++order;
                 UINT angle = iter->second;
-                for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
+                for (UINT cell = 0; cell < g_nCells; ++cell) {
                     priorities(cell, angle) +=
                         (numAngles-order) * nlevels * ncells;
                 }
@@ -416,8 +416,8 @@ namespace Priorities
 */
 void calcPriorities(Mat2<UINT> &priorities)
 {
-    UINT numAngles = g_quadrature->getNumAngles();
-    Mat2<UINT> bLevels(g_tychoMesh->getNCells(), numAngles);
+    UINT numAngles = g_nAngles;
+    Mat2<UINT> bLevels(g_nCells, numAngles);
     Mat2<UINT> sideBLevels(g_tychoMesh->getNSides(), numAngles);
     
     UINT maxBLevel = calcBLevels(g_maxCellsPerStep, bLevels, sideBLevels);
