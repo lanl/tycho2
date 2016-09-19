@@ -50,7 +50,7 @@ public:
     void sweep(PsiData &psi, const PsiData &source);
 
 private:
-    //double c_sigmaTotal;
+
 };
 
 

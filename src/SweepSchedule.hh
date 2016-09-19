@@ -1,14 +1,3 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- * \file   topologicalSort/SweepSchedule.hh
- * \author Shawn Pautz
- * \date   Mon Apr  3 12:49:24 2000
- * \brief  
- */
-//---------------------------------------------------------------------------//
-// $Id: SweepSchedule.hh,v 1.4 2002/04/12 16:15:39 pautz Exp $
-//---------------------------------------------------------------------------//
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -48,8 +37,8 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __topologicalSort_SweepSchedule_hh__
-#define __topologicalSort_SweepSchedule_hh__
+#ifndef __SWEEP_SCHEDULE_HH__
+#define __SWEEP_SCHEDULE_HH__
 
 #include "Typedef.hh"
 #include <vector>
@@ -99,8 +88,5 @@ class SweepSchedule
 };
 
 
-#endif                          // __topologicalSort_SweepSchedule_hh__
+#endif
 
-//---------------------------------------------------------------------------//
-//                              end of topologicalSort/SweepSchedule.hh
-//---------------------------------------------------------------------------//

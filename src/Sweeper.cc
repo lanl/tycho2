@@ -38,13 +38,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Sweeper.hh"
-/*
-    Sweeper.cc
-    
-    Implements the Sn transport sweep using the scheduling from
-    SweepScheduler.
-*/
-
 #include "Quadrature.hh"
 #include "Global.hh"
 #include "Comm.hh"
@@ -123,7 +116,7 @@ void send(const UINT step, const UINT angleGroup,
         for (UINT proc : g_sweepSchedule[angleGroup]->getSendProcs(step)) {
             
             MPI_Request mpiRequest;
-            UINT nSides = commSidesAngles(angleGroup, proc).size()/2;
+            UINT nSides = commSidesAngles(angleGroup, proc).size() / 2;
             UINT nData = commPsi(angleGroup, proc).size();
             vector<UINT> nSidesData = {nSides, nData};
             int tag0 = angleGroup * 3 + 0;
@@ -182,7 +175,8 @@ void recv(const UINT step, const UINT angleGroup, PsiBoundData &psiBound)
                 vector<UINT> commSides(nSides);
                 vector<UINT> commAngles(nSides);
                 for (UINT side = 0; side < nSides; ++side) {
-                    commSides[side] = g_tychoMesh->getGLSide(commSidesAngles[2*side]);
+                    commSides[side] = 
+                        g_tychoMesh->getGLSide(commSidesAngles[2*side]);
                     commAngles[side] = commSidesAngles[2*side+1];
                 }
 
@@ -218,7 +212,8 @@ void updateComm(const UINT cell, const UINT angle,
             UINT side = g_tychoMesh->getSide(cell, face);
             UINT globalSide = g_tychoMesh->getLGSide(side);
             getBoundData(psiBound, side, angle, psiSide);
-            commPsi(angleGroup, proc).insert(commPsi(angleGroup, proc).end(), psiSide.begin(), psiSide.end());
+            commPsi(angleGroup, proc).insert(
+                commPsi(angleGroup, proc).end(), psiSide.begin(), psiSide.end());
             commSidesAngles(angleGroup, proc).push_back(globalSide);
             commSidesAngles(angleGroup, proc).push_back(angle);
         }
@@ -245,8 +240,10 @@ void updateBoundData(const UINT cell, const UINT angle, PsiBoundData &psiBound,
             if (g_tychoMesh->isOutgoing(angle, cell, face)) {
                 UINT side = g_tychoMesh->getSide(cell, face);
                 for (UINT vertex = 0; vertex < g_nVrtxPerFace; ++vertex) {
-                    psiBound(group, vertex, angle, side) =
-                        localPsi(g_tychoMesh->getFaceToCellVrtx(cell, face, vertex), group);
+                    UINT cellVrtx = 
+                        g_tychoMesh->getFaceToCellVrtx(cell, face, vertex);
+                    psiBound(group, vertex, angle, side) = 
+                        localPsi(cellVrtx, group);
                 }
             }
         }

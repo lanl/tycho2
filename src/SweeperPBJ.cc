@@ -74,7 +74,7 @@ SweeperPBJ::SweeperPBJ(const double sigmaTotal)
 void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
 {
     const bool doComm = false;
-    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max(); ;
+    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
     const UINT maxIter = 100;
     const double tolerance = 1e-5;
     

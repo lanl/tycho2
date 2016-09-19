@@ -114,12 +114,10 @@ void calcDependencies(const vector<UINT> &angles,
         hasChild(angle, cell, face) = false;
         
         if (g_tychoMesh->getOmegaDotN(angles[angle], cell, face) > TOL) {
-        //if (g_tychoMesh->isOutgoing(angles[angle], cell, face)) {
             if (g_tychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK)
                 hasChild(angle, cell, face) = true;
         }
         else if (g_tychoMesh->getOmegaDotN(angles[angle], cell, face) < -TOL) {
-        //else if (g_tychoMesh->isIncoming(angles[angle], cell, face)) {
             if (g_tychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK)
                 hasParent(angle, cell, face) = true;
         }
@@ -131,18 +129,15 @@ void calcDependencies(const vector<UINT> &angles,
     calcNumDependents
 */
 static
-void calcNumDependents(UINT numAngles, const Mat3<bool> &hasChild, Mat2<UINT> &nDependents)
+void calcNumDependents(UINT numAngles, const Mat3<bool> &hasChild, 
+                       Mat2<UINT> &nDependents)
 {
-    //Mat2<UINT> nDependents(numAngles, g_tychoMesh->getNCells(), (UINT)0);
-
     for (UINT angle = 0; angle < numAngles; ++angle) {
     for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
     for (UINT face = 0; face < g_nFacePerCell; ++face) {
         if (hasChild(angle, cell, face))
             ++nDependents(angle, cell);
     }}}
-
-    //return nDependents;
 }
 
 
@@ -157,8 +152,7 @@ void initializeWorkQ(const UINT numAngles, const Mat2<UINT> &nNeeded,
     for (UINT angle = 0; angle < numAngles; ++angle) {
     for (UINT cell = 0; cell < g_tychoMesh->getNCells(); ++cell) {
         if (nNeeded(angle, cell) == 0) {
-            initialWork.push
-                (PriorityWork(cell, angle, priorities(angle, cell)));
+            initialWork.push(PriorityWork(cell, angle, priorities(angle, cell)));
         }
     }}
 }
@@ -258,8 +252,8 @@ void updateLevels(const vector<SweepSchedule::Work> &workDone,
             if (hasParent(angle, cell, face) &&
                 adjCell != TychoMesh::BOUNDARY_FACE) // on processor
             {
-                cellLevels(angle, adjCell) = max(cellLevels(angle, adjCell),
-                                 cellLevels(angle, cell)+1);
+                cellLevels(angle, adjCell) = 
+                    max(cellLevels(angle, adjCell), cellLevels(angle, cell)+1);
             }
         }
     }
@@ -453,7 +447,8 @@ void calcOrdering(const Mat3<bool> &hasChild,
                         maxCellsPerStep, angles, workDone);
         workOrders.push_back(workDone);
         sendOrders(workDone, angles, hasChild, neighborProcs, sendProcs);
-        recvOrders(availableWork, priorities, nParentsNeeded, neighborProcs, recvProcs);
+        recvOrders(availableWork, priorities, nParentsNeeded, neighborProcs, 
+                   recvProcs);
 
         UINT stepSize = workDone.size();
         Comm::gmax(stepSize);
@@ -593,7 +588,9 @@ void neighborPriorities(const Mat2<UINT> &sideLevels,
             g_tychoMesh->getAdjCell(cell, face) == TychoMesh::BOUNDARY_FACE)
         {
             UINT side = g_tychoMesh->getSide(cell, face);
-            if (g_tychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK)  // internal bound.
+
+            // Internal boundary
+            if (g_tychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK)
             {
                 priorities(angle, cell) =
                     max(priorities(angle, cell), 
@@ -694,14 +691,14 @@ SweepSchedule::SweepSchedule(const std::vector<UINT> &angles,
     
     
     // Calculate B-Levels
-    Mat2<UINT> cellLevels(angles.size(), g_tychoMesh->getNCells()/*, (UINT)0*/);
-    Mat2<UINT> sideLevels(angles.size(), g_tychoMesh->getNSides()/*, (UINT)0*/);
+    Mat2<UINT> cellLevels(angles.size(), g_tychoMesh->getNCells());
+    Mat2<UINT> sideLevels(angles.size(), g_tychoMesh->getNSides());
     UINT nlevels = calcLevels(cellLevels, sideLevels, hasChild, hasParent, 
                              neighborProcs, angles, angles.size(), maxCellsPerStep);
     
     
     // Calculate intra-angle priorities
-    Mat2<UINT> priorities(angles.size(), g_tychoMesh->getNCells()/*, (UINT)0*/);
+    Mat2<UINT> priorities(angles.size(), g_tychoMesh->getNCells());
     switch (intraAngleP)
     {
       case 0:  // random
@@ -711,15 +708,18 @@ SweepSchedule::SweepSchedule(const std::vector<UINT> &angles,
         levelPriorities(cellLevels, angles.size(), priorities);
         break;
       case 2:  // breadth-first dependent seeking
-        neighborPriorities(sideLevels, hasChild, hasParent, angles, 1, 0, 0, 
+        neighborPriorities(sideLevels, hasChild, hasParent, angles, 
+                           1, 0, 0, 
                            angles.size(), maxCellsPerStep, priorities);
         break;
       case 3:  // depth-first dependent seeking
-        neighborPriorities(sideLevels, hasChild, hasParent, angles, 1, nlevels, -1, 
+        neighborPriorities(sideLevels, hasChild, hasParent, angles, 
+                           1, nlevels, -1, 
                            angles.size(), maxCellsPerStep, priorities);
         break;
       case 4:  // strict depth-first dependent seeking
-        neighborPriorities(sideLevels, hasChild, hasParent, angles, nlevels, nlevels, -1, 
+        neighborPriorities(sideLevels, hasChild, hasParent, angles, 
+                           nlevels, nlevels, -1, 
                            angles.size(), maxCellsPerStep, priorities);
         break;
     }
@@ -734,7 +734,3 @@ SweepSchedule::SweepSchedule(const std::vector<UINT> &angles,
                  maxCellsPerStep, angles, c_workOrders, c_sendProcs, c_recvProcs);
 }
 
-
-//---------------------------------------------------------------------------//
-//                              end of SweepSchedule.cc
-//---------------------------------------------------------------------------//
