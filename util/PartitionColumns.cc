@@ -5,6 +5,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <stdint.h>
 #include "SerialMesh.hh"
 #include "ParallelMesh.hh"
 

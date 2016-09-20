@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PsiData.hh"
 #include "Comm.hh"
+#include <string.h>
 
 
 /*

@@ -57,23 +57,20 @@ using namespace std;
 static
 void calcLocalSource(const UINT cell,
                      const Mat2<double> &localSource,
-                     Mat2<double> &cellSource)//,
-                     //const UINT group) 
+                     double cellSource[4],
+                     const UINT group) 
 {
     double volume = g_tychoMesh->getCellVolume(cell);
     
-    #pragma omp simd
-    for (UINT group = 0; group < g_nGroups; group++) {
-        double q0 = localSource(0, group);
-        double q1 = localSource(1, group);
-        double q2 = localSource(2, group);
-        double q3 = localSource(3, group);
+    double q0 = localSource(0, group);
+    double q1 = localSource(1, group);
+    double q2 = localSource(2, group);
+    double q3 = localSource(3, group);
     
-        cellSource(0, group) = volume / 20.0 * (2.0 * q0 + q1 + q2 + q3);
-        cellSource(1, group) = volume / 20.0 * (q0 + 2.0 * q1 + q2 + q3);
-        cellSource(2, group) = volume / 20.0 * (q0 + q1 + 2.0 * q2 + q3);
-        cellSource(3, group) = volume / 20.0 * (q0 + q1 + q2 + 2.0 * q3);
-    }
+    cellSource[0] = volume / 20.0 * (2.0 * q0 + q1 + q2 + q3);
+    cellSource[1] = volume / 20.0 * (q0 + 2.0 * q1 + q2 + q3);
+    cellSource[2] = volume / 20.0 * (q0 + q1 + 2.0 * q2 + q3);
+    cellSource[3] = volume / 20.0 * (q0 + q1 + q2 + 2.0 * q3);
 }
 
 
@@ -165,7 +162,8 @@ void faceDependence(const UINT cell, const UINT angle,
 static
 void faceDependence1(const UINT cell, const UINT angle,
                     const Mat3<double> &localPsiBound,
-                    Mat2<double> &cellSource)
+                    double cellSource[4],
+                    const UINT group)
 {
     double area[4];
     UINT cellToFaceVrtx[4][4];
@@ -209,10 +207,8 @@ void faceDependence1(const UINT cell, const UINT angle,
                 UINT col = indices[face][colIndex];
                 double factor = (row == col) ? 2.0 : 1.0;
                 UINT faceVertex = cellToFaceVrtx[face][col];
-                for (UINT group = 0; group < g_nGroups; group++) {
                     double psiNeighbor = localPsiBound(faceVertex, face, group);
-                    cellSource(row, group) -= area[face] / 12.0 * psiNeighbor * factor;
-                }
+                    cellSource[row] -= area[face] / 12.0 * psiNeighbor * factor;
             }}
         }
     }
@@ -636,32 +632,26 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
            const Mat3<double> &localPsiBound, const Mat2<double> &localSource,
            Mat2<double> &localPsi)
 {
-    Mat2<double> cellSource(g_nVrtxPerCell, g_nGroups);
-    double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
-    double matrix2[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
-    double solution[g_nVrtxPerCell];
-    cellSource.setAll(0.0);
+    for (UINT group = 0; group < g_nGroups; group++) {
+        double cellSource[g_nVrtxPerCell] = {0.0};
+        double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
+        double solution[g_nVrtxPerCell];
     
         
-    // form local source term
-    calcLocalSource(cell, localSource, cellSource);
+        // form local source term
+        calcLocalSource(cell, localSource, cellSource, group);
         
-    // form streaming-plus-collision portion of matrix
-    streamPlusColl(cell, angle, sigmaTotal, matrix);
+        // form streaming-plus-collision portion of matrix
+        streamPlusColl(cell, angle, sigmaTotal, matrix);
         
-    // form dependencies on incoming (outgoing) faces
-    faceDependence(cell, angle, matrix);
-    faceDependence1(cell, angle, localPsiBound, cellSource);
+        // form dependencies on incoming (outgoing) faces
+        faceDependence(cell, angle, matrix);
+        faceDependence1(cell, angle, localPsiBound, cellSource, group);
         
-    for (UINT group = 0; group < g_nGroups; group++) {
         // solve matrix
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
-            solution[vertex] = cellSource(vertex, group);
-        for (UINT i = 0; i < 4; i++) {
-        for (UINT j = 0; j < 4; j++) {
-            matrix2[i][j] = matrix[i][j];
-        }}
-        gaussElim4(matrix2, solution);
+            solution[vertex] = cellSource[vertex];
+        gaussElim4(matrix, solution);
         
         // put local solution onto global solution
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
