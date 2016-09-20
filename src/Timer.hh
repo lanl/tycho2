@@ -1,14 +1,3 @@
-//----------------------------------*-C++-*----------------------------------//
-/*!
- * \file   c4/Timer.hh
- * \author Thomas M. Evans
- * \date   Mon Mar 25 17:35:07 2002
- * \brief  Timer class.
- */
-//---------------------------------------------------------------------------//
-// $Id: Timer.hh,v 1.5 2003/07/23 20:44:12 kellyt Exp $
-//---------------------------------------------------------------------------//
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -48,84 +37,87 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __c4_Timer_hh__
-#define __c4_Timer_hh__
+#ifndef __TIMER_HH__
+#define __TIMER_HH__
 
 #include "Global.hh"
 #include "Assert.hh"
 #include <chrono>
 
 
+/*
+    Timer
 
+    Implements a high resolution timer.
+*/
 class Timer 
 {
 private:
-    std::chrono::high_resolution_clock::time_point beginHighRes;
-    std::chrono::high_resolution_clock::time_point endHighRes;
+    std::chrono::high_resolution_clock::time_point begin;
+    std::chrono::high_resolution_clock::time_point end;
     bool timer_on;
     double sum_wall;
     UINT num_intervals;
 
 
 public:
-    //! Constructor.
+    // Constructor
     Timer()
     {
         timer_on = false;
         reset();
     }
 
-    //! Set the beginning of the time interval.
+    // Start the timer
     inline
     void start()
     {
-        Assert(! timer_on);
+        Assert(!timer_on);
         timer_on = true;
         ++num_intervals;
-        beginHighRes = std::chrono::high_resolution_clock::now();
+        begin = std::chrono::high_resolution_clock::now();
     }
 
-    //! Set the end of the time interval.
+    // Stop the timer (does not reset the timer)
     inline
     void stop()
     {
         Assert(timer_on);
-        endHighRes = std::chrono::high_resolution_clock::now();
+        end = std::chrono::high_resolution_clock::now();
         timer_on = false;
         sum_wall += wall_clock();
     }
 
-    //! Return the wall clock time in seconds, for the last interval.
+    // Get last timer stop() - start()
     inline
     double wall_clock() const
     {
-        Assert(! timer_on);
-        std::chrono::duration<double> timeSpan = 
-            std::chrono::duration_cast<std::chrono::duration<double>>(endHighRes - beginHighRes);
+        Assert(!timer_on);
+        std::chrono::duration<double> timeSpan = end - begin;
         return timeSpan.count();
     }
 
-    //! Return the wall clock time in seconds, summed over all intervals.
+    // Return sum of stop() - start() times
     inline
     double sum_wall_clock() const 
     {
-        Assert(! timer_on);
+        Assert(!timer_on);
         return sum_wall;
     }
 
-    //! Return the number of time intervals used in the sums.
+    // Return number of times timer has been used
     inline
     int intervals() const
     {
-        Assert(! timer_on);
+        Assert(!timer_on);
         return num_intervals;
     }
 
-    //! Reset the interval sums.
+    // Reset timer
     inline
     void reset()
     {
-        Assert(! timer_on);
+        Assert(!timer_on);
         num_intervals = 0;
         sum_wall      = 0.0;
     }
@@ -133,8 +125,5 @@ public:
 
 
 
-#endif                          // __c4_Timer_hh__
+#endif
 
-//---------------------------------------------------------------------------//
-//                              end of c4/Timer.hh
-//---------------------------------------------------------------------------//

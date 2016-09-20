@@ -1,8 +1,4 @@
 /*
-    Transport.hh
-*/
-
-/*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
 
@@ -47,7 +43,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Mat.hh"
 #include "PsiData.hh"
 #include "Global.hh"
-#include <vector>
 
 
 namespace Transport 

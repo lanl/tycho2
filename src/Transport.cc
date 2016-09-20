@@ -52,16 +52,14 @@ using namespace std;
 
 
 /*
-    calcLocalSource
+    calcSource
 */
 static
-void calcLocalSource(const UINT cell,
+void calcSource(const double volume, 
                      const Mat2<double> &localSource,
                      double cellSource[4],
                      const UINT group) 
 {
-    double volume = g_tychoMesh->getCellVolume(cell);
-    
     double q0 = localSource(0, group);
     double q1 = localSource(1, group);
     double q2 = localSource(2, group);
@@ -75,142 +73,200 @@ void calcLocalSource(const UINT cell,
 
 
 /*
-    streamPlusColl
+    calcVolumeIntegrals
 */
 static
-void streamPlusColl(const UINT cell, const UINT angle,
-                    const double sigmaTotal,
-                    double matrix[g_nVrtxPerCell][g_nVrtxPerCell]) 
+void calcVolumeIntegrals(const double volume, 
+                         const double area[g_nFacePerCell],
+                         const double sigmaTotal,
+                         double matrix[g_nVrtxPerCell][g_nVrtxPerCell]) 
 {
-    double volume, area[4];
-
-    // Get cell volume and face areas
-    volume = g_tychoMesh->getCellVolume(cell);
-    for(UINT face = 0; face < 4; face++) {
-        area[face] = g_tychoMesh->getFaceArea(cell, face) * 
-                     g_tychoMesh->getOmegaDotN(angle, cell, face);
-    }
+    matrix[0][0] = area[0] / 12.0 + 2.0 * sigmaTotal * volume / 20.0;
+    matrix[0][1] = area[0] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[0][2] = area[0] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[0][3] = area[0] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
     
-    // Setup LHS volume integrals
-    for(UINT row = 0; row < 4; row++) {
-    for(UINT col = 0; col < 4; col++) {
-        double factor = (row == col) ? 2.0 : 1.0;
-        matrix[row][col] = area[row] / 12.0 + sigmaTotal * volume / 20.0 * factor;
-    }}
+    matrix[1][0] = area[1] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[1][1] = area[1] / 12.0 + 2.0 * sigmaTotal * volume / 20.0;
+    matrix[1][2] = area[1] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[1][3] = area[1] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    
+    matrix[2][0] = area[2] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[2][1] = area[2] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[2][2] = area[2] / 12.0 + 2.0 * sigmaTotal * volume / 20.0;
+    matrix[2][3] = area[2] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    
+    matrix[3][0] = area[3] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[3][1] = area[3] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[3][2] = area[3] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
+    matrix[3][3] = area[3] / 12.0 + 2.0 * sigmaTotal * volume / 20.0;
 }
 
 
 /*
-    faceDependence
-    Takes a lot of computational time, so it has been optimized.
-    Beware of changing order of operations.
+    calcOutgoingFlux
 */
 static
-void faceDependence(const UINT cell, const UINT angle,
-                    double matrix[g_nVrtxPerCell][g_nVrtxPerCell])
+void calcOutgoingFlux(const double area[g_nFacePerCell],
+                      double matrix[g_nVrtxPerCell][g_nVrtxPerCell])
 {
-    double area[4];
-    //UINT cellToFaceVrtx[4][4];
-    UINT indices[4][3];
-    
-    
-    // Get face areas
-    for(UINT face = 0; face < 4; face++) {
-        area[face] = g_tychoMesh->getFaceArea(cell, face) * 
-                     g_tychoMesh->getOmegaDotN(angle, cell, face);
+    if (area[0] > 0) {
+        matrix[1][1] += 2.0 * area[0] / 12.0;
+        matrix[1][2] += 1.0 * area[0] / 12.0;
+        matrix[1][3] += 1.0 * area[0] / 12.0;
+
+        matrix[2][1] += 1.0 * area[0] / 12.0;
+        matrix[2][2] += 2.0 * area[0] / 12.0;
+        matrix[2][3] += 1.0 * area[0] / 12.0;
+
+        matrix[3][1] += 1.0 * area[0] / 12.0;
+        matrix[3][2] += 1.0 * area[0] / 12.0;
+        matrix[3][3] += 2.0 * area[0] / 12.0;
     }
     
-    
-    // Populate cellToFaceVrtx
-    /*for(UINT face = 0; face < 4; face++) {
-    for(UINT col = 0; col < 4; col++) {
-        if(face != col)
-            cellToFaceVrtx[face][col] = g_tychoMesh->getCellToFaceVrtx(cell, face, col);
-    }}*/
-    
-    
-    // Populate indices
-    indices[0][0] = 1; indices[0][1] = 2; indices[0][2] = 3;
-    indices[1][0] = 0; indices[1][1] = 2; indices[1][2] = 3;
-    indices[2][0] = 0; indices[2][1] = 1; indices[2][2] = 3;
-    indices[3][0] = 0; indices[3][1] = 1; indices[3][2] = 2;
-    
-    
-    // Update for fluxes.
-    for(UINT face = 0; face < 4; face++) {
-        
-        // Outgoing flux
-        if(area[face] > 0) {
-            for(UINT rowIndex = 0; rowIndex < 3; rowIndex++) {
-            for(UINT colIndex = 0; colIndex < 3; colIndex++) {
-                UINT row = indices[face][rowIndex];
-                UINT col = indices[face][colIndex];
-                double factor = (row == col) ? 2.0 : 1.0;
-                matrix[row][col] += area[face] / 12.0 * factor;
-            }}
-        }
-        
-        // Incoming flux
-        else {
+    if (area[1] > 0) {
+        matrix[0][0] += 2.0 * area[1] / 12.0;
+        matrix[0][2] += 1.0 * area[1] / 12.0;
+        matrix[0][3] += 1.0 * area[1] / 12.0;
 
-        }
+        matrix[2][0] += 1.0 * area[1] / 12.0;
+        matrix[2][2] += 2.0 * area[1] / 12.0;
+        matrix[2][3] += 1.0 * area[1] / 12.0;
+
+        matrix[3][0] += 1.0 * area[1] / 12.0;
+        matrix[3][2] += 1.0 * area[1] / 12.0;
+        matrix[3][3] += 2.0 * area[1] / 12.0;
+    }
+    
+    if (area[2] > 0) {
+        matrix[0][0] += 2.0 * area[2] / 12.0;
+        matrix[0][1] += 1.0 * area[2] / 12.0;
+        matrix[0][3] += 1.0 * area[2] / 12.0;
+
+        matrix[1][0] += 1.0 * area[2] / 12.0;
+        matrix[1][1] += 2.0 * area[2] / 12.0;
+        matrix[1][3] += 1.0 * area[2] / 12.0;
+
+        matrix[3][0] += 1.0 * area[2] / 12.0;
+        matrix[3][1] += 1.0 * area[2] / 12.0;
+        matrix[3][3] += 2.0 * area[2] / 12.0;
+    }
+    
+    if (area[3] > 0) {
+        matrix[0][0] += 2.0 * area[3] / 12.0;
+        matrix[0][1] += 1.0 * area[3] / 12.0;
+        matrix[0][2] += 1.0 * area[3] / 12.0;
+
+        matrix[1][0] += 1.0 * area[3] / 12.0;
+        matrix[1][1] += 2.0 * area[3] / 12.0;
+        matrix[1][2] += 1.0 * area[3] / 12.0;
+
+        matrix[2][0] += 1.0 * area[3] / 12.0;
+        matrix[2][1] += 1.0 * area[3] / 12.0;
+        matrix[2][2] += 2.0 * area[3] / 12.0;
     }
 }
+
+
 /*
-    faceDependence
+    calcIncomingFlux
 */
 static
-void faceDependence1(const UINT cell, const UINT angle,
-                    const Mat3<double> &localPsiBound,
-                    double cellSource[4],
-                    const UINT group)
+void calcIncomingFlux(const UINT cell, 
+                      const double area[g_nFacePerCell],
+                      const Mat3<double> &localPsiBound,
+                      double cellSource[g_nVrtxPerCell],
+                      const UINT group)
 {
-    double area[4];
-    UINT cellToFaceVrtx[4][4];
-    UINT indices[4][3];
+    UINT faceVertex0, faceVertex1, faceVertex2, faceVertex3;
+    double psiNeighbor0, psiNeighbor1, psiNeighbor2, psiNeighbor3;
 
-    // Get face areas
-    for(UINT face = 0; face < 4; face++) {
-        area[face] = g_tychoMesh->getFaceArea(cell, face) * 
-                    g_tychoMesh->getOmegaDotN(angle, cell, face);
+    if (area[0] < 0) {
+        faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 1);
+        faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 2);
+        faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 3);
+        
+        psiNeighbor1 = localPsiBound(faceVertex1, 0, group);
+        psiNeighbor2 = localPsiBound(faceVertex2, 0, group);
+        psiNeighbor3 = localPsiBound(faceVertex3, 0, group);
+        
+        cellSource[1] -= 2.0 * area[0] / 12.0 * psiNeighbor1;
+        cellSource[1] -= 1.0 * area[0] / 12.0 * psiNeighbor2;
+        cellSource[1] -= 1.0 * area[0] / 12.0 * psiNeighbor3;
+        
+        cellSource[2] -= 1.0 * area[0] / 12.0 * psiNeighbor1;
+        cellSource[2] -= 2.0 * area[0] / 12.0 * psiNeighbor2;
+        cellSource[2] -= 1.0 * area[0] / 12.0 * psiNeighbor3;
+        
+        cellSource[3] -= 1.0 * area[0] / 12.0 * psiNeighbor1;
+        cellSource[3] -= 1.0 * area[0] / 12.0 * psiNeighbor2;
+        cellSource[3] -= 2.0 * area[0] / 12.0 * psiNeighbor3;
     }
 
+    if (area[1] < 0) {
+        faceVertex0 = g_tychoMesh->getCellToFaceVrtx(cell, 1, 0);
+        faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 1, 2);
+        faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 1, 3);
+        
+        psiNeighbor0 = localPsiBound(faceVertex0, 1, group);
+        psiNeighbor2 = localPsiBound(faceVertex2, 1, group);
+        psiNeighbor3 = localPsiBound(faceVertex3, 1, group);
+        
+        cellSource[0] -= 2.0 * area[1] / 12.0 * psiNeighbor0;
+        cellSource[0] -= 1.0 * area[1] / 12.0 * psiNeighbor2;
+        cellSource[0] -= 1.0 * area[1] / 12.0 * psiNeighbor3;
+        
+        cellSource[2] -= 1.0 * area[1] / 12.0 * psiNeighbor0;
+        cellSource[2] -= 2.0 * area[1] / 12.0 * psiNeighbor2;
+        cellSource[2] -= 1.0 * area[1] / 12.0 * psiNeighbor3;
+        
+        cellSource[3] -= 1.0 * area[1] / 12.0 * psiNeighbor0;
+        cellSource[3] -= 1.0 * area[1] / 12.0 * psiNeighbor2;
+        cellSource[3] -= 2.0 * area[1] / 12.0 * psiNeighbor3;
+    }
 
-    // Populate cellToFaceVrtx
-    for(UINT face = 0; face < 4; face++) {
-    for(UINT col = 0; col < 4; col++) {
-        if(face != col)
-            cellToFaceVrtx[face][col] = g_tychoMesh->getCellToFaceVrtx(cell, face, col);
-    }}
-    
+    if (area[2] < 0) {
+        faceVertex0 = g_tychoMesh->getCellToFaceVrtx(cell, 2, 0);
+        faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 2, 1);
+        faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 2, 3);
+        
+        psiNeighbor0 = localPsiBound(faceVertex0, 2, group);
+        psiNeighbor1 = localPsiBound(faceVertex1, 2, group);
+        psiNeighbor3 = localPsiBound(faceVertex3, 2, group);
+        
+        cellSource[0] -= 2.0 * area[2] / 12.0 * psiNeighbor0;
+        cellSource[0] -= 1.0 * area[2] / 12.0 * psiNeighbor1;
+        cellSource[0] -= 1.0 * area[2] / 12.0 * psiNeighbor3;
+        
+        cellSource[1] -= 1.0 * area[2] / 12.0 * psiNeighbor0;
+        cellSource[1] -= 2.0 * area[2] / 12.0 * psiNeighbor1;
+        cellSource[1] -= 1.0 * area[2] / 12.0 * psiNeighbor3;
+        
+        cellSource[3] -= 1.0 * area[2] / 12.0 * psiNeighbor0;
+        cellSource[3] -= 1.0 * area[2] / 12.0 * psiNeighbor1;
+        cellSource[3] -= 2.0 * area[2] / 12.0 * psiNeighbor3;
+    }
 
-    // Populate indices
-    indices[0][0] = 1; indices[0][1] = 2; indices[0][2] = 3;
-    indices[1][0] = 0; indices[1][1] = 2; indices[1][2] = 3;
-    indices[2][0] = 0; indices[2][1] = 1; indices[2][2] = 3;
-    indices[3][0] = 0; indices[3][1] = 1; indices[3][2] = 2;
-
-
-    // Update for fluxes
-    for (UINT face = 0; face < 4; face++) {
-
-        // Outgoing flux
-        if(area[face] > 0) {
-                    
-        }
-
-    // Incoming flux
-        else {
-            for(UINT rowIndex = 0; rowIndex < 3; rowIndex++) {
-            for(UINT colIndex = 0; colIndex < 3; colIndex++) {
-                UINT row = indices[face][rowIndex];
-                UINT col = indices[face][colIndex];
-                double factor = (row == col) ? 2.0 : 1.0;
-                UINT faceVertex = cellToFaceVrtx[face][col];
-                    double psiNeighbor = localPsiBound(faceVertex, face, group);
-                    cellSource[row] -= area[face] / 12.0 * psiNeighbor * factor;
-            }}
-        }
+    if (area[3] < 0) {
+        faceVertex0 = g_tychoMesh->getCellToFaceVrtx(cell, 3, 0);
+        faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 3, 1);
+        faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 3, 2);
+        
+        psiNeighbor0 = localPsiBound(faceVertex0, 3, group);
+        psiNeighbor1 = localPsiBound(faceVertex1, 3, group);
+        psiNeighbor2 = localPsiBound(faceVertex2, 3, group);
+        
+        cellSource[0] -= 2.0 * area[3] / 12.0 * psiNeighbor0;
+        cellSource[0] -= 1.0 * area[3] / 12.0 * psiNeighbor1;
+        cellSource[0] -= 1.0 * area[3] / 12.0 * psiNeighbor2;
+        
+        cellSource[1] -= 1.0 * area[3] / 12.0 * psiNeighbor0;
+        cellSource[1] -= 2.0 * area[3] / 12.0 * psiNeighbor1;
+        cellSource[1] -= 1.0 * area[3] / 12.0 * psiNeighbor2;
+        
+        cellSource[2] -= 1.0 * area[3] / 12.0 * psiNeighbor0;
+        cellSource[2] -= 1.0 * area[3] / 12.0 * psiNeighbor1;
+        cellSource[2] -= 2.0 * area[3] / 12.0 * psiNeighbor2;
     }
 }
 
@@ -224,8 +280,8 @@ void gaussElim4(double A[4][4], double b[4])
 
     switch (g_gaussElim) {    
  
-        // Original Gaussian
-        case 0: {
+        // Original Gaussian elimination with pivoting
+        case GaussElim_Original: {
             const int n = 4;
         
             for (int column = 0; column < n-1; ++column) {
@@ -279,7 +335,7 @@ void gaussElim4(double A[4][4], double b[4])
 
 
         // Gaussian-No Pivot
-        case 1: {
+        case GaussElim_NoPivot: {
 
             double tmp;
             
@@ -355,7 +411,7 @@ void gaussElim4(double A[4][4], double b[4])
 
            
         // Glu Library Implementation of Cramer's Rule
-        case 2: {
+        case GaussElim_CramerGlu: {
 
             int i;
             
@@ -500,7 +556,7 @@ void gaussElim4(double A[4][4], double b[4])
 
             
         // Intel's implementation of Cramer's rule
-        case 3: {
+        case GaussElim_CramerIntel: {
         
             double tmp[12], src[16], dst[16], bCpy[4], det;
 
@@ -632,21 +688,38 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
            const Mat3<double> &localPsiBound, const Mat2<double> &localSource,
            Mat2<double> &localPsi)
 {
+    double volume, area[g_nFacePerCell];
+
+    
+    // Get cell volume and face areas
+    volume = g_tychoMesh->getCellVolume(cell);
+    
+    area[0] = g_tychoMesh->getFaceArea(cell, 0) * 
+              g_tychoMesh->getOmegaDotN(angle, cell, 0);
+    area[1] = g_tychoMesh->getFaceArea(cell, 1) * 
+              g_tychoMesh->getOmegaDotN(angle, cell, 1);
+    area[2] = g_tychoMesh->getFaceArea(cell, 2) * 
+              g_tychoMesh->getOmegaDotN(angle, cell, 2);
+    area[3] = g_tychoMesh->getFaceArea(cell, 3) * 
+              g_tychoMesh->getOmegaDotN(angle, cell, 3);
+    
+    
+    // Solve local transport problem for each group
     for (UINT group = 0; group < g_nGroups; group++) {
+        
         double cellSource[g_nVrtxPerCell] = {0.0};
         double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
         double solution[g_nVrtxPerCell];
     
-        
         // form local source term
-        calcLocalSource(cell, localSource, cellSource, group);
+        calcSource(volume, localSource, cellSource, group);
         
         // form streaming-plus-collision portion of matrix
-        streamPlusColl(cell, angle, sigmaTotal, matrix);
+        calcVolumeIntegrals(volume, area, sigmaTotal, matrix);
         
         // form dependencies on incoming (outgoing) faces
-        faceDependence(cell, angle, matrix);
-        faceDependence1(cell, angle, localPsiBound, cellSource, group);
+        calcOutgoingFlux(area, matrix);
+        calcIncomingFlux(cell, area, localPsiBound, cellSource, group);
         
         // solve matrix
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
@@ -665,7 +738,8 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
     Put data from neighboring cells into localPsiBound(fvrtx, face, group).
 */
 void populateLocalPsiBound(const UINT angle, const UINT cell, 
-                           const PsiData &__restrict psi, const PsiBoundData & __restrict psiBound,
+                           const PsiData &__restrict psi, 
+                           const PsiBoundData & __restrict psiBound,
                            Mat3<double> &__restrict localPsiBound)
 {
     // Default to 0.0
