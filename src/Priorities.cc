@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TraverseGraph.hh"
 #include "Mat.hh"
 #include "Global.hh"
+#include "TychoMesh.hh"
 #include "Comm.hh"
 #include <vector>
 #include <algorithm>

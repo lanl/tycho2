@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Mat.hh"
 #include "PsiData.hh"
-#include "Typedef.hh"
+#include "Global.hh"
 #include "SweeperAbstract.hh"
 
 

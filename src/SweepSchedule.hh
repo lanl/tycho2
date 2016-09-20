@@ -40,7 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SWEEP_SCHEDULE_HH__
 #define __SWEEP_SCHEDULE_HH__
 
-#include "Typedef.hh"
+#include "Global.hh"
 #include <vector>
 
 

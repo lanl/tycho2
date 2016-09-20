@@ -40,7 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __COMM_HH__
 #define __COMM_HH__
 
-#include "Typedef.hh"
+#include "Global.hh"
 #include <mpi.h>
 #include <vector>
 #include <string>

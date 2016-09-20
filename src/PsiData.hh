@@ -42,7 +42,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __PSI_DATA_HH__
 
 #include "Assert.hh"
-#include "Typedef.hh"
 #include "Global.hh"
 #include "Quadrature.hh"
 #include "TychoMesh.hh"

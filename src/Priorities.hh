@@ -41,7 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __PRIORITIES_HH__
 
 #include "Mat.hh"
-#include "Typedef.hh"
+#include "Global.hh"
 
 namespace Priorities
 {

@@ -51,7 +51,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Transport.hh"
 #include "PsiData.hh"
 #include "Comm.hh"
-#include "Typedef.hh"
 #include <omp.h>
 #include <vector>
 #include <math.h>

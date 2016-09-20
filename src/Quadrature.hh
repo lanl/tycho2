@@ -40,7 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __QUADRATURE_HH__
 #define __QUADRATURE_HH__
 
-#include "Typedef.hh"
+#include "Global.hh"
 #include <vector>
 
 

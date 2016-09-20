@@ -54,7 +54,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __TYCHO_MESH_HH__
 
 #include "Mat.hh"
-#include "Typedef.hh"
+#include "Global.hh"
 #include "Assert.hh"
 #include <map>
 

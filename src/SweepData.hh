@@ -44,7 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Assert.hh"
 #include "TraverseGraph.hh"
 #include "Transport.hh"
-#include "Typedef.hh"
+#include "Global.hh"
 #include <stddef.h>
 #include <omp.h>
 

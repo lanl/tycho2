@@ -40,7 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SOLVER_HH__
 #define __SOLVER_HH__
 
-#include "Typedef.hh"
 
 namespace Solver 
 {

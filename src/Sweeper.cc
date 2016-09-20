@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Sweeper.hh"
 #include "Quadrature.hh"
 #include "Global.hh"
+#include "SweepSchedule.hh"
 #include "Comm.hh"
 #include "Transport.hh"
 #include "PsiData.hh"

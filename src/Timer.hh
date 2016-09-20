@@ -51,7 +51,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __c4_Timer_hh__
 #define __c4_Timer_hh__
 
-#include "Typedef.hh"
+#include "Global.hh"
 #include "Assert.hh"
 #include <chrono>
 

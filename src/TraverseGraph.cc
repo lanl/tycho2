@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TraverseGraph.hh"
 #include "Mat.hh"
 #include "Global.hh"
+#include "TychoMesh.hh"
 #include "Comm.hh"
 #include "Timer.hh"
 #include <vector>
@@ -52,11 +53,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-    Timer timer;
 
 /*
     Tuple class
 */
+namespace {
 class Tuple
 {
 private:
@@ -77,7 +78,7 @@ public:
     {
         return c_priority < rhs.c_priority;
     }
-};
+};}
 
 
 /*
@@ -86,12 +87,13 @@ public:
     Packet is (global side, angle, data)
 */
 static
-void splitPacket(char **packet, UINT &globalSide, UINT &angle)
+void splitPacket(char *packet, UINT &globalSide, UINT &angle, char **data)
 {
-    memcpy(&globalSide, *packet, sizeof(UINT));
-    *packet += sizeof(UINT);
-    memcpy(&angle, *packet, sizeof(UINT));
-    *packet += sizeof(UINT);
+    memcpy(&globalSide, packet, sizeof(UINT));
+    packet += sizeof(UINT);
+    memcpy(&angle, packet, sizeof(UINT));
+    packet += sizeof(UINT);
+    *data = packet;
 }
 
 
@@ -289,13 +291,11 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
         
         // Wait for a data size to arrive
         int index;
-
-		timer.start();
         mpiError = MPI_Waitany(mpiRecvRequests.size(), mpiRecvRequests.data(), 
                                &index, MPI_STATUS_IGNORE);
         Insist(mpiError == MPI_SUCCESS, "");
-        timer.stop();
         
+
         // Recv data
         if (recvSizes[index] > 0 && recvSizes[index] != UINT64_MAX) {
             
@@ -316,10 +316,11 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
                 char *packet = &dataPackets[i * packetSize];
                 UINT globalSide;
                 UINT angle;
-                splitPacket(&packet, globalSide, angle);
+                char *packetData;
+                splitPacket(packet, globalSide, angle, &packetData);
                 
                 UINT localSide = g_tychoMesh->getGLSide(globalSide);
-                traverseData.setSideData(localSide, angle, packet);
+                traverseData.setSideData(localSide, angle, packetData);
                 sideRecv.insert(make_pair(localSide,angle));
             }
         }
@@ -369,6 +370,7 @@ void traverseGraph(const UINT maxComputePerStep,
     Timer commTimer;
     Timer updateTimer;
     
+
     // Start total timer
     totalTimer.start();
     
@@ -424,7 +426,8 @@ void traverseGraph(const UINT maxComputePerStep,
     for (UINT cell = 0; cell < g_nCells; cell++) {
         if (numDependencies(cell, angle) == 0) {
             UINT priority = traverseData.getPriority(cell, angle);
-            canCompute[angleGroupIndex(angle)].push(Tuple(cell, angle, priority));
+            UINT angleGroup = angleGroupIndex(angle);
+            canCompute[angleGroup].push(Tuple(cell, angle, priority));
         }
     }}
     
@@ -445,9 +448,10 @@ void traverseGraph(const UINT maxComputePerStep,
                 canCompute[angleGroup].pop();
                 UINT cell = cellAnglePair.getCell();
                 UINT angle = cellAnglePair.getAngle();
+                stepsTaken++;
+                
                 #pragma omp atomic
                 numCellAnglePairsToCalculate--;
-                stepsTaken++;
                 
                 
                 // Get boundary type and adjacent cell/side data for each face
@@ -465,7 +469,8 @@ void traverseGraph(const UINT maxComputePerStep,
                             adjRank != TychoMesh::BAD_RANK)
                         {
                             bdryType[face] = BoundaryType_OutIntBdry;
-                            adjCellsSides[face] = g_tychoMesh->getSide(cell, face);
+                            adjCellsSides[face] = 
+                                g_tychoMesh->getSide(cell, face);
                         }
                         
                         else if (adjCell == TychoMesh::BOUNDARY_FACE && 
@@ -484,7 +489,8 @@ void traverseGraph(const UINT maxComputePerStep,
                             adjRank != TychoMesh::BAD_RANK)
                         {
                             bdryType[face] = BoundaryType_InIntBdry;
-                            adjCellsSides[face] = g_tychoMesh->getSide(cell, face);
+                            adjCellsSides[face] = 
+                                g_tychoMesh->getSide(cell, face);
                         }
                         
                         else if (adjCell == TychoMesh::BOUNDARY_FACE && 
@@ -502,10 +508,13 @@ void traverseGraph(const UINT maxComputePerStep,
                 
                 // Update data for this cell-angle pair
                 #pragma omp master
-				updateTimer.start();
-				traverseData.update(cell, angle, adjCellsSides, bdryType);
+                updateTimer.start();
+
+                traverseData.update(cell, angle, adjCellsSides, bdryType);
+                
                 #pragma omp master
-				updateTimer.stop();
+                updateTimer.stop();
+                
                 
                 // Update dependency for children
                 for (UINT face = 0; face < g_nFacePerCell; face++) {
@@ -518,8 +527,10 @@ void traverseGraph(const UINT maxComputePerStep,
                         if (adjCell != TychoMesh::BOUNDARY_FACE) {
                             numDependencies(adjCell, angle)--;
                             if (numDependencies(adjCell, angle) == 0) {
-                                UINT priority = traverseData.getPriority(adjCell, angle);
-                                canCompute[angleGroup].push(Tuple(adjCell, angle, priority));
+                                UINT priority = 
+                                    traverseData.getPriority(adjCell, angle);
+                                Tuple tuple(adjCell, angle, priority);
+                                canCompute[angleGroup].push(tuple);
                             }
                         }
                         
@@ -585,7 +596,8 @@ void traverseGraph(const UINT maxComputePerStep,
                 numDependencies(cell, angle)--;
                 if (numDependencies(cell, angle) == 0) {
                     UINT priority = traverseData.getPriority(cell, angle);
-                    canCompute[angleGroupIndex(angle)].push(Tuple(cell, angle, priority));
+                    Tuple tuple(cell, angle, priority);
+                    canCompute[angleGroupIndex(angle)].push(tuple);
                 }
             }
         }
@@ -605,30 +617,21 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Print times
     totalTimer.stop();
+
     double totalTime = totalTimer.wall_clock();
     Comm::gmax(totalTime, mpiComm);
+
     double commTime = commTimer.sum_wall_clock();
     Comm::gmax(commTime, mpiComm);
     
-	double time = timer.sum_wall_clock();
-	Comm::gmax(time, mpiComm);
-
     double updateTime = updateTimer.sum_wall_clock();
     Comm::gmax(updateTime, mpiComm);
+
     if (Comm::rank(mpiComm) == 0) {
-        printf("     Traverse Timer (communication): %fs\n", commTime);
-        printf("     Traverse Timer (total time): %fs\n", totalTime);
+        printf("      Traverse Timer (comm):    %fs\n", commTime);
+        printf("      Traverse Timer (update):  %fs\n", updateTime);
+        printf("      Traverse Timer (total):   %fs\n", totalTime);
     }
-
-	if (Comm::rank(mpiComm) == 0) {
-		printf("	commdiff %fs\n", time);
-	}
-	timer.reset();
-
-	if (Comm::rank(mpiComm) == 0) {
-		printf("	Traverse Timer update  %fs\n", updateTime);
-	}
-	
 }
 
 

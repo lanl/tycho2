@@ -40,23 +40,41 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __GLOBAL_HH__
 #define __GLOBAL_HH__
 
-#include "TychoMesh.hh"
-#include "SweepSchedule.hh"
-#include "Quadrature.hh"
-#include "Typedef.hh"
 #include <string>
+#include <cinttypes>
 
+
+// Hack so I don't have to redefine extern variables in Global.cc
 #ifdef NO_EXTERN
 #define EXTERN
 #else
 #define EXTERN extern
 #endif
 
+
+// Forward declaration of classes needed for global pointers below
+class Quadrature;
+class TychoMesh;
+class SweepSchedule;
+
+
+// Macro to get around some warnings
+#define UNUSED_VARIABLE(x) (void)(x)
+
+
+// Shorter version of uint64_t
+// Also allows changing the UINT type
+typedef uint64_t UINT;
+
+
+// Global constants
 static const UINT g_ndim = 3;
 static const UINT g_nVrtxPerCell = 4;
 static const UINT g_nVrtxPerFace = 3;
 static const UINT g_nFacePerCell = 4;
 
+
+// Enum types
 enum SweepType
 {
     SweepType_OriginalTycho1,
@@ -74,6 +92,8 @@ enum GaussElim
     GaussElim_CramerIntel
 };
 
+
+// Global variables
 EXTERN UINT g_nAngleGroups;
 EXTERN UINT g_nThreads;
 EXTERN UINT g_nGroups;

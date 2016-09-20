@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Comm.hh"
 #include "Assert.hh"
+#include "Global.hh"
 #include <mpi.h>
 
 
