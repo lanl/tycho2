@@ -3,10 +3,15 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
+\usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
 \author{Kris Garrett}
 \title{Tycho 2 User Guide (Draft)}
+
+\hypersetup{colorlinks,urlcolor=blue}
+
+
 \begin{document}
 \maketitle
 
@@ -28,55 +33,67 @@ The code is implemented in MPI and OpenMP and uses only open source software and
 
 \section{Compiling and running the code}
 The code is split into the main executable named {\tt sweep.x} and several utilities dealing with meshes in the {\tt util} directory.
-All the code requires a C++11 compliant compiler.
-The main program, sweep.x, also requires MPI and OpenMP to compile.
-The utilities in the {\tt util} directory are all serial and hence do not require MPI or OpenMP.
-However, depending on the utility, various libraries are needed.
-These will be described below.
+Compilation of all files requires a C++11 compliant compiler, MPI, and OpenMP.
+Some of the utilities require extra libraries, which will be detailed.
 
 
 \subsection{Compiling sweep.x}
 \paragraph{Quick step guide}
 \begin{itemize}
+\item Go to the project's top level directory
 \item Copy {\tt make.inc.example} to {\tt make.inc}
 \item Set {\tt ASSERT} and {\tt MPICC} in the file {\tt make.inc}
 \item Type {\tt make} to build {\tt sweep.x}
+\item Or type {\tt make -j} to build {\tt sweep.x} in parallel
 \end{itemize}
 
-\paragraph{Details}
-To compile {\tt sweep.x}, first copy {\tt make.inc.example} to {\tt make.inc} in the main project directory.
-The file {\tt make.inc} contains the two user definable parts for the build process.
-The first user definable parameter is {\tt ASSERT}.
-If {\tt ASSERT = 1}, then the code will run much slower since bounds checking is performed on all the multidimensional arrays.
-
-The second user definable parameter is your compiler information, which is set in {\tt MPICC}.
-In this, you name the MPI compiler wrapper and any features of the compilation you want such as optimization and debugging symbols.
-You must enable C++11 and OpenMP for your compiler.
-For an optimized compile using GCC, I usually set {\tt mpicxx -O3 -Wall -Wextra -pedantic -std=c++11 -fopenmp}.
-This compile command is optimized to level 3, spits out as many warnings as possible, enables C++11 features, and enables OpenMP.
-
-The last step is to type {\tt make} to build the main executable.
-The {\tt Makefile} will include the variables set in {\tt make.inc}.
-All the object files will be stored in the {\tt build} directory and the executable, {\tt sweep.x}, will be created in the main project directory.
+Detailed instructions for compilation can be found in the {\tt make.inc.example} file.
 
 
 \subsection{Compiling the utilities}
-The util directory contains several utilities for creating and partitioning meshes that sweep.x will use.
-When you clone Tycho 2 from github, you should get several files in the util directory.
+The util directory contains several utilities for creating and partitioning meshes that {\tt sweep.x} will use.
+When you clone Tycho 2 from github, you should get several files in the {\tt util} directory.
 \begin{itemize}
-\item {\tt cube\_no\_mesh.hdf} -- File containing a cube's geometry.  The cube is a 100x100x100 cube.  This can be opened by certain CAD programs to be meshed.
-\item {\tt cube-<N>.cgns} -- CGNS file formatted tetrahedral meshes of {\tt cube\_no\_mesh.hdf} where $N$ is the number of cells in the mesh.
+\item {\tt cube\_no\_mesh.hdf} -- File containing a cube's geometry.  The cube is a 100x100x100 cube.  This can be opened by certain CAD programs to be meshed such as Salome.\\
+\url{http://www.salome-platform.org/}
+\item {\tt cube-<N>.cgns} -- An unstructured, tetrahedral mesh of {\tt cube\_no\_mesh.hdf} in the CGNS file format where $N$ is the number of cells in the mesh. \\
+\url{http://cgns.github.io/}
 \item {\tt cube-<N>.smesh} -- The same meshes as given by {\tt cube-<N>.cgns}, just in a file format made for Tycho 2 that does not require any library dependencies to be read.
-\item {\tt CreateGaussLegendre.py} -- This is a Python script used to create the Gauss Legendre quadrature in the main code.
-\item {\tt MakeTet.py} -- This is a Python script used to make one tetrahedron in the smesh file format.
-\item {\tt CreateRegularMesh.cc} -- Creates a regular Cartesian mesh and then each hexahedron is split into Tetrahedra.
-\item {\tt MoabToSerialMesh.cc} -- Uses the MOAB mesh library to read in a common mesh format (such as CGNS, HDF5, NetCDF, etc) and convert it to the smesh file format.
-\item {\tt ParallelMeshToMoab.cc} -- Converts the pmesh file format into a file format that the Visit visualization tool can read.
-\item {\tt PartitionColumns.cc} -- Partitions an smesh into a pmesh by columns.
-\item {\tt RefineSerialMesh.cc} -- Refines each tetrahedron in an smesh into 8 tetrahedra.
-\item {\tt SerialMeshToMoab.cc} -- Converts the smesh file format into a file format that the Visit visualization tool can read.
-\item {\tt SerialToParallelMesh.cc} -- Partitions an smesh using the Metis partitioning library.
+\item {\tt CreateGaussLegendre.py} -- This is a Python script used to create the Gauss Legendre quadrature in the main code at {\tt src/Quadrature.cc}.
+\item {\tt CreateRegularMesh.cc} -- Creates a regular Cartesian mesh and then each hexahedron is split into Tetrahedra. \\
+{\color{red} No dependencies required.}
+\item {\tt MoabToSerialMesh.cc} -- Uses the MOAB mesh library to read in a common mesh format and convert it to the smesh file format. \\
+\url{http://sigma.mcs.anl.gov/moab-library/} \\
+{\color{red} Requires MOAB at the least.  May also require CGNS, HDF5, NetCDF, etc for your input mesh format.}
+\item {\tt ParallelMeshInfo.cc} -- Writes data about a pmesh.\\
+{\color{red} No dependencies required.}
+\item {\tt ParallelMeshToMoab.cc} -- Converts the pmesh file format into a file format that the Visit visualization tool can read.\\
+{\color{red} Requires MOAB.}
+\item {\tt PartitionColumns.cc} -- Partitions an smesh into a pmesh by columns.  This requires you to specify two numbers which will the the number of partitions in the x-direction and the number of partitions in the y-direction. \\
+{\color{red} No dependencies required.}
+\item {\tt RefineSerialMesh.cc} -- Creates a new smesh that has been refined by 8x.\\
+{\color{red} No dependencies required.}
+\item {\tt SerialMeshInfo.cc} -- Writes data about an smesh.\\
+{\color{red} No dependencies required.}
+\item {\tt SerialMeshToMoab.cc} -- Converts the smesh file format into a file format that the Visit visualization tool can read.\\
+{\color{red} Requires MOAB.}
+\item {\tt SerialToParallelMesh.cc} -- Partitions an smesh using the Metis partitioning library.\\
+\url{http://glaros.dtc.umn.edu/gkhome/metis/metis/overview} \\
+{\color{red} Requires Metis (just the serial version).}
 \end{itemize}
+
+The general workflow is to copy {\tt make.inc.example} to {\tt make.inc}.
+Fill in specific information you need for {\tt make.inc}.
+Then type {\tt make <utility name>}.
+For instance, if you want to make the {\tt SerialToParallelMesh} utility, type {\tt make SerialToParallelMesh}.
+Then run {\tt SerialToParallelMesh.x}.
+Every utility can be run with no arguments to get directions for use.
+
+The one utility you will need to compile is a utility to partition an smesh into a pmesh.
+For this, either use {\tt PartitionColumns} or {\tt SerialToParallelMesh}.
+If you want to do a weak scaling study, you will need the {\tt RefineSerialMesh} utility to create a series of meshes that are 8x larger than one another.
+If you want to visualize your mesh, you will need the {\tt SerialMeshToMoab} or {\tt ParallelMeshToMoab} utilities.
+The other utilities are mainly for development purposes.
 
 \paragraph{Creating a pmesh}
 To run the main executable {\tt sweep.x}, you must supply a pmesh as an argument to the executable.

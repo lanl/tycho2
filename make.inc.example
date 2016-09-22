@@ -1,18 +1,24 @@
-# Settings to change for local environment
+# Compilation settings to change for local environment
 # Copy this file to make.inc and fill in your local environment settings
+# Then, type "make" to build "sweep.x" (or "make -j" to build in parallel)
 
 
-# Assert level: 0 = no asserts, 1 = all asserts
-ASSERT_ON = 
-# Use petsc for SweeperSchur: 0 = no, 1 = yes
-USE_PETSC = 
+# Assert level: 0 = asserts off, 1 = asserts on
+ASSERT_ON = 1
 
-#PETSC libraries
+
+# Use PETSc for SweeperSchur: 0 = no, 1 = yes
+# If 0, you can leave PETSC_INC and PETSC_LIB blank
+USE_PETSC = 0
 PETSC_INC =
 PETSC_LIB =
+
 
 # Compile command
 # Needs (1) MPI C++ compiler wrapper
 #       (2) openmp enabled
-#       (3) c++11 standard enabled  (-std=c++11 for gcc)
-MPICC = 
+#       (3) c++11 standard enabled
+# Examples for OpenMPI with GCC are shown below for debug and optimized versions
+
+MPICC = mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic
+#MPICC = mpicxx -O3 -march=native -std=c++11 -fopenmp -Wall -Wextra -Wpedantic

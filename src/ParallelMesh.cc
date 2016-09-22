@@ -235,9 +235,16 @@ void ParallelMesh::write(const std::string &filename)
         
         // Buffer Node Data
         for (uint64_t node = 0; node < partData.numNodes; node++) {
-            bufferUint.push_back(*((uint64_t*)(&partData.nodeData[node].coords[0])));
-            bufferUint.push_back(*((uint64_t*)(&partData.nodeData[node].coords[1])));
-            bufferUint.push_back(*((uint64_t*)(&partData.nodeData[node].coords[2])));
+            uint64_t coord0, coord1, coord2;
+            
+            memcpy(&coord0, &partData.nodeData[node].coords[0], sizeof(double));
+            memcpy(&coord1, &partData.nodeData[node].coords[1], sizeof(double));
+            memcpy(&coord2, &partData.nodeData[node].coords[2], sizeof(double));
+            
+            bufferUint.push_back(coord0);
+            bufferUint.push_back(coord1);
+            bufferUint.push_back(coord2);
+            
             bufferUint.push_back(partData.nodeData[node].globalID);
         }
     }

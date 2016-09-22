@@ -1,0 +1,14 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Compiling and running the code}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{Compiling sweep.x}{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{Compiling the utilities}{section.2}% 4
+\BOOKMARK [2][-]{subsection.2.3}{Running sweep.x}{section.2}% 5
+\BOOKMARK [1][-]{section.3}{The underlying mathematics}{}% 6
+\BOOKMARK [2][-]{subsection.3.1}{The equation}{section.3}% 7
+\BOOKMARK [2][-]{subsection.3.2}{Method of discretization}{section.3}% 8
+\BOOKMARK [2][-]{subsection.3.3}{Source iteration}{section.3}% 9
+\BOOKMARK [2][-]{subsection.3.4}{Sweeps}{section.3}% 10
+\BOOKMARK [3][-]{subsubsection.3.4.1}{Sweeps Algorithms}{subsection.3.4}% 11
+\BOOKMARK [3][-]{subsubsection.3.4.2}{Intra-Angle Priorities}{subsection.3.4}% 12
+\BOOKMARK [3][-]{subsubsection.3.4.3}{Inter-Angle Priorities}{subsection.3.4}% 13
+\BOOKMARK [3][-]{subsubsection.3.4.4}{The Sweep Algorithms}{subsection.3.4}% 14
