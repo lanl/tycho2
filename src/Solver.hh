@@ -41,9 +41,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __SOLVER_HH__
 
 
+#include "SweeperAbstract.hh"
+
 namespace Solver 
 {
-    void solve();
+    void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource);
 }
 
 

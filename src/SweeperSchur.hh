@@ -46,11 +46,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 class SweeperSchur : public SweeperAbstract
 {
 public:
-    SweeperSchur(const double sigmaTotal);
+    //SweeperSchur(const double sigmaTotal);
     void sweep(PsiData &psi, PsiData &source);
 
 private:
-    double c_sigmaTotal;
+    //double c_sigmaTotal;
 };
 
 #endif

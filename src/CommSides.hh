@@ -43,23 +43,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __COMMSIDES_HH__
 
 
-namespace CommSides
+class CommSides
 {
+public:
+    CommSides();
+    void commSides(SweepData &sweepData);
 
-struct MetaData
-{
-    UINT gSide;
-    UINT angle;
-    UINT cell;
-    UINT face;
+private:
+    struct MetaData
+    {
+        UINT gSide;
+        UINT angle;
+        UINT cell;
+        UINT face;
+    };
+
+    std::vector<UINT> c_adjRanks;
+    std::vector<std::vector<CommSides::MetaData>> c_sendMetaData;
+    std::vector<UINT> c_numSendPackets;
+    std::vector<UINT> c_numRecvPackets;
 };
-
-void commSides(const std::vector<UINT> &adjRanks,
-               const std::vector<std::vector<MetaData>> &sendMetaData,
-               const std::vector<UINT> &numSendPackets,
-               const std::vector<UINT> &numRecvPackets,
-               SweepData &sweepData);
-
-} // end namespace
 
 #endif

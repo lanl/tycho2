@@ -40,16 +40,48 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PsiData.hh"
 #include "SweeperAbstract.hh"
+#include "CommSides.hh"
 
 
+/*
+    SweeperPBJ
+
+    Used for PBJ inside collision operator.
+*/
 class SweeperPBJ : public SweeperAbstract
 {
 public:
-    SweeperPBJ(const double sigmaTotal);
     void sweep(PsiData &psi, const PsiData &source);
     
 private:
-    double c_sigmaTotal;
+    CommSides c_commSides;
 };
+
+
+/*
+    SweeperPBJOuter
+
+    Used for PBJ outside collision operator.
+*/
+class SweeperPBJOuter : public SweeperAbstract
+{
+public:
+    void solve();
+    void sweep(PsiData &psi, const PsiData &source);
+
+    SweeperPBJOuter() :
+    c_psi(), c_source(), 
+    c_priorities(g_nCells, g_nAngles), 
+    c_sweepData(c_psi, c_source, g_sigmaTotal, c_priorities)
+    { }
+    
+private:
+    CommSides c_commSides;
+    PsiData c_psi;
+    PsiData c_source;
+    Mat2<UINT> c_priorities;
+    SweepData c_sweepData;
+};
+
 
 #endif

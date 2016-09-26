@@ -40,10 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Solver.hh"
 #include "Global.hh"
 #include "PsiData.hh"
-#include "Sweeper.hh"
-#include "Sweeper2.hh"
-#include "SweeperPBJ.hh"
-#include "SweeperSchur.hh"
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "Timer.hh"
@@ -243,19 +239,20 @@ namespace Solver
 /*
     Solve problem
 */
-void solve()
+void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource)
 {
     // Data for problem
     PsiData fixedSource;
-    PsiData totalSource;
-    PsiData psi;
-    
     PhiData phiNew;
     PhiData phiOld;
     
     
     // Calculate fixed source
     hatSource(g_sigmaTotal, g_sigmaScat, fixedSource);
+
+
+    // Get phi
+    psiToPhi(phiNew, psi);
     
     
     // Volume of mesh
@@ -266,30 +263,6 @@ void solve()
     Comm::gsum(volume);
     if(Comm::rank() == 0) {
         printf("Volume of mesh: %e\n", volume);
-    }
-
-
-    // Setup sweeper
-    SweeperAbstract *sweeper = NULL;
-    switch (g_sweepType) {
-        case SweepType_OriginalTycho1:
-        case SweepType_OriginalTycho2:
-            sweeper = new Sweeper();
-            break;
-        case SweepType_TraverseGraph:
-            sweeper = new Sweeper2();
-            break;
-        #if USE_PETSC
-        case SweepType_Schur:
-            sweeper = new SweeperSchur(g_sigmaTotal);
-            break;
-        #endif
-        case SweepType_PBJ:
-            sweeper = new SweeperPBJ(g_sigmaTotal);
-            break;
-        default:
-            Insist(false, "Sweep type not recognized.");
-            break;
     }
 
 

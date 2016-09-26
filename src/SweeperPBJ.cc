@@ -39,27 +39,89 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Global.hh"
 #include "TraverseGraph.hh"
 #include "Priorities.hh"
-#include "Transport.hh"
 #include "PsiData.hh"
 #include "Comm.hh"
 #include "SweepData.hh"
 #include "CommSides.hh"
-#include <omp.h>
-#include <vector>
+#include "Solver.hh"
 #include <math.h>
-#include <string.h>
-#include <algorithm>
+#include <limits>
 
 using namespace std;
 
 
-/*
-    Constructor
-*/
-SweeperPBJ::SweeperPBJ(const double sigmaTotal)
+void SweeperPBJOuter::solve()
 {
-    c_sigmaTotal = sigmaTotal;
+    // Set psi0
+    //PsiData psi;
+    PsiData psi0;
+    //PsiData source;
+    
+    
+    // Create SweepData for traversal
+    // Use a dummy set of priorities
+    //Mat2<UINT> priorities(g_nCells, g_nAngles);
+    //SweepData sweepData(psi, source, g_sigmaTotal, priorities);
+    
+    
+    // Sweep till converged
+    UINT iter = 1;
+    while (iter < g_ddIterMax) {
+        
+        // Sweep
+        Solver::solve(this, c_psi, c_source);
+        
+
+        // Check tolerance and set psi0 = psi1
+        double errL1 = 0.0;
+        double normL1 = 0.0;
+        for (UINT i = 0; i < c_psi.size(); i++) {
+            errL1  += fabs(psi0[i] - c_psi[i]);
+            normL1 += fabs(c_psi[i]);
+            
+            psi0[i] = c_psi[i];
+        }
+        
+        Comm::gsum(errL1);
+        Comm::gsum(normL1);
+
+        if (errL1 / normL1 < g_ddErrMax)
+            break;
+        
+        
+        // Communicate
+        c_commSides.commSides(c_sweepData);
+        
+        
+        // Increment iter
+        iter++;
+    }
+    
+    
+    // Print statistics
+    if (Comm::rank() == 0) {
+        printf("      PBJ Iters: %" PRIu64 "\n", iter);
+    }
 }
+
+
+void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
+{
+    const bool doComm = false;
+    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
+
+
+    // Create SweepData for traversal
+    // Use a dummy set of priorities
+    //Mat2<UINT> priorities(g_nCells, g_nAngles);
+    //SweepData sweepData(psi, source, g_sigmaTotal, priorities);
+
+    
+    // Do 1 graph traversal
+    traverseGraph(maxComputePerStep, c_sweepData, doComm, MPI_COMM_WORLD,
+                  Direction_Forward);
+}
+
 
 
 /*
@@ -81,60 +143,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     // Create SweepData for traversal
     // Use a dummy set of priorities
     Mat2<UINT> priorities(g_nCells, g_nAngles);
-    SweepData sweepData(psi, source, c_sigmaTotal, priorities);
-    
-    
-    // Get adjacent ranks
-    vector<UINT> adjRanks;
-    for (UINT cell = 0; cell < g_nCells; cell++) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-        
-        UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
-        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
-        
-        if (adjCell == TychoMesh::BOUNDARY_FACE && 
-            adjRank != TychoMesh::BAD_RANK &&
-            std::count(adjRanks.begin(), adjRanks.end(), adjRank) == 0)
-        {
-            adjRanks.push_back(adjRank);
-        }
-    }}
-    
-    
-    // Populate sendMetaData, numSendPackets, and numRecvPackets
-    vector<vector<CommSides::MetaData>> sendMetaData(adjRanks.size());
-    vector<UINT> numSendPackets(adjRanks.size());
-    vector<UINT> numRecvPackets(adjRanks.size());
-    
-    for (UINT rankIndex = 0; rankIndex < adjRanks.size(); rankIndex++) {
-        
-        numSendPackets[rankIndex] = 0;
-        numRecvPackets[rankIndex] = 0;
-        
-        for (UINT cell = 0; cell < g_nCells; cell++) {
-        for (UINT face = 0; face < g_nFacePerCell; face++) {
-        
-            UINT adjRank = g_tychoMesh->getAdjRank(cell, face);        
-            if (adjRank == adjRanks[rankIndex]) {
-                for (UINT angle = 0; angle < g_nAngles; angle++) {
-                    if (g_tychoMesh->isOutgoing(angle, cell, face)) {
-                        CommSides::MetaData md;
-                        UINT side = g_tychoMesh->getSide(cell, face);
-                        md.gSide = g_tychoMesh->getLGSide(side);
-                        md.angle = angle;
-                        md.cell  = cell;
-                        md.face  = face;
-                        sendMetaData[rankIndex].push_back(md);
-                        
-                        numSendPackets[rankIndex]++;
-                    }
-                    else {
-                        numRecvPackets[rankIndex]++;
-                    }
-                }
-            }
-        }}
-    }
+    SweepData sweepData(psi, source, g_sigmaTotal, priorities);
     
     
     // Sweep till converged
@@ -145,7 +154,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
                       Direction_Forward);
         
-        
+
         // Check tolerance and set psi0 = psi1
         double errL1 = 0.0;
         double normL1 = 0.0;
@@ -164,8 +173,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         
         
         // Communicate
-        CommSides::commSides(adjRanks, sendMetaData, numSendPackets, 
-                             numRecvPackets, sweepData);
+        c_commSides.commSides(sweepData);
         
         
         // Increment iter

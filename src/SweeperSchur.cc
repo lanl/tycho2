@@ -2,12 +2,6 @@
 
 static char help[] = "Solves using Schur Complement.\n\n";
 
-/* 
-    SweeperSchurBoundary.cc
-    
-    Implements Schur Complement solver.
-*/
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -81,10 +75,10 @@ static PetscInt VecSize = 0;
 /*
     Constructor
 */
-SweeperSchur::SweeperSchur(const double sigmaTotal)
+/*SweeperSchur::SweeperSchur(const double sigmaTotal)
 {
     c_sigmaTotal = sigmaTotal;
-}
+}*/
 
 
 /*
@@ -330,7 +324,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     s_numRecvPackets = numRecvPackets; 
     s_psi = psi;
     s_psiBound = psiBound;
-    s_sigmaTotal = c_sigmaTotal;
+    s_sigmaTotal = g_sigmaTotal;
 
     /* Petsc setup:
       
@@ -429,7 +423,7 @@ void SweeperSchur::sweep(PsiData &psi, PsiData &source)
     if (rank==0){
         printf("    Sweeping to solve non-boundary values\n");
     }
-    SweepData sweepData(psi, source, psiBound, c_sigmaTotal);
+    SweepData sweepData(psi, source, psiBound, g_sigmaTotal);
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, Direction_Forward);      	   
     if (rank==0){
         printf("    Non-boundary values swept\n");

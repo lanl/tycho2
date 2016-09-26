@@ -45,6 +45,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Global.hh"
 #include "Assert.hh"
 #include "Timer.hh"
+#include "SweeperAbstract.hh"
+#include "Sweeper.hh"
+#include "Sweeper2.hh"
+#include "SweeperPBJ.hh"
+#include "SweeperSchur.hh"
 #include <signal.h>
 #include <execinfo.h>
 #include <omp.h>
@@ -218,8 +223,37 @@ int main(int argc, char *argv[])
     }
     
     
-    // Do source iterations.
-    Solver::solve();
+    // Setup sweeper
+    /*SweeperAbstract *sweeper = NULL;
+    switch (g_sweepType) {
+        case SweepType_OriginalTycho1:
+        case SweepType_OriginalTycho2:
+            sweeper = new Sweeper();
+            break;
+        case SweepType_TraverseGraph:
+            sweeper = new Sweeper2();
+            break;
+        #if USE_PETSC
+        case SweepType_Schur:
+            sweeper = new SweeperSchur();
+            break;
+        #endif
+        case SweepType_PBJ:
+            sweeper = new SweeperPBJ();
+            break;
+        default:
+            Insist(false, "Sweep type not recognized.");
+            break;
+    }
+
+
+    // Do source iterations
+    PsiData psi;
+    PsiData totalSource;
+    Solver::solve(sweeper, psi, totalSource);*/
+
+    SweeperPBJOuter sweeper;
+    sweeper.solve();
 
     
     // End program

@@ -36,35 +36,78 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "Global.hh"
-#include "TraverseGraph.hh"
-#include "Priorities.hh"
-#include "Transport.hh"
-#include "Comm.hh"
-#include <omp.h>
-#include <vector>
-#include <math.h>
-#include <string.h>
-#include <fstream>
-#include <iostream>
 #include "CommSides.hh"
+#include "Global.hh"
+#include "Comm.hh"
+#include <vector>
+#include <algorithm>
 
 
-namespace CommSides
+
+CommSides::CommSides()
 {
+    // Get adjacent ranks
+    for (UINT cell = 0; cell < g_nCells; cell++) {
+    for (UINT face = 0; face < g_nFacePerCell; face++) {
+        
+        UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
+        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
+        
+        if (adjCell == TychoMesh::BOUNDARY_FACE && 
+            adjRank != TychoMesh::BAD_RANK &&
+            std::count(c_adjRanks.begin(), c_adjRanks.end(), adjRank) == 0)
+        {
+            c_adjRanks.push_back(adjRank);
+        }
+    }}
+    
+    
+    // Populate sendMetaData, numSendPackets, and numRecvPackets
+    c_sendMetaData.resize(c_adjRanks.size());
+    c_numSendPackets.resize(c_adjRanks.size());
+    c_numRecvPackets.resize(c_adjRanks.size());
+    
+    for (UINT rankIndex = 0; rankIndex < c_adjRanks.size(); rankIndex++) {
+        
+        c_numSendPackets[rankIndex] = 0;
+        c_numRecvPackets[rankIndex] = 0;
+        
+        for (UINT cell = 0; cell < g_nCells; cell++) {
+        for (UINT face = 0; face < g_nFacePerCell; face++) {
+        
+            UINT adjRank = g_tychoMesh->getAdjRank(cell, face);        
+            if (adjRank == c_adjRanks[rankIndex]) {
+                for (UINT angle = 0; angle < g_nAngles; angle++) {
+                    if (g_tychoMesh->isOutgoing(angle, cell, face)) {
+                        CommSides::MetaData md;
+                        UINT side = g_tychoMesh->getSide(cell, face);
+                        md.gSide = g_tychoMesh->getLGSide(side);
+                        md.angle = angle;
+                        md.cell  = cell;
+                        md.face  = face;
+                        c_sendMetaData[rankIndex].push_back(md);
+                        
+                        c_numSendPackets[rankIndex]++;
+                    }
+                    else {
+                        c_numRecvPackets[rankIndex]++;
+                    }
+                }
+            }
+        }}
+    }
+}
+
+
 
 /*
     commSides
 */
-void commSides(const std::vector<UINT> &adjRanks,
-               const std::vector<std::vector<MetaData>> &sendMetaData,
-               const std::vector<UINT> &numSendPackets,
-               const std::vector<UINT> &numRecvPackets,
-               SweepData &sweepData)
+void CommSides::commSides(SweepData &sweepData)
 {
     int mpiError;
     UINT numToRecv;
-    UINT numAdjRanks = adjRanks.size();
+    UINT numAdjRanks = c_adjRanks.size();
     UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
     std::vector<MPI_Request> mpiRecvRequests(numAdjRanks);
     std::vector<MPI_Request> mpiSendRequests(numAdjRanks);
@@ -74,8 +117,8 @@ void commSides(const std::vector<UINT> &adjRanks,
     
     // Data structures to send/recv packets
     for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
-        dataToSend[rankIndex].resize(packetSize * numSendPackets[rankIndex]);
-        dataToRecv[rankIndex].resize(packetSize * numRecvPackets[rankIndex]);
+        dataToSend[rankIndex].resize(packetSize * c_numSendPackets[rankIndex]);
+        dataToRecv[rankIndex].resize(packetSize * c_numRecvPackets[rankIndex]);
     }
     
     
@@ -85,7 +128,7 @@ void commSides(const std::vector<UINT> &adjRanks,
         
         if (dataToRecv[rankIndex].size() > 0) {
             int tag = 0;
-            int adjRank = adjRanks[rankIndex];
+            int adjRank = c_adjRanks[rankIndex];
             MPI_Request request;
             mpiError = MPI_Irecv(dataToRecv[rankIndex].data(), 
                                  dataToRecv[rankIndex].size(), 
@@ -107,13 +150,13 @@ void commSides(const std::vector<UINT> &adjRanks,
         
         if (dataToSend[rankIndex].size() > 0) {
             for (UINT metaDataIndex = 0; 
-                 metaDataIndex < sendMetaData[rankIndex].size(); 
+                 metaDataIndex < c_sendMetaData[rankIndex].size(); 
                  metaDataIndex++)
             {
-                UINT gSide = sendMetaData[rankIndex][metaDataIndex].gSide;
-                UINT angle = sendMetaData[rankIndex][metaDataIndex].angle;
-                UINT cell  = sendMetaData[rankIndex][metaDataIndex].cell;
-                UINT face  = sendMetaData[rankIndex][metaDataIndex].face;
+                UINT gSide = c_sendMetaData[rankIndex][metaDataIndex].gSide;
+                UINT angle = c_sendMetaData[rankIndex][metaDataIndex].angle;
+                UINT cell  = c_sendMetaData[rankIndex][metaDataIndex].cell;
+                UINT face  = c_sendMetaData[rankIndex][metaDataIndex].face;
                 const char *data = sweepData.getData(cell, face, angle);
                 
                 char *ptr = &dataToSend[rankIndex][metaDataIndex * packetSize];
@@ -125,7 +168,7 @@ void commSides(const std::vector<UINT> &adjRanks,
             }
             
             int tag = 0;
-            int adjRank = adjRanks[rankIndex];
+            int adjRank = c_adjRanks[rankIndex];
             MPI_Request request;
             mpiError = MPI_Isend(dataToSend[rankIndex].data(), 
                                  dataToSend[rankIndex].size(), 
@@ -174,6 +217,4 @@ void commSides(const std::vector<UINT> &adjRanks,
         Insist(mpiError == MPI_SUCCESS, "");
     }
 }
-
-} // End namespace
 
