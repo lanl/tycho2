@@ -81,6 +81,7 @@ enum SweepType
     SweepType_OriginalTycho2,
     SweepType_TraverseGraph,
     SweepType_PBJ,
+    SweepType_PBJOuter,
     SweepType_Schur,
 };
 

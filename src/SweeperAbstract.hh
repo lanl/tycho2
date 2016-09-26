@@ -48,6 +48,9 @@ class SweeperAbstract
 public:
     virtual
     void sweep(PsiData &psi, const PsiData &source) = 0;
+
+    virtual
+    void solve() = 0;
 };
 
 #endif

@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Sweeper.hh"
+#include "SourceIteration.hh"
 #include "Quadrature.hh"
 #include "Global.hh"
 #include "SweepSchedule.hh"
@@ -346,6 +347,17 @@ Sweeper::Sweeper()
             new SweepSchedule(angles, g_maxCellsPerStep, g_intraAngleP, 
                               g_interAngleP);
     }
+}
+
+
+/*
+    solve
+*/
+void Sweeper::solve()
+{
+    PsiData psi;
+    PsiData totalSource;
+    SourceIteration::solve(this, psi, totalSource);
 }
 
 

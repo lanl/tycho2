@@ -51,6 +51,7 @@ class Sweeper2 : public SweeperAbstract
 public:
     Sweeper2();
     void sweep(PsiData &psi, const PsiData &source);
+    void solve();
 
 private:
     Mat2<UINT> c_priorities;

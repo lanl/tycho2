@@ -37,7 +37,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "Solver.hh"
+#include "SourceIteration.hh"
 #include "Global.hh"
 #include "PsiData.hh"
 #include "Quadrature.hh"
@@ -233,7 +233,7 @@ void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld,
 }
 
 
-namespace Solver
+namespace SourceIteration
 {
 
 /*
@@ -331,18 +331,6 @@ void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource)
         // Increment iteration
         ++iter;
     }
-
-
-    // Time total solve
-    innerTimer.stop();
-    double clockTime = innerTimer.wall_clock();
-    Comm::gmax(clockTime);
-    if(Comm::rank() == 0) {
-        printf("Total solve time: %.2f\n\n",
-               clockTime);
-        printf("Solve time per iteration: %.2f\n\n",
-               clockTime / iter);
-    }
     
     
     // Print tests 
@@ -355,6 +343,18 @@ void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource)
         printf("Diff between groups: %e\n", diffGroups);
     }
 
+
+    // Time total solve
+    innerTimer.stop();
+    double clockTime = innerTimer.wall_clock();
+    Comm::gmax(clockTime);
+    if(Comm::rank() == 0) {
+        printf("\nTotal source iteration time: %.2f\n",
+               clockTime);
+        printf("Solve time per iteration: %.2f\n\n",
+               clockTime / iter);
+    }
+    
     
     // Output psi to file
     if(g_outputFile)

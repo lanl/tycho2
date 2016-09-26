@@ -52,6 +52,7 @@ class SweeperPBJ : public SweeperAbstract
 {
 public:
     void sweep(PsiData &psi, const PsiData &source);
+    void solve();
     
 private:
     CommSides c_commSides;

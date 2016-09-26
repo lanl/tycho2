@@ -48,6 +48,7 @@ class Sweeper : public SweeperAbstract
 public:
     Sweeper();
     void sweep(PsiData &psi, const PsiData &source);
+    void solve();
 
 private:
 

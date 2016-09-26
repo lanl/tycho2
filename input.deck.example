@@ -22,14 +22,15 @@ DD_ErrMax       1e-5
 #SweepType OriginalTycho2
 SweepType TraverseGraph
 #SweepType PBJ
+#SweepType PBJOuter
 #SweepType Schur
 
 
 # Gaussian Elimination Types: NoPivot seems to be best
-# Original:    Uses pivoting
-# NoPivot:     No pivoting
-# CramerGlu:   Use Cramer's rule to invert (algorithm from OpenGL library)
-# CramerIntel: User Cramer's rule to invert (algorithm found from Intel blog)
+#    Original:    Uses pivoting
+#    NoPivot:     No pivoting
+#    CramerGlu:   Use Cramer's rule to invert (algorithm from OpenGL library)
+#    CramerIntel: User Cramer's rule to invert (algorithm found from Intel blog)
 #GaussElim Original
 GaussElim NoPivot
 #GaussElim CramerGlu

@@ -43,33 +43,32 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "SweepData.hh"
 #include "CommSides.hh"
-#include "Solver.hh"
+#include "SourceIteration.hh"
 #include <math.h>
 #include <limits>
 
 using namespace std;
 
 
+
+////////////////////////////////////////////////////////////////////////////////
+//            SweeperPBJOuter functions
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+    solve
+*/
 void SweeperPBJOuter::solve()
 {
-    // Set psi0
-    //PsiData psi;
     PsiData psi0;
-    //PsiData source;
     
     
-    // Create SweepData for traversal
-    // Use a dummy set of priorities
-    //Mat2<UINT> priorities(g_nCells, g_nAngles);
-    //SweepData sweepData(psi, source, g_sigmaTotal, priorities);
-    
-    
-    // Sweep till converged
+    // Source iterate till converged
     UINT iter = 1;
     while (iter < g_ddIterMax) {
         
         // Sweep
-        Solver::solve(this, c_psi, c_source);
+        SourceIteration::solve(this, c_psi, c_source);
         
 
         // Check tolerance and set psi0 = psi1
@@ -100,21 +99,21 @@ void SweeperPBJOuter::solve()
     
     // Print statistics
     if (Comm::rank() == 0) {
-        printf("      PBJ Iters: %" PRIu64 "\n", iter);
+        printf("PBJ Iters: %" PRIu64 "\n", iter);
     }
 }
 
 
+/*
+    sweep
+*/
 void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
 {
+    UNUSED_VARIABLE(psi);
+    UNUSED_VARIABLE(source);
+    
     const bool doComm = false;
     const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-
-
-    // Create SweepData for traversal
-    // Use a dummy set of priorities
-    //Mat2<UINT> priorities(g_nCells, g_nAngles);
-    //SweepData sweepData(psi, source, g_sigmaTotal, priorities);
 
     
     // Do 1 graph traversal
@@ -122,6 +121,20 @@ void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
                   Direction_Forward);
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+//            SweeperPBJ functions
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+    solve
+*/
+void SweeperPBJ::solve()
+{
+    PsiData psi;
+    PsiData totalSource;
+    SourceIteration::solve(this, psi, totalSource);
+}
 
 
 /*

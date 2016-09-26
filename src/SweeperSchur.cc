@@ -39,6 +39,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "SweeperSchur.hh"
+#include "SourceIteration.hh"
 #include "Global.hh"
 #include "TraverseGraph.hh"
 #include "Priorities.hh"
@@ -73,12 +74,14 @@ static PetscInt VecSize = 0;
 
 
 /*
-    Constructor
+    solve
 */
-/*SweeperSchur::SweeperSchur(const double sigmaTotal)
+void SweeperSchur::solve()
 {
-    c_sigmaTotal = sigmaTotal;
-}*/
+    PsiData psi;
+    PsiData totalSource;
+    SourceIteration::solve(this, psi, totalSource);
+}
 
 
 /*

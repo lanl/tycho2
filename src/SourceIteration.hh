@@ -37,13 +37,13 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __SOLVER_HH__
-#define __SOLVER_HH__
+#ifndef __SOURCE_ITERATION_HH__
+#define __SOURCE_ITERATION_HH__
 
 
 #include "SweeperAbstract.hh"
 
-namespace Solver 
+namespace SourceIteration
 {
     void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource);
 }

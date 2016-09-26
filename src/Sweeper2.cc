@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Sweeper2.hh"
+#include "SourceIteration.hh"
 #include "SweepData.hh"
 #include "Global.hh"
 #include "TraverseGraph.hh"
@@ -56,6 +57,17 @@ Sweeper2::Sweeper2()
     c_sigmaTotal = g_sigmaTotal;
     c_priorities.resize(g_nCells, g_nAngles);
     Priorities::calcPriorities(c_priorities);
+}
+
+
+/*
+    solve
+*/
+void Sweeper2::solve()
+{
+    PsiData psi;
+    PsiData totalSource;
+    SourceIteration::solve(this, psi, totalSource);
 }
 
 

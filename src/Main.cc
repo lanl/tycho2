@@ -38,7 +38,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "TychoMesh.hh"
-#include "Solver.hh"
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "KeyValueReader.hh"
@@ -132,6 +131,8 @@ void readInput(const string &inputFileName)
         g_sweepType = SweepType_TraverseGraph;
     else if (sweepType == "PBJ")
         g_sweepType = SweepType_PBJ;
+    else if (sweepType == "PBJOuter")
+        g_sweepType = SweepType_PBJOuter;
     else if (sweepType == "Schur")
         g_sweepType = SweepType_Schur;
     else
@@ -224,7 +225,7 @@ int main(int argc, char *argv[])
     
     
     // Setup sweeper
-    /*SweeperAbstract *sweeper = NULL;
+    SweeperAbstract *sweeper = NULL;
     switch (g_sweepType) {
         case SweepType_OriginalTycho1:
         case SweepType_OriginalTycho2:
@@ -241,19 +242,28 @@ int main(int argc, char *argv[])
         case SweepType_PBJ:
             sweeper = new SweeperPBJ();
             break;
+        case SweepType_PBJOuter:
+            sweeper = new SweeperPBJOuter();
+            break;
         default:
             Insist(false, "Sweep type not recognized.");
             break;
     }
 
-
-    // Do source iterations
-    PsiData psi;
-    PsiData totalSource;
-    Solver::solve(sweeper, psi, totalSource);*/
-
-    SweeperPBJOuter sweeper;
-    sweeper.solve();
+    
+    // Solve
+    Timer timer;
+    timer.start();
+    sweeper->solve();
+    timer.stop();
+    
+    
+    // Time total solve
+    double clockTime = timer.wall_clock();
+    Comm::gmax(clockTime);
+    if(Comm::rank() == 0) {
+        printf("Total time: %.2f\n", clockTime);
+    }
 
     
     // End program
