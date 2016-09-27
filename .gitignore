@@ -10,3 +10,6 @@ make.inc
 *.pmesh
 *.dSYM
 run.sh
+*.psi
+*.vtk
+*.visit

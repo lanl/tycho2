@@ -115,6 +115,28 @@ public:
             c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
         }}
     }
+
+
+    /*
+        zeroSideData
+
+        Zeros all psiBound data.
+    */
+    virtual void zeroSideData()
+    {
+        c_psiBound.setToValue(0.0);
+    }
+
+
+    /*
+        getSideData
+
+        Get a reference to psiBound
+    */
+    virtual PsiBoundData& getSideData()
+    {
+        return c_psiBound;
+    }
     
     
     /*

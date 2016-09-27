@@ -35,21 +35,23 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __SWEEPER_SCHUR_BOUNDARY_HH__
-#define __SWEEPER_SCHUR_BOUNDARY_HH__
+#ifndef __SWEEPER_SCHUR_HH__
+#define __SWEEPER_SCHUR_HH__
 
 #if USE_PETSC
 #include "PsiData.hh"
 #include "SweeperAbstract.hh"
+#include "CommSides.hh"
 
 
 class SweeperSchur : public SweeperAbstract
 {
 public:
-    void sweep(PsiData &psi, PsiData &source);
+    void sweep(PsiData &psi, const PsiData &source);
     void solve();
 
 private:
+    CommSides c_commSides;
 };
 
 #endif
