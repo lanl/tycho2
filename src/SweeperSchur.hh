@@ -42,8 +42,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include "SweeperAbstract.hh"
 #include "CommSides.hh"
+#include <petscvec.h>
+#include <petscksp.h>
 
 
+/*
+    SweeperSchur
+
+    User for Schur inside collision operator.
+*/
 class SweeperSchur : public SweeperAbstract
 {
 public:
@@ -52,6 +59,36 @@ public:
 
 private:
     CommSides c_commSides;
+    Vec c_x, c_b;
+    KSP c_ksp;
+};
+
+
+/*
+    SweeperSchurOuter
+
+    Used for Schur outside collision operator.
+*/
+class SweeperSchurOuter : public SweeperAbstract
+{
+public:
+    void solve();
+    void sweep(PsiData &psi, const PsiData &source);
+
+    SweeperSchurOuter() :
+        c_psi(), c_source(), 
+        c_priorities(g_nCells, g_nAngles), 
+        c_sweepData(c_psi, c_source, g_sigmaTotal, c_priorities)
+    { }
+    
+private:
+    CommSides c_commSides;
+    Vec c_x, c_b;
+    KSP c_ksp;
+    PsiData c_psi;
+    PsiData c_source;
+    Mat2<UINT> c_priorities;
+    SweepData c_sweepData;
 };
 
 #endif

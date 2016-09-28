@@ -57,7 +57,7 @@ static const double cubeSize = 100.0;
 /*
     hatSource
 */
-static
+//static
 void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
 {
     for(UINT cell = 0; cell < g_nCells; cell++) {
@@ -300,7 +300,7 @@ void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource)
         
         // Sweep
         sweeper->sweep(psi, totalSource);
-                
+        
         
         // Calculate L_inf relative error for phi
         timer3.start();
