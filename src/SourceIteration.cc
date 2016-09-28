@@ -219,17 +219,29 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
 */
 static
 void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld, 
-                     PsiData &totalSource) 
+                     PsiData &totalSource, bool onlyScatSource) 
 {
-    #pragma omp parallel for
-    for (UINT cell = 0; cell < g_nCells; ++cell) {
-    for (UINT angle = 0; angle < g_nAngles; ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-    for (UINT group = 0; group < g_nGroups; ++group) {
-        totalSource(group, vertex, angle, cell) = 
-            fixedSource(group, vertex, angle, cell) + 
-            g_sigmaScat / (4.0 * M_PI) *  phiOld(group, vertex, cell);
-    }}}}
+    if (onlyScatSource) {
+        #pragma omp parallel for
+        for (UINT cell = 0; cell < g_nCells; ++cell) {
+        for (UINT angle = 0; angle < g_nAngles; ++angle) {
+        for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+        for (UINT group = 0; group < g_nGroups; ++group) {
+            totalSource(group, vertex, angle, cell) = 
+                g_sigmaScat / (4.0 * M_PI) *  phiOld(group, vertex, cell);
+        }}}}
+    }
+    else {
+        #pragma omp parallel for
+        for (UINT cell = 0; cell < g_nCells; ++cell) {
+        for (UINT angle = 0; angle < g_nAngles; ++angle) {
+        for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+        for (UINT group = 0; group < g_nGroups; ++group) {
+            totalSource(group, vertex, angle, cell) = 
+                fixedSource(group, vertex, angle, cell) + 
+                g_sigmaScat / (4.0 * M_PI) *  phiOld(group, vertex, cell);
+        }}}}
+    }
 }
 
 
@@ -239,7 +251,8 @@ namespace SourceIteration
 /*
     Solve problem
 */
-void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource)
+void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource, 
+           bool onlyScatSource)
 {
     // Data for problem
     PsiData fixedSource;
@@ -288,7 +301,7 @@ void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource)
         
         // totalSource = fixedSource + phiOld
         timer2.start();
-        calcTotalSource(fixedSource, phiOld, totalSource);
+        calcTotalSource(fixedSource, phiOld, totalSource, onlyScatSource);
         timer2.stop();
         
         clockTime2 = timer2.wall_clock();

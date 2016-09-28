@@ -45,7 +45,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SourceIteration
 {
-    void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource);
+    void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
+               bool onlyScatSource = false);
 }
 
 

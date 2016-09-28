@@ -231,7 +231,7 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
 
     // Traverse the graph to get the values on the outward facing boundary
     // call commSides to transfer boundary data
-    SourceIteration::solve(s_sweeperSchurOuter, *s_psi, *s_source);
+    SourceIteration::solve(s_sweeperSchurOuter, *s_psi, *s_source, true);
     s_commSides->commSides(*s_sweepData);
 
     
@@ -433,15 +433,9 @@ void SweeperSchurOuter::solve()
     petscInit(A, c_x, c_b, c_ksp, (void(*)(void))SchurOuter);
 
     
-    // Solve
-    //SourceIteration::solve(this, c_psi, c_source);
     // Initialize variables
-    PsiData zeroSource;
-    zeroSource.setToValue(0.0);
-    
     Mat2<UINT> priorities(g_nCells, g_nAngles);
     SweepData zeroSideSweepData(c_psi, c_source, g_sigmaTotal, priorities);
-    //SweepData zeroSourceSweepData(c_psi, zeroSource, g_sigmaTotal, priorities);
     SweepData sweepData(c_psi, c_source, g_sigmaTotal, priorities);
     
     PetscScalar *BIn;
@@ -452,7 +446,7 @@ void SweeperSchurOuter::solve()
 
     
     // Set static variables
-    s_sweepData = &c_sweepData;//&zeroSourceSweepData;
+    s_sweepData = &c_sweepData;
     s_commSides = &c_commSides;
     
     s_sweeperSchurOuter = this;
@@ -508,6 +502,7 @@ void SweeperSchurOuter::solve()
 
 
     // Sweep to solve for the non-boundary values
+    hatSource(g_sigmaTotal, g_sigmaScat, c_source);
     if (Comm::rank() == 0) {
         printf("    Sweeping to solve non-boundary values\n");
     }
