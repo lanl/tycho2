@@ -196,6 +196,31 @@ double calcMass(const PsiData &psi)
 
 
 /*
+    calcMass
+*/
+static
+double calcMass(const PhiData &phi)
+{
+    double mass = 0.0;
+    
+    for(UINT cell = 0; cell < g_nCells; cell++) {
+        double sumVrtxMass = 0.0;
+        for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+            //double localMass = 0.0;
+            /*for(UINT angle = 0; angle < g_nAngles; angle++) {
+                localMass += psi(0, vrtx, angle, cell) * g_quadrature->getWt(angle);
+            }*/
+            sumVrtxMass += phi(0, vrtx, cell);
+        }
+        mass += sumVrtxMass / g_nVrtxPerCell * g_tychoMesh->getCellVolume(cell);
+    }
+    
+    Comm::gsum(mass);
+    return mass;
+}
+
+
+/*
     psiToPhi
 */
 static
@@ -242,6 +267,15 @@ void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld,
                 g_sigmaScat / (4.0 * M_PI) *  phiOld(group, vertex, cell);
         }}}}
     }
+}
+
+
+void calcTotalSource(const PhiData &phi, PsiData &totalSource)
+{
+    PsiData fixedSource;
+
+    hatSource(g_sigmaTotal, g_sigmaScat, fixedSource);
+    calcTotalSource(fixedSource, phi, totalSource, false);
 }
 
 
@@ -303,6 +337,12 @@ void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
         timer2.start();
         calcTotalSource(fixedSource, phiOld, totalSource, onlyScatSource);
         timer2.stop();
+        double mass3 = calcMass(fixedSource);
+        double mass4 = calcMass(phiOld);
+        double mass5 = calcMass(totalSource);
+        if (Comm::rank() == 0) {
+            printf("%e %e %e\n", mass3, mass4, mass5);
+        }
         
         clockTime2 = timer2.wall_clock();
         Comm::gmax(clockTime2);
@@ -348,10 +388,11 @@ void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
     
     // Print tests 
     double mass = calcMass(psi);
+    double mass2 = calcMass(totalSource);
     double psiError = hatL2Error(psi);
     double diffGroups = diffBetweenGroups(psi);
     if(Comm::rank() == 0) {
-        printf("Mass of psi: %e\n", mass);
+        printf("Mass of psi: %e %e\n", mass, mass2);
         printf("L2 Relative Error: %e\n", psiError);
         printf("Diff between groups: %e\n", diffGroups);
     }

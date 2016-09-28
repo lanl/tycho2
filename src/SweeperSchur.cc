@@ -421,7 +421,10 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     }
 }
 
-void hatSource(const double sigmaT, const double sigmaS, PsiData &source);
+//void hatSource(const double sigmaT, const double sigmaS, PsiData &source);
+//void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld, 
+//                     PsiData &totalSource, bool onlyScatSource);
+//void calcTotalSource(const PhiData &phi, PsiData &totalSource);
 
 /*
     solve
@@ -433,11 +436,7 @@ void SweeperSchurOuter::solve()
     petscInit(A, c_x, c_b, c_ksp, (void(*)(void))SchurOuter);
 
     
-    // Initialize variables
-    Mat2<UINT> priorities(g_nCells, g_nAngles);
-    SweepData zeroSideSweepData(c_psi, c_source, g_sigmaTotal, priorities);
-    SweepData sweepData(c_psi, c_source, g_sigmaTotal, priorities);
-    
+    // Variables
     PetscScalar *BIn;
     PetscScalar *XIn;
     PetscScalar *XOut;
@@ -452,34 +451,35 @@ void SweeperSchurOuter::solve()
     s_sweeperSchurOuter = this;
     s_psi = &c_psi;
     s_source = &c_source;
-    hatSource(g_sigmaTotal, g_sigmaScat, c_source);
-    
-    
-    // Initial guess (currently zero)
-    zeroSideSweepData.zeroSideData();
-    VecGetArray(c_x, &XIn);
-    psiBoundToArray(XIn, zeroSideSweepData.getSideData());
-    VecRestoreArray(c_x, &XIn);
     
     
     // Do a sweep on the source 
     if (Comm::rank() == 0) {
         printf("    Sweeping Source\n");
     }
-    traverseGraph(s_maxComputePerStep, zeroSideSweepData, s_doComm, 
-                  MPI_COMM_WORLD, Direction_Forward);
+    c_sweepData.zeroSideData();
+    c_psi.setToValue(0.0);
+    c_source.setToValue(0.0);
+    SourceIteration::solve(this, c_psi, c_source);
     if (Comm::rank() == 0) {
         printf("    Source Swept\n");
     }
 
 
     // Input source into BIn
-    c_commSides.commSides(zeroSideSweepData);
+    c_commSides.commSides(c_sweepData);
     VecGetArray(c_b, &BIn);
-    psiBoundToArray(BIn, zeroSideSweepData.getSideData());
+    psiBoundToArray(BIn, c_sweepData.getSideData());
     VecRestoreArray(c_b, &BIn);
 
 
+    // Initial guess (currently zero)
+    c_sweepData.zeroSideData();
+    VecGetArray(c_x, &XIn);
+    psiBoundToArray(XIn, c_sweepData.getSideData());
+    VecRestoreArray(c_x, &XIn);
+    
+    
     // Solve the system (x is the solution, b is the RHS)
     if (Comm::rank() == 0) {
         printf("    Starting Krylov Solve on Boundary\n");
@@ -497,17 +497,18 @@ void SweeperSchurOuter::solve()
 
     // Put x in XOut and output the answer from XOut to psi
     VecGetArray(c_x, &XOut);
-    arrayToPsiBound(XOut, sweepData.getSideData());
+    arrayToPsiBound(XOut, c_sweepData.getSideData());
     VecRestoreArray(c_x, &XOut);
 
 
     // Sweep to solve for the non-boundary values
-    hatSource(g_sigmaTotal, g_sigmaScat, c_source);
+    //calcTotalSource(phiNew, c_source);
     if (Comm::rank() == 0) {
         printf("    Sweeping to solve non-boundary values\n");
     }
-    traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD, 
-                  Direction_Forward);
+    SourceIteration::solve(this, c_psi, c_source);
+    //traverseGraph(s_maxComputePerStep, c_sweepData, s_doComm, MPI_COMM_WORLD, 
+    //              Direction_Forward);
     if (Comm::rank() == 0) {
         printf("    Non-boundary values swept\n");
     }
