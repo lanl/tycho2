@@ -160,7 +160,8 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     // Create SweepData for traversal
     // Use a dummy set of priorities
     Mat2<UINT> priorities(g_nCells, g_nAngles);
-    SweepData sweepData(psi, source, g_sigmaTotal, priorities);
+    SweepData sweepData(psi, source, c_psiBoundPrev, g_sigmaTotal, priorities);
+    //SweepData sweepData(psi, source, g_sigmaTotal, priorities);
     
     
     // Sweep till converged
@@ -195,6 +196,12 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         
         // Increment iter
         iter++;
+    }
+
+
+    PsiBoundData &psiBound = sweepData.getSideData();
+    for (UINT i = 0; i < psiBound.size(); i++) {
+        c_psiBoundPrev[i] = psiBound[i];
     }
     
     

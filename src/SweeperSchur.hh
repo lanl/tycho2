@@ -59,6 +59,7 @@ public:
 
 private:
     CommSides c_commSides;
+    PsiBoundData c_psiBoundPrev;
     Vec c_x, c_b;
     KSP c_ksp;
 };

@@ -1,7 +1,5 @@
 #if USE_PETSC
 
-//static char help[] = "Solves using Schur Complement.\n\n";
-
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -298,6 +296,8 @@ void petscInit(Mat &A, Vec &x, Vec &b, KSP &ksp, void (*func)(void))
     KSPSetOperators(ksp, A, A);
     KSPSetTolerances(ksp, g_ddErrMax, PETSC_DEFAULT, PETSC_DEFAULT, 
                      g_ddIterMax);
+
+    KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 }
 
 
@@ -371,7 +371,7 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     // Initial guess (currently zero)
     zeroSideSweepData.zeroSideData();
     VecGetArray(c_x, &XIn);  
-    psiBoundToArray(XIn, zeroSideSweepData.getSideData());
+    psiBoundToArray(XIn, c_psiBoundPrev/*zeroSideSweepData.getSideData()*/);
     VecRestoreArray(c_x, &XIn);
     
     
@@ -411,6 +411,7 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     // Put x in XOut and output the answer from XOut to psi
     VecGetArray(c_x, &XOut);
     arrayToPsiBound(XOut, sweepData.getSideData());
+    arrayToPsiBound(XOut, c_psiBoundPrev);
     VecRestoreArray(c_x, &XOut);
 
 

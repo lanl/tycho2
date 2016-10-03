@@ -56,6 +56,7 @@ public:
     
 private:
     CommSides c_commSides;
+    PsiBoundData c_psiBoundPrev;
 };
 
 
@@ -71,15 +72,12 @@ public:
     void sweep(PsiData &psi, const PsiData &source);
 
     SweeperPBJOuter() :
-        /*c_psi(), c_source(), */
         c_priorities(g_nCells, g_nAngles), 
         c_sweepData(c_psi, c_source, g_sigmaTotal, c_priorities)
     { }
     
 private:
     CommSides c_commSides;
-    //PsiData c_psi;
-    //PsiData c_source;
     Mat2<UINT> c_priorities;
     SweepData c_sweepData;
 };
