@@ -57,7 +57,7 @@ static const double cubeSize = 100.0;
 /*
     hatSource
 */
-//static
+static
 void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
 {
     for(UINT cell = 0; cell < g_nCells; cell++) {
@@ -198,7 +198,7 @@ double calcMass(const PsiData &psi)
 /*
     calcMass
 */
-static
+/*static
 double calcMass(const PhiData &phi)
 {
     double mass = 0.0;
@@ -206,10 +206,6 @@ double calcMass(const PhiData &phi)
     for(UINT cell = 0; cell < g_nCells; cell++) {
         double sumVrtxMass = 0.0;
         for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            //double localMass = 0.0;
-            /*for(UINT angle = 0; angle < g_nAngles; angle++) {
-                localMass += psi(0, vrtx, angle, cell) * g_quadrature->getWt(angle);
-            }*/
             sumVrtxMass += phi(0, vrtx, cell);
         }
         mass += sumVrtxMass / g_nVrtxPerCell * g_tychoMesh->getCellVolume(cell);
@@ -217,7 +213,7 @@ double calcMass(const PhiData &phi)
     
     Comm::gsum(mass);
     return mass;
-}
+}*/
 
 
 /*
@@ -270,22 +266,13 @@ void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld,
 }
 
 
-void calcTotalSource(const PhiData &phi, PsiData &totalSource)
-{
-    PsiData fixedSource;
-
-    hatSource(g_sigmaTotal, g_sigmaScat, fixedSource);
-    calcTotalSource(fixedSource, phi, totalSource, false);
-}
-
-
 namespace SourceIteration
 {
 
 /*
     Solve problem
 */
-void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource, 
+UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource, 
            bool onlyScatSource)
 {
     // Data for problem
@@ -337,12 +324,6 @@ void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
         timer2.start();
         calcTotalSource(fixedSource, phiOld, totalSource, onlyScatSource);
         timer2.stop();
-        double mass3 = calcMass(fixedSource);
-        double mass4 = calcMass(phiOld);
-        double mass5 = calcMass(totalSource);
-        if (Comm::rank() == 0) {
-            printf("%e %e %e\n", mass3, mass4, mass5);
-        }
         
         clockTime2 = timer2.wall_clock();
         Comm::gmax(clockTime2);
@@ -408,11 +389,10 @@ void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
         printf("Solve time per iteration: %.2f\n\n",
                clockTime / iter);
     }
-    
-    
-    // Output psi to file
-    if(g_outputFile)
-        psi.writeToFile(g_outputFilename);
+
+
+    // Return number of iterations
+    return iter;
 }
 
 }//End namespace Solver

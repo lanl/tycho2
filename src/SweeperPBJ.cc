@@ -61,6 +61,7 @@ using namespace std;
 void SweeperPBJOuter::solve()
 {
     PsiData psi0;
+    vector<UINT> sourceIts;
     
     
     // Source iterate till converged
@@ -68,7 +69,8 @@ void SweeperPBJOuter::solve()
     while (iter < g_ddIterMax) {
         
         // Sweep
-        SourceIteration::solve(this, c_psi, c_source);
+        UINT its = SourceIteration::solve(this, c_psi, c_source);
+        sourceIts.push_back(its);
         
 
         // Check tolerance and set psi0 = psi1
@@ -100,6 +102,10 @@ void SweeperPBJOuter::solve()
     // Print statistics
     if (Comm::rank() == 0) {
         printf("PBJ Iters: %" PRIu64 "\n", iter);
+        printf("Num source iterations:");
+        for (UINT i = 0; i < sourceIts.size(); i++)
+            printf(" %" PRIu64, sourceIts[i]);
+        printf("\n");
     }
 }
 
@@ -131,9 +137,7 @@ void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
 */
 void SweeperPBJ::solve()
 {
-    PsiData psi;
-    PsiData totalSource;
-    SourceIteration::solve(this, psi, totalSource);
+    SourceIteration::solve(this, c_psi, c_source);
 }
 
 

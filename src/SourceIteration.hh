@@ -42,10 +42,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "SweeperAbstract.hh"
+#include "Global.hh"
 
 namespace SourceIteration
 {
-    void solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
+    UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
                bool onlyScatSource = false);
 }
 

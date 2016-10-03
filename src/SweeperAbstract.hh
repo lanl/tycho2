@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __SWEEPER_ABSTRACT_HH__
 
 #include "PsiData.hh"
+#include <string>
 
 
 class SweeperAbstract
@@ -51,6 +52,15 @@ public:
 
     virtual
     void solve() = 0;
+
+    void writePsiToFile(std::string &filename)
+    {
+        c_psi.writeToFile(filename);
+    }
+
+protected:
+    PsiData c_psi;
+    PsiData c_source;
 };
 
 #endif

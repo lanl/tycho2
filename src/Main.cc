@@ -269,6 +269,11 @@ int main(int argc, char *argv[])
     if(Comm::rank() == 0) {
         printf("Total time: %.2f\n", clockTime);
     }
+    
+    
+    // Output psi to file
+    if(g_outputFile)
+        sweeper->writePsiToFile(g_outputFilename);
 
     
     // End program

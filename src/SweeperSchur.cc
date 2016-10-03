@@ -63,6 +63,7 @@ static CommSides *s_commSides;
 static SweepData *s_sweepData;
 static const bool s_doComm = false;
 static const UINT s_maxComputePerStep = std::numeric_limits<uint64_t>::max();
+static std::vector<UINT> s_sourceIts;
 
 static SweeperSchurOuter *s_sweeperSchurOuter;
 static PsiData *s_psi;
@@ -231,7 +232,10 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
 
     // Traverse the graph to get the values on the outward facing boundary
     // call commSides to transfer boundary data
-    SourceIteration::solve(s_sweeperSchurOuter, *s_psi, *s_source, true);
+    UINT sourceIts;
+    sourceIts = SourceIteration::solve(s_sweeperSchurOuter, *s_psi, 
+                                       *s_source, true);
+    s_sourceIts.push_back(sourceIts);
     s_commSides->commSides(*s_sweepData);
 
     
@@ -421,10 +425,6 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     }
 }
 
-//void hatSource(const double sigmaT, const double sigmaS, PsiData &source);
-//void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld, 
-//                     PsiData &totalSource, bool onlyScatSource);
-//void calcTotalSource(const PhiData &phi, PsiData &totalSource);
 
 /*
     solve
@@ -442,6 +442,7 @@ void SweeperSchurOuter::solve()
     PetscScalar *XOut;
     PetscReal rnorm;
     PetscInt its;
+    UINT sourceIts1, sourceIts3;
 
     
     // Set static variables
@@ -460,7 +461,7 @@ void SweeperSchurOuter::solve()
     c_sweepData.zeroSideData();
     c_psi.setToValue(0.0);
     c_source.setToValue(0.0);
-    SourceIteration::solve(this, c_psi, c_source);
+    sourceIts1 = SourceIteration::solve(this, c_psi, c_source);
     if (Comm::rank() == 0) {
         printf("    Source Swept\n");
     }
@@ -506,11 +507,17 @@ void SweeperSchurOuter::solve()
     if (Comm::rank() == 0) {
         printf("    Sweeping to solve non-boundary values\n");
     }
-    SourceIteration::solve(this, c_psi, c_source);
+    sourceIts3 = SourceIteration::solve(this, c_psi, c_source);
     //traverseGraph(s_maxComputePerStep, c_sweepData, s_doComm, MPI_COMM_WORLD, 
     //              Direction_Forward);
     if (Comm::rank() == 0) {
         printf("    Non-boundary values swept\n");
+        printf("Num sweeps Q: %" PRIu64 "\n", sourceIts1);
+        printf("Num sweeps KSP:");
+        for (UINT i = 0; i < s_sourceIts.size(); i++)
+            printf(" %" PRIu64, s_sourceIts[i]);
+        printf("\n");
+        printf("Num sweeps END: %" PRIu64 "\n", sourceIts3);
     }
 
     

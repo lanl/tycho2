@@ -65,9 +65,7 @@ Sweeper2::Sweeper2()
 */
 void Sweeper2::solve()
 {
-    PsiData psi;
-    PsiData totalSource;
-    SourceIteration::solve(this, psi, totalSource);
+    SourceIteration::solve(this, c_psi, c_source);
 }
 
 
