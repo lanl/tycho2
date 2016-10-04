@@ -330,9 +330,7 @@ void SweeperSchur::solve()
 
     
     // Solve
-    PsiData psi;
-    PsiData totalSource;
-    SourceIteration::solve(this, psi, totalSource);
+    SourceIteration::solve(this, c_psi, c_source);
 
     
     // End petsc

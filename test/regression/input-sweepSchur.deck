@@ -1,0 +1,24 @@
+# Sample input deck
+# Copy this to input.deck (or any other name you choose)
+
+snOrder         8
+iterMax         100
+errMax          0.000100
+maxCellsPerStep 100
+intraAngleP     3
+interAngleP     1
+nGroups         2
+sigmaTotal      10
+sigmaScat       5
+OutputFile      true
+OutputFilename  out.psi
+
+
+DD_IterMax      100
+DD_ErrMax       1e-5
+
+# Types: OriginalTycho1, OriginalTycho2, TraverseGraph
+SweepType Schur
+
+
+GaussElim NoPivot
