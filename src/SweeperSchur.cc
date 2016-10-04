@@ -56,13 +56,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <petscksp.h>
 
 
-// Initial definition of static variables
+// Constants
 static const bool s_doComm = false;
 static const UINT s_maxComputePerStep = std::numeric_limits<uint64_t>::max();
-static std::vector<UINT> s_sourceIts;
 
-static SweeperSchurOuter *s_sweeperSchurOuter;
 
+// Data needed for Schur and SchurOuter functions
 struct SchurData
 {
     CommSides *commSides;
@@ -70,6 +69,10 @@ struct SchurData
     PsiBoundData *psiBound;
     PsiData *source;
     Mat2<UINT> *priorities;
+
+    // Only needed for SchurOuter
+    std::vector<UINT> *sourceIts;
+    SweeperSchurOuter *sweeperSchurOuter;
 };
 
 
@@ -201,6 +204,7 @@ int getVecSize()
 static
 PetscErrorCode Schur(Mat mat, Vec x, Vec b)
 {
+    // Get data for the solve
     void *dataVoid;
     MatShellGetContext(mat, &dataVoid);
     SchurData *data = (SchurData*) dataVoid;
@@ -239,6 +243,7 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b)
 static
 PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
 {
+    // Get data for the solve
     void *dataVoid;
     MatShellGetContext(mat, &dataVoid);
     SchurData *data = (SchurData*) dataVoid;
@@ -253,9 +258,9 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
     UINT sourceIts;
     SweepData sweepData(*data->psi, *data->source, *data->psiBound, g_sigmaTotal, 
                         *data->priorities);
-    sourceIts = SourceIteration::solve(s_sweeperSchurOuter, *data->psi, 
+    sourceIts = SourceIteration::solve(data->sweeperSchurOuter, *data->psi, 
                                        *data->source, true);
-    s_sourceIts.push_back(sourceIts);
+    data->sourceIts->push_back(sourceIts);
     data->commSides->commSides(*data->psi, *data->psiBound);
 
     
@@ -346,11 +351,18 @@ void SweeperSchur::solve()
 
     
     // Solve
+    c_iters = 0;
     SourceIteration::solve(this, c_psi, c_source);
 
     
     // End petsc
     petscEnd(c_mat, c_x, c_b, c_ksp);
+
+
+    // Print data
+    if (Comm::rank() == 0) {
+        printf("Num source iters: %" PRIu64 "\n", c_iters);
+    }
 }
 
 
@@ -434,6 +446,9 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     if (Comm::rank() == 0) {
         printf("    Non-boundary values swept\n");
     }
+
+
+    c_iters += 2 + its;
 }
 
 
@@ -452,6 +467,8 @@ void SweeperSchurOuter::solve()
     PetscInt its;
     UINT sourceIts1, sourceIts3;
     SweepData sweepData(c_psi, c_source, c_psiBound, g_sigmaTotal, c_priorities);
+    std::vector<UINT> sourceItsVec;
+
 
     // Set static variables
     SchurData data;
@@ -460,11 +477,9 @@ void SweeperSchurOuter::solve()
     data.psiBound = &c_psiBound;
     data.source = &c_source;
     data.priorities = &c_priorities;
+    data.sourceIts = &sourceItsVec;
+    data.sweeperSchurOuter = this;
     MatShellSetContext(mat, &data);
-    
-
-    // Set static variables
-    s_sweeperSchurOuter = this;
     
     
     // Do a sweep on the source 
@@ -473,6 +488,7 @@ void SweeperSchurOuter::solve()
     }
     c_psi.setToValue(0.0);
     c_source.setToValue(0.0);
+    c_psiBound.setToValue(0.0);
     sourceIts1 = SourceIteration::solve(this, c_psi, c_source);
     if (Comm::rank() == 0) {
         printf("    Source Swept\n");
@@ -520,8 +536,8 @@ void SweeperSchurOuter::solve()
         printf("    Non-boundary values swept\n");
         printf("Num sweeps Q: %" PRIu64 "\n", sourceIts1);
         printf("Num sweeps KSP:");
-        for (UINT i = 0; i < s_sourceIts.size(); i++)
-            printf(" %" PRIu64, s_sourceIts[i]);
+        for (UINT i = 0; i < sourceItsVec.size(); i++)
+            printf(" %" PRIu64, sourceItsVec[i]);
         printf("\n");
         printf("Num sweeps END: %" PRIu64 "\n", sourceIts3);
     }

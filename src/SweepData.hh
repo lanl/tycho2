@@ -57,21 +57,6 @@ class SweepData : public TraverseData
 {
 public:
     
-    /*
-        Constructor
-    */
-    /*SweepData(PsiData &psi, const PsiData &source, 
-               const double sigmaTotal,
-               const Mat2<UINT> &priorities)
-    : c_psi(psi), c_psiBound(), c_source(source), c_sigmaTotal(sigmaTotal),
-      c_priorities(priorities), c_localFaceData(g_nThreads)
-    {
-        for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
-        }
-    }*/
-    
-
     SweepData(PsiData &psi, const PsiData &source, PsiBoundData &psiBound,  
                const double sigmaTotal,
                const Mat2<UINT> &priorities)
@@ -81,10 +66,6 @@ public:
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
             c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
         }
-
-        //for (UINT i = 0; i < psiBound.size(); i++) {
-        //    c_psiBound[i] = psiBound[i];
-       // }
     }
     
 
@@ -133,28 +114,6 @@ public:
     }
 
 
-    /*
-        zeroSideData
-
-        Zeros all psiBound data.
-    */
-    virtual void zeroSideData()
-    {
-        c_psiBound.setToValue(0.0);
-    }
-
-
-    /*
-        getSideData
-
-        Get a reference to psiBound
-    */
-    virtual PsiBoundData& getSideData()
-    {
-        return c_psiBound;
-    }
-    
-    
     /*
         getPriority
         

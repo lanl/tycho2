@@ -63,6 +63,7 @@ private:
     Vec c_x, c_b;
     KSP c_ksp;
     Mat c_mat;
+    UINT c_iters;
 };
 
 

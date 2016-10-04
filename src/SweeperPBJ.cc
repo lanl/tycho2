@@ -134,7 +134,12 @@ void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
 */
 void SweeperPBJ::solve()
 {
+    c_iters = 0;
     SourceIteration::solve(this, c_psi, c_source);
+
+    if (Comm::rank() == 0) {
+        printf("Num source iters: %" PRIu64 "\n", c_iters);
+    }
 }
 
 
@@ -167,6 +172,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         // Sweep
         traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
                       Direction_Forward);
+        c_iters++;
         
 
         // Check tolerance and set psi0 = psi1
