@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __SWEEPER_PBJ_HH__
 
 #include "PsiData.hh"
+#include "SweepData.hh"
 #include "SweeperAbstract.hh"
 #include "CommSides.hh"
 

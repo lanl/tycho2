@@ -69,15 +69,20 @@ static PsiData *s_source;
 
 
 /*
-    psiBoundToArray 
+    psiBoundToVec 
 */
 static
-void psiBoundToArray(PetscScalar Array[], const PsiBoundData &psiBound)
+void psiBoundToVec(Vec &xVec, const PsiBoundData &psiBound)
 {
-    // Start an array index
-    int ArrayIndex = 0;
+    double *xArray;
+    int xArrayIndex = 0;
     
-    // Incoming flux
+    
+    // Get raw array from vector
+    VecGetArray(xVec, &xArray);
+    
+    
+    // Set array
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
     for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT group = 0; group < g_nGroups; group++) {
@@ -92,25 +97,34 @@ void psiBoundToArray(PetscScalar Array[], const PsiBoundData &psiBound)
             {
                 UINT side = g_tychoMesh->getSide(cell, face);
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    Array[ArrayIndex] = psiBound(group, fvrtx, angle, side);
-                    ArrayIndex++;
+                    xArray[xArrayIndex] = psiBound(group, fvrtx, angle, side);
+                    xArrayIndex++;
                 }
             }
         }
     }}}}
+    
+    
+    // Return raw array to vector
+    VecRestoreArray(xVec, &xArray);
 }
 
 
 /*
-    arrayToPsiBound
+    vecToPsiBound
 */
 static
-void arrayToPsiBound(const PetscScalar Array[], PsiBoundData &psiBound)
+void vecToPsiBound(Vec &xVec, PsiBoundData &psiBound)
 {
-    // Start an array index
-    int ArrayIndex = 0;
+    const double *xArray;
+    int xArrayIndex = 0;
     
-    // Incoming flux
+
+    // Get raw array from vector
+    VecGetArrayRead(xVec, &xArray);
+
+
+    // Set psiBound
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
     for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT group = 0; group < g_nGroups; group++) {
@@ -125,12 +139,16 @@ void arrayToPsiBound(const PetscScalar Array[], PsiBoundData &psiBound)
             {
                 UINT side = g_tychoMesh->getSide(cell, face);
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    psiBound(group, fvrtx, angle, side) = Array[ArrayIndex];
-                    ArrayIndex++;
+                    psiBound(group, fvrtx, angle, side) = xArray[xArrayIndex];
+                    xArrayIndex++;
                 }
             }
         }
     }}}}
+
+
+    // Return raw array to vector
+    VecRestoreArrayRead(xVec, &xArray);
 }
 
 
@@ -182,24 +200,18 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b)
 
 
     // Vector -> array
-    const PetscScalar *In;
-    VecGetArrayRead(x, &In);
-    arrayToPsiBound(In, s_sweepData->getSideData());
-    VecRestoreArrayRead(x, &In);
+    vecToPsiBound(x, s_sweepData->getSideData());
 
 
     // Traverse the graph to get the values on the outward facing boundary
     // call commSides to transfer boundary data
     traverseGraph(s_maxComputePerStep, *s_sweepData, s_doComm, MPI_COMM_WORLD, 
                   Direction_Forward);
-    s_commSides->commSides(*s_sweepData);
+    s_commSides->commSides(*s_psi, s_sweepData->getSideData());
 
     
     // Take the values of s_psi from the sweep and put them in b
-    PetscScalar *Out;
-    VecGetArray(b, &Out);
-    psiBoundToArray(Out, s_sweepData->getSideData());
-    VecRestoreArray(b, &Out);
+    psiBoundToVec(b, s_sweepData->getSideData());
 
 
     // b = x - b (aka Out = In - Out)
@@ -222,10 +234,7 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
 
 
     // Vector -> array
-    const PetscScalar *In;
-    VecGetArrayRead(x, &In);
-    arrayToPsiBound(In, s_sweepData->getSideData());
-    VecRestoreArrayRead(x, &In);
+    vecToPsiBound(x, s_sweepData->getSideData());
 
 
     // Traverse the graph to get the values on the outward facing boundary
@@ -234,14 +243,11 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
     sourceIts = SourceIteration::solve(s_sweeperSchurOuter, *s_psi, 
                                        *s_source, true);
     s_sourceIts.push_back(sourceIts);
-    s_commSides->commSides(*s_sweepData);
+    s_commSides->commSides(*s_psi, s_sweepData->getSideData());
 
     
     // Take the values of s_psi from the sweep and put them in b
-    PetscScalar *Out;
-    VecGetArray(b, &Out);
-    psiBoundToArray(Out, s_sweepData->getSideData());
-    VecRestoreArray(b, &Out);
+    psiBoundToVec(b, s_sweepData->getSideData());
 
 
     // b = x - b (aka Out = In - Out)
@@ -296,8 +302,6 @@ void petscInit(Mat &A, Vec &x, Vec &b, KSP &ksp, void (*func)(void))
     KSPSetOperators(ksp, A, A);
     KSPSetTolerances(ksp, g_ddErrMax, PETSC_DEFAULT, PETSC_DEFAULT, 
                      g_ddIterMax);
-
-    KSPSetInitialGuessNonzero(ksp, PETSC_TRUE);
 }
 
 
@@ -351,12 +355,10 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     
     Mat2<UINT> priorities(g_nCells, g_nAngles);
     SweepData zeroSideSweepData(psi, source, g_sigmaTotal, priorities);
+    zeroSideSweepData.zeroSideData();
     SweepData zeroSourceSweepData(psi, zeroSource, g_sigmaTotal, priorities);
     SweepData sweepData(psi, source, g_sigmaTotal, priorities);
     
-    PetscScalar *BIn;
-    PetscScalar *XIn;
-    PetscScalar *XOut;
     PetscReal rnorm;
     PetscInt its;
 
@@ -364,13 +366,11 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     // Set static variables
     s_sweepData = &zeroSourceSweepData;
     s_commSides = &c_commSides;
+    s_psi = &c_psi;
     
     
     // Initial guess (currently zero)
-    zeroSideSweepData.zeroSideData();
-    VecGetArray(c_x, &XIn);  
-    psiBoundToArray(XIn, c_psiBoundPrev/*zeroSideSweepData.getSideData()*/);
-    VecRestoreArray(c_x, &XIn);
+    psiBoundToVec(c_x, c_psiBoundPrev);
     
     
     // Do a sweep on the source 
@@ -385,16 +385,16 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
 
 
     // Input source into BIn
-    c_commSides.commSides(zeroSideSweepData);
-    VecGetArray(c_b, &BIn);
-    psiBoundToArray(BIn, zeroSideSweepData.getSideData());
-    VecRestoreArray(c_b, &BIn);
+    PsiBoundData psiBound;
+    c_commSides.commSides(psi, psiBound);
+    psiBoundToVec(c_b, psiBound);
 
 
     // Solve the system (x is the solution, b is the RHS)
     if (Comm::rank() == 0) {
         printf("    Starting Krylov Solve on Boundary\n");
     }
+    KSPSetInitialGuessNonzero(c_ksp, PETSC_TRUE);
     KSPSolve(c_ksp, c_b, c_x);
     
 
@@ -407,11 +407,9 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
 
 
     // Put x in XOut and output the answer from XOut to psi
-    VecGetArray(c_x, &XOut);
-    arrayToPsiBound(XOut, sweepData.getSideData());
-    arrayToPsiBound(XOut, c_psiBoundPrev);
-    VecRestoreArray(c_x, &XOut);
-
+    vecToPsiBound(c_x, sweepData.getSideData());
+    vecToPsiBound(c_x, c_psiBoundPrev);
+    
 
     // Sweep to solve for the non-boundary values
     if (Comm::rank() == 0) {
@@ -436,9 +434,6 @@ void SweeperSchurOuter::solve()
 
     
     // Variables
-    PetscScalar *BIn;
-    PetscScalar *XIn;
-    PetscScalar *XOut;
     PetscReal rnorm;
     PetscInt its;
     UINT sourceIts1, sourceIts3;
@@ -467,23 +462,22 @@ void SweeperSchurOuter::solve()
 
 
     // Input source into BIn
-    c_commSides.commSides(c_sweepData);
-    VecGetArray(c_b, &BIn);
-    psiBoundToArray(BIn, c_sweepData.getSideData());
-    VecRestoreArray(c_b, &BIn);
+    PsiBoundData psiBound;
+    c_commSides.commSides(c_psi, psiBound);
+    psiBoundToVec(c_b, psiBound);
 
 
-    // Initial guess (currently zero)
+    // Initial guess
     c_sweepData.zeroSideData();
-    VecGetArray(c_x, &XIn);
-    psiBoundToArray(XIn, c_sweepData.getSideData());
-    VecRestoreArray(c_x, &XIn);
+    c_psi.setToValue(0.0);
+    c_source.setToValue(0.0);
     
     
     // Solve the system (x is the solution, b is the RHS)
     if (Comm::rank() == 0) {
         printf("    Starting Krylov Solve on Boundary\n");
     }
+    KSPSetInitialGuessNonzero(c_ksp, PETSC_FALSE);
     KSPSolve(c_ksp, c_b, c_x);
     
 
@@ -496,19 +490,14 @@ void SweeperSchurOuter::solve()
 
 
     // Put x in XOut and output the answer from XOut to psi
-    VecGetArray(c_x, &XOut);
-    arrayToPsiBound(XOut, c_sweepData.getSideData());
-    VecRestoreArray(c_x, &XOut);
+    vecToPsiBound(c_x, c_sweepData.getSideData());
 
 
     // Sweep to solve for the non-boundary values
-    //calcTotalSource(phiNew, c_source);
     if (Comm::rank() == 0) {
         printf("    Sweeping to solve non-boundary values\n");
     }
     sourceIts3 = SourceIteration::solve(this, c_psi, c_source);
-    //traverseGraph(s_maxComputePerStep, c_sweepData, s_doComm, MPI_COMM_WORLD, 
-    //              Direction_Forward);
     if (Comm::rank() == 0) {
         printf("    Non-boundary values swept\n");
         printf("Num sweeps Q: %" PRIu64 "\n", sourceIts1);

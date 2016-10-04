@@ -50,7 +50,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 //            SweeperPBJOuter functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +90,8 @@ void SweeperPBJOuter::solve()
         
         
         // Communicate
-        c_commSides.commSides(c_sweepData);
+        PsiBoundData &psiBound = c_sweepData.getSideData();
+        c_commSides.commSides(c_psi, psiBound);
         
         
         // Increment iter
@@ -161,7 +161,6 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     // Use a dummy set of priorities
     Mat2<UINT> priorities(g_nCells, g_nAngles);
     SweepData sweepData(psi, source, c_psiBoundPrev, g_sigmaTotal, priorities);
-    //SweepData sweepData(psi, source, g_sigmaTotal, priorities);
     
     
     // Sweep till converged
@@ -191,7 +190,7 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
         
         
         // Communicate
-        c_commSides.commSides(sweepData);
+        c_commSides.commSides(psi, c_psiBoundPrev);
         
         
         // Increment iter
@@ -199,12 +198,6 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     }
 
 
-    PsiBoundData &psiBound = sweepData.getSideData();
-    for (UINT i = 0; i < psiBound.size(); i++) {
-        c_psiBoundPrev[i] = psiBound[i];
-    }
-    
-    
     // Print statistics
     if (Comm::rank() == 0) {
         printf("      PBJ Iters: %" PRIu64 "\n", iter);

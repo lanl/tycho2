@@ -35,7 +35,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "SweepData.hh"
+#include "PsiData.hh"
 #include <vector>
 
 
@@ -47,7 +47,7 @@ class CommSides
 {
 public:
     CommSides();
-    void commSides(SweepData &sweepData);
+    void commSides(PsiData &psi, PsiBoundData &psiBound);
 
 private:
     struct MetaData

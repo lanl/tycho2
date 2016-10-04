@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if USE_PETSC
 #include "PsiData.hh"
+#include "SweepData.hh"
 #include "SweeperAbstract.hh"
 #include "CommSides.hh"
 #include <petscvec.h>

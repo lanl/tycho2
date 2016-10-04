@@ -43,7 +43,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 
-
+/*
+    Constructor
+*/
 CommSides::CommSides()
 {
     // Get adjacent ranks
@@ -99,20 +101,31 @@ CommSides::CommSides()
 }
 
 
+/*
+    getDataSize
+
+    Returns data size of 1 cell/face of data to send.
+*/
+static UINT getDataSize()
+{
+    return g_nGroups * g_nVrtxPerFace * sizeof(double);
+}
+
 
 /*
     commSides
 */
-void CommSides::commSides(SweepData &sweepData)
+void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
 {
     int mpiError;
     UINT numToRecv;
     UINT numAdjRanks = c_adjRanks.size();
-    UINT packetSize = 2 * sizeof(UINT) + sweepData.getDataSize();
+    UINT packetSize = 2 * sizeof(UINT) + getDataSize();
     std::vector<MPI_Request> mpiRecvRequests(numAdjRanks);
     std::vector<MPI_Request> mpiSendRequests(numAdjRanks);
     std::vector<std::vector<char>> dataToSend(numAdjRanks);
     std::vector<std::vector<char>> dataToRecv(numAdjRanks);
+    Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
     
     
     // Data structures to send/recv packets
@@ -157,14 +170,21 @@ void CommSides::commSides(SweepData &sweepData)
                 UINT angle = c_sendMetaData[rankIndex][metaDataIndex].angle;
                 UINT cell  = c_sendMetaData[rankIndex][metaDataIndex].cell;
                 UINT face  = c_sendMetaData[rankIndex][metaDataIndex].face;
-                const char *data = sweepData.getData(cell, face, angle);
+                
+                for (UINT group = 0; group < g_nGroups; group++) {
+                for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+                    UINT vrtx = g_tychoMesh->getFaceToCellVrtx(cell, face, fvrtx);
+                    localFaceData(fvrtx, group) = psi(group, vrtx, angle, cell);
+                }}
+
+                const char *data = (char*) (&localFaceData[0]);
                 
                 char *ptr = &dataToSend[rankIndex][metaDataIndex * packetSize];
                 memcpy(ptr, &gSide, sizeof(UINT));
                 ptr += sizeof(UINT);
                 memcpy(ptr, &angle, sizeof(UINT));
                 ptr += sizeof(UINT);
-                memcpy(ptr, data, sweepData.getDataSize());
+                memcpy(ptr, data, getDataSize());
             }
             
             int tag = 0;
@@ -205,7 +225,12 @@ void CommSides::commSides(SweepData &sweepData)
             memcpy(&angle, ptr, sizeof(UINT));
             ptr += sizeof(UINT);
             UINT side = g_tychoMesh->getGLSide(gSide);
-            sweepData.setSideData(side, angle, ptr);
+
+            localFaceData.setData((double*)ptr);
+            for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
+            for (UINT group = 0; group < g_nGroups; group++) {
+                psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
+            }}
         }
     }
     
