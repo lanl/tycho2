@@ -60,7 +60,7 @@ public:
     /*
         Constructor
     */
-    SweepData(PsiData &psi, const PsiData &source, 
+    /*SweepData(PsiData &psi, const PsiData &source, 
                const double sigmaTotal,
                const Mat2<UINT> &priorities)
     : c_psi(psi), c_psiBound(), c_source(source), c_sigmaTotal(sigmaTotal),
@@ -69,22 +69,22 @@ public:
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
             c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
         }
-    }
+    }*/
     
 
-    SweepData(PsiData &psi, const PsiData &source, const PsiBoundData &psiBound,  
+    SweepData(PsiData &psi, const PsiData &source, PsiBoundData &psiBound,  
                const double sigmaTotal,
                const Mat2<UINT> &priorities)
-    : c_psi(psi), c_psiBound(), c_source(source), c_sigmaTotal(sigmaTotal),
+    : c_psi(psi), c_psiBound(psiBound), c_source(source), c_sigmaTotal(sigmaTotal),
       c_priorities(priorities), c_localFaceData(g_nThreads)
     {
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
             c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
         }
 
-        for (UINT i = 0; i < psiBound.size(); i++) {
-            c_psiBound[i] = psiBound[i];
-        }
+        //for (UINT i = 0; i < psiBound.size(); i++) {
+        //    c_psiBound[i] = psiBound[i];
+       // }
     }
     
 
@@ -210,7 +210,7 @@ public:
     
 private:
     PsiData &c_psi;
-    PsiBoundData c_psiBound;
+    PsiBoundData &c_psiBound;
     const PsiData &c_source;
     const double c_sigmaTotal;
     const Mat2<UINT> &c_priorities;

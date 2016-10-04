@@ -77,7 +77,8 @@ void Sweeper2::solve()
 void Sweeper2::sweep(PsiData &psi, const PsiData &source)
 {
     const bool doComm = true;
-    SweepData sweepData(psi, source, c_sigmaTotal, c_priorities);
+    PsiBoundData psiBound;
+    SweepData sweepData(psi, source, psiBound, c_sigmaTotal, c_priorities);
     traverseGraph(c_maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
                   Direction_Forward);
 }

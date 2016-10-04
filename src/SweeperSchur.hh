@@ -40,7 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if USE_PETSC
 #include "PsiData.hh"
-#include "SweepData.hh"
 #include "SweeperAbstract.hh"
 #include "CommSides.hh"
 #include <petscvec.h>
@@ -63,6 +62,7 @@ private:
     PsiBoundData c_psiBoundPrev;
     Vec c_x, c_b;
     KSP c_ksp;
+    Mat c_mat;
 };
 
 
@@ -78,19 +78,15 @@ public:
     void sweep(PsiData &psi, const PsiData &source);
 
     SweeperSchurOuter() :
-        /*c_psi(), c_source(), */
-        c_priorities(g_nCells, g_nAngles), 
-        c_sweepData(c_psi, c_source, g_sigmaTotal, c_priorities)
+        c_priorities(g_nCells, g_nAngles)
     { }
     
 private:
     CommSides c_commSides;
     Vec c_x, c_b;
     KSP c_ksp;
-    //PsiData c_psi;
-    //PsiData c_source;
+    PsiBoundData c_psiBound;
     Mat2<UINT> c_priorities;
-    SweepData c_sweepData;
 };
 
 #endif

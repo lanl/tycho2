@@ -39,7 +39,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __SWEEPER_PBJ_HH__
 
 #include "PsiData.hh"
-#include "SweepData.hh"
 #include "SweeperAbstract.hh"
 #include "CommSides.hh"
 
@@ -72,15 +71,14 @@ public:
     void solve();
     void sweep(PsiData &psi, const PsiData &source);
 
-    SweeperPBJOuter() :
-        c_priorities(g_nCells, g_nAngles), 
-        c_sweepData(c_psi, c_source, g_sigmaTotal, c_priorities)
+    SweeperPBJOuter() : 
+        c_priorities(g_nCells, g_nAngles) 
     { }
     
 private:
     CommSides c_commSides;
+    PsiBoundData c_psiBound;
     Mat2<UINT> c_priorities;
-    SweepData c_sweepData;
 };
 
 

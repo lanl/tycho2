@@ -90,8 +90,7 @@ void SweeperPBJOuter::solve()
         
         
         // Communicate
-        PsiBoundData &psiBound = c_sweepData.getSideData();
-        c_commSides.commSides(c_psi, psiBound);
+        c_commSides.commSides(c_psi, c_psiBound);
         
         
         // Increment iter
@@ -115,15 +114,13 @@ void SweeperPBJOuter::solve()
 */
 void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
 {
-    UNUSED_VARIABLE(psi);
-    UNUSED_VARIABLE(source);
-    
     const bool doComm = false;
     const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-
+    SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
     
+
     // Do 1 graph traversal
-    traverseGraph(maxComputePerStep, c_sweepData, doComm, MPI_COMM_WORLD,
+    traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
                   Direction_Forward);
 }
 

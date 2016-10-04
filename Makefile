@@ -21,24 +21,15 @@ OBJECTS = $(patsubst src%.cc, build%.o, $(SOURCE))
 sweep.x: $(OBJECTS)
 	@echo Linking $@
 	$(MPICC) $(OBJECTS) -o sweep.x ${LIBS}
-	@echo " "
 
 # Make object files
 build/%.o: src/%.cc $(HEADERS) make.inc
 	@echo Making $@
 	$(MPICC) $(INC) -c $< -o $@
-	@echo " "
 
 # Delete object files
 .PHONY: clean
 clean:
 	@echo Delete object files
 	rm build/*.o
-	@echo " "
 
-# Delete object files
-.PHONY: doc
-doc:
-	@echo Creating documentation
-	doxygen doc/doxygen/Doxyfile
-	@echo " "
