@@ -10,8 +10,8 @@ ASSERT_ON = 1
 # Use PETSc for SweeperSchur: 0 = no, 1 = yes
 # If 0, you can leave PETSC_INC and PETSC_LIB blank
 USE_PETSC = 0
-PETSC_INC =
-PETSC_LIB =
+PETSC_INC = -I/Users/ckgarrett/lib/petsc-3.7.3/include
+PETSC_LIB = -L/Users/ckgarrett/lib/petsc-3.7.3/lib -lpetsc
 
 
 # Compile command

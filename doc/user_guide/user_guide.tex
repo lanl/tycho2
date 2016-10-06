@@ -7,7 +7,7 @@
 \usepackage{graphicx}
 \usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
 \author{Kris Garrett}
-\title{Tycho 2 User Guide (Draft)}
+\title{Tycho 2 User Guide}
 
 \hypersetup{colorlinks,urlcolor=blue}
 
@@ -37,22 +37,21 @@ Compilation of all files requires a C++11 compliant compiler, MPI, and OpenMP.
 Some of the utilities require extra libraries, which will be detailed.
 
 
-\subsection{Compiling sweep.x}
-\paragraph{Quick step guide}
+\paragraph{General Workflow}
+To build and run Tycho 2, follow this general workflow.
 \begin{itemize}
-\item Go to the project's top level directory
-\item Copy {\tt make.inc.example} to {\tt make.inc}
-\item Set {\tt ASSERT} and {\tt MPICC} in the file {\tt make.inc}
-\item Type {\tt make} to build {\tt sweep.x}
-\item Or type {\tt make -j} to build {\tt sweep.x} in parallel
+\item In the top directory, copy {\tt make.inc.example} to {\tt make.inc}.  Amend the variables in {\tt make.inc}.  Then run {\tt make} to build the main program {\tt sweep.x}.
+\item In the {\tt util} directory, copy {\tt make.inc.example} to {\tt make.inc}.  Amend the variables in {\tt make.inc}.  Then run {\tt make <utility name>} to build the associated utility.  Each {\tt .cc} file in {\tt util} represents a utility name.  For example {\tt make PartitionColumns} will compile {\tt PartitionColumns.cc} and create the binary {\tt PartitionColumns.x}.  Running {\tt make} will build all the utilities which is probably not something you want to do.
+\item Build a utility in {\tt util} to partition a serial mesh (smesh) into a parallel mesh (pmesh).  Use either {\tt PartitionColumns} or {\tt SerialToParallelMesh}.
+\item In the top directory, copy {\tt input.deck.example} to {\tt input.deck} and amend parameters.
+\item In the top directory, copy {\tt run.sh.example} to {\tt run.sh} and amend.
+\item Execute the script {\tt run.sh}.
 \end{itemize}
 
-Detailed instructions for compilation can be found in the {\tt make.inc.example} file.
 
-
-\subsection{Compiling the utilities}
-The util directory contains several utilities for creating and partitioning meshes that {\tt sweep.x} will use.
-When you clone Tycho 2 from github, you should get several files in the {\tt util} directory.
+\subsection{The util directory}
+The {\tt util} directory contains several utilities for creating and partitioning meshes that {\tt sweep.x} will use.
+When you clone Tycho 2 from github, you should see the following files in the {\tt util} directory.
 \begin{itemize}
 \item {\tt cube\_no\_mesh.hdf} -- File containing a cube's geometry.  The cube is a 100x100x100 cube.  This can be opened by certain CAD programs to be meshed such as Salome.\\
 \url{http://www.salome-platform.org/}
@@ -60,7 +59,7 @@ When you clone Tycho 2 from github, you should get several files in the {\tt uti
 \url{http://cgns.github.io/}
 \item {\tt cube-<N>.smesh} -- The same meshes as given by {\tt cube-<N>.cgns}, just in a file format made for Tycho 2 that does not require any library dependencies to be read.
 \item {\tt CreateGaussLegendre.py} -- This is a Python script used to create the Gauss Legendre quadrature in the main code at {\tt src/Quadrature.cc}.
-\item {\tt CreateRegularMesh.cc} -- Creates a regular Cartesian mesh and then each hexahedron is split into Tetrahedra. \\
+\item {\tt CreateRegularMesh.cc} -- Creates a regular Cartesian mesh and then each rectangular prism is split into tetrahedra. \\
 {\color{red} No dependencies required.}
 \item {\tt MoabToSerialMesh.cc} -- Uses the MOAB mesh library to read in a common mesh format and convert it to the smesh file format. \\
 \url{http://sigma.mcs.anl.gov/moab-library/} \\
@@ -77,56 +76,55 @@ When you clone Tycho 2 from github, you should get several files in the {\tt uti
 {\color{red} No dependencies required.}
 \item {\tt SerialMeshToMoab.cc} -- Converts the smesh file format into a file format that the Visit visualization tool can read.\\
 {\color{red} Requires MOAB.}
-\item {\tt SerialToParallelMesh.cc} -- Partitions an smesh using the Metis partitioning library.\\
+\item {\tt SerialToParallelMesh.cc} -- Partitions an smesh into a pmesh using the Metis partitioning library.\\
 \url{http://glaros.dtc.umn.edu/gkhome/metis/metis/overview} \\
 {\color{red} Requires Metis (just the serial version).}
 \end{itemize}
 
-The general workflow is to copy {\tt make.inc.example} to {\tt make.inc}.
-Fill in specific information you need for {\tt make.inc}.
-Then type {\tt make <utility name>}.
-For instance, if you want to make the {\tt SerialToParallelMesh} utility, type {\tt make SerialToParallelMesh}.
-Then run {\tt SerialToParallelMesh.x}.
-Every utility can be run with no arguments to get directions for use.
 
+\paragraph{Creating a pmesh}
 The one utility you will need to compile is a utility to partition an smesh into a pmesh.
 For this, either use {\tt PartitionColumns} or {\tt SerialToParallelMesh}.
+The first partitions a 3D domain into columns in the z-axis.
+The second partitions a 3D domain using Metis, which attempts to minimize surface area between domains.
+
+
+\paragraph{Scaling}
 If you want to do a weak scaling study, you will need the {\tt RefineSerialMesh} utility to create a series of meshes that are 8x larger than one another.
 If you want to visualize your mesh, you will need the {\tt SerialMeshToMoab} or {\tt ParallelMeshToMoab} utilities.
 The other utilities are mainly for development purposes.
 
-\paragraph{Creating a pmesh}
-To run the main executable {\tt sweep.x}, you must supply a pmesh as an argument to the executable.
-Several smesh files containing meshes of cubes are supplied, but it is also possible to supply your own mesh.
-Either the PartitionColumns or SerialToParallelMesh utility must be used to convert an smesh file into a pmesh file.
-PartitionColumns requires no library dependencies and SerialToParallelMesh requires the Metis partitioning library.
-
-\paragraph{Creating your own mesh}
-If you wish to supply your own mesh, you will need to convert your mesh into an smesh.
-This can be done using the MoabToSerialMesh utility which requires the MOAB mesh library.
-MOAB can read several mesh file format, but extra libraries may have to be included in the build process for your mesh format.
 
 \paragraph{Visualization}
-If you wish to visualize either an smesh or pmesh, you will use either the SerialMeshToMoab or ParallelMeshToMoab utilities.
+If you wish to visualize either an smesh or pmesh, you will use the {\tt SerialMeshToMoab} or {\tt ParallelMeshToMoab} utility.
 These require the MOAB mesh library, but no other dependencies are required.
-SerialMeshToMoab will create a .vtk file that can be read by Visit.
-ParallelMeshToMoab will create a .vtk file for each partition of the pmesh and a .visit file linking all the .vtk files together.
-You can then read the .visit file in Visit to visualize the mesh and its partitions.
+SerialMeshToMoab will create a {\tt .vtk} file that can be read by Visit.
+ParallelMeshToMoab will create a {\tt .vtk} file for each partition of the pmesh and a {\tt .visit} file linking all the {\tt .vtk} files together.
+You can then read the {\tt .vtk} or {\tt .visit} file in Visit to visualize the mesh and its partitions.
 
-\paragraph{The build process}
-The build process is almost the same as for the main executable.
-\begin{itemize}
-\item Copy {\tt make.inc.example} to {\tt make.inc}
-\item Set {\tt CPP} in the file {\tt make.inc}
-\item Set any of the library directories needed by the utilities you will build
-\item Type {\tt make <name of utility>}.  For instance {\tt make PartitionColumns} will create the executable {\tt PartitionColumns.x}.  Typing {\tt make} without a target will attempt to build all the utilities.
-\end{itemize}
+To use Visit, press the {\tt Open} button on the side panel to select the {\tt .vtk} or {\tt .visit} file you wish to visualize.
+Then in the same panel select {\tt Add->mesh->mesh} and if visualizing the partitions select {\tt Add->subset->domains}.
+Then click {\tt Draw} to view the mesh.
+
+
+\paragraph{Creating your own mesh}
+You probably don't want to do this, but here are instructions for converting your own prebuilt mesh into a mesh format that Tycho 2 can read.
+You will need the {\tt MoabToSerialMesh} utility which requires the MOAB mesh library.
+MOAB can read several mesh file formats, but extra libraries may have to be included in the build process for your mesh format.
+Currently, the initial condition for Tycho 2 assumes a domain with dimensions inside the cube $(0,0,0)$ and $(100,100,100)$.
+If your mesh does not sit inside this cube, you will have an initial condition of zero.
+
+
+
 
 
 \subsection{Running sweep.x}
-To run {\tt sweep.x}, type {\tt ./sweep.x <.pmesh file> <input.deck file>}.
+The main executable is parallelized via MPI and OpenMP.
+To set the number of OpenMP threads, set the {\tt OMP\_NUM\_THREADS} environment variable.
+To run {\tt sweep.x}, type: {\tt mpirun -n <\# procs> ./sweep.x <.pmesh file> <input.deck file>}.
 This requires that you have created a pmesh as described in the previous section and you have copied {\tt input.deck.example} to {\tt input.deck} (or any other name you prefer).
-In {\tt input.deck}, you have the following options to set.
+
+\paragraph{input.deck options}
 \begin{itemize}
 \item {\tt snOrder} -- Order of the angular quadrature.  This can be any even number from 2 to 30.
 \item {\tt iterMax} -- Maximum number of iterations for source iteration
@@ -135,14 +133,15 @@ In {\tt input.deck}, you have the following options to set.
 \item {\tt intraAngleP} -- This can be 0, 1, 2, 3, or 4 for random, b-level, BFDS, DFDS, and DFHDS
 \item {\tt interAngleP} -- This can be 0, 1, or 2 for interleaved, globally prioritized, and locally prioritized
 \item {\tt nGroups} -- Number of energy group.  Should be 1 or greater.
-\item {\tt SweepType} Type of sweeper to use.  Possible values are commented in the input.deck file.
+\item {\tt sigmaTotal} -- Total cross section.
+\item {\tt sigmaScat} -- Scattering cross section.
+\item {\tt OutputFile} -- Boolean indicating whether to write out final result of $\Psi$.
+\item {\tt OutputFilename} -- Output file name if {\tt OutputFile = true}.
+\item {\tt DD\_IterMax} -- Maximum number of iterations for domain decomposition methods.
+\item {\tt DD\_ErrMax} -- Tolerance for the relative error of domain decomposition methods.
+\item {\tt SweepType} Type of sweeper to use.  Possible values are commented in the {\tt input.deck.example} file.
+\item {\tt GaussElim} -- Type of solver to use for the within cell DG systems as given by Equation~\eqref{eq:dg_system}.
 \end{itemize}
-An example {\tt run.sh} script is supplied which will create a pmesh with 1 partition and run {\tt sweep.x} in serial.
-
-
-
-
-
 
 
 
@@ -264,38 +263,40 @@ We use the upwind flux
 Putting everything together, one gets the linear system below.
 The derivation is described in an accompanying document.
 Face $k$ is defined to be opposite vertex $k$ as shown in the figure.
-\begin{align*}
+\begin{subequations} \label{eq:dg_system}
+\begin{align}
 \frac{1}{12} \bar{A}_1 \left( 2\hat{\Psi}^{(1)}_0 + \hat{\Psi}^{(1)}_2 + \hat{\Psi}^{(1)}_3 \right)
 + \frac{1}{12} \bar{A}_2 \left( 2\hat{\Psi}^{(2)}_0 + \hat{\Psi}^{(2)}_1 + \hat{\Psi}^{(2)}_3 \right)
-+ \frac{1}{12} \bar{A}_3 \left( 2\hat{\Psi}^{(3)}_0 + \hat{\Psi}^{(3)}_1 + \hat{\Psi}^{(3)}_2 \right) \\
++ \frac{1}{12} \bar{A}_3 \left( 2\hat{\Psi}^{(3)}_0 + \hat{\Psi}^{(3)}_1 + \hat{\Psi}^{(3)}_2 \right) \notag \\
 + \frac{1}{12} \bar{A}_0 \left( \Psi_0 + \Psi_1 + \Psi_2 + \Psi_3 \right)
 + \frac{\sigma_t V}{20} \left( 2\Psi_0 + \Psi_1 + \Psi_2 + \Psi_3 \right)
 = \frac{V}{20} \left( 2Q_0 + Q_1 + Q_2 + Q_3 \right)
-\end{align*}
-\begin{align*}
+\end{align}
+\begin{align}
 \frac{1}{12} \bar{A}_0 \left( 2\hat{\Psi}^{(0)}_1 + \hat{\Psi}^{(0)}_2 + \hat{\Psi}^{(0)}_3 \right)
 + \frac{1}{12} \bar{A}_2 \left( \hat{\Psi}^{(2)}_0 + 2\hat{\Psi}^{(2)}_1 + \hat{\Psi}^{(2)}_3 \right)
-+ \frac{1}{12} \bar{A}_3 \left( \hat{\Psi}^{(3)}_0 + 2\hat{\Psi}^{(3)}_1 + \hat{\Psi}^{(3)}_2 \right) \\
++ \frac{1}{12} \bar{A}_3 \left( \hat{\Psi}^{(3)}_0 + 2\hat{\Psi}^{(3)}_1 + \hat{\Psi}^{(3)}_2 \right) \notag \\
 + \frac{1}{12} \bar{A}_1 \left( \Psi_0 + \Psi_1 + \Psi_2 + \Psi_3 \right)
 + \frac{\sigma_t V}{20} \left( \Psi_0 + 2\Psi_1 + \Psi_2 + \Psi_3 \right)
 = \frac{V}{20} \left( Q_0 + 2Q_1 + Q_2 + Q_3 \right)
-\end{align*}
-\begin{align*}
+\end{align}
+\begin{align}
 \frac{1}{12} \bar{A}_0 \left( \hat{\Psi}^{(0)}_1 + 2\hat{\Psi}^{(0)}_2 + \hat{\Psi}^{(0)}_3 \right)
 + \frac{1}{12} \bar{A}_1 \left( \hat{\Psi}^{(1)}_0 + 2\hat{\Psi}^{(1)}_2 + \hat{\Psi}^{(1)}_3 \right)
-+ \frac{1}{12} \bar{A}_3 \left( \hat{\Psi}^{(3)}_0 + \hat{\Psi}^{(3)}_1 + 2\hat{\Psi}^{(3)}_2 \right) \\
++ \frac{1}{12} \bar{A}_3 \left( \hat{\Psi}^{(3)}_0 + \hat{\Psi}^{(3)}_1 + 2\hat{\Psi}^{(3)}_2 \right) \notag \\
 + \frac{1}{12} \bar{A}_2 \left( \Psi_0 + \Psi_1 + \Psi_2 + \Psi_3 \right)
 + \frac{\sigma_t V}{20} \left( \Psi_0 + \Psi_1 + 2\Psi_2 + \Psi_3 \right)
 = \frac{V}{20} \left( Q_0 + Q_1 + 2Q_2 + Q_3 \right)
-\end{align*}
-\begin{align*}
+\end{align}
+\begin{align}
 \frac{1}{12} \bar{A}_0 \left( \hat{\Psi}^{(0)}_1 + \hat{\Psi}^{(0)}_2 + 2\hat{\Psi}^{(0)}_3 \right)
 + \frac{1}{12} \bar{A}_1 \left( \hat{\Psi}^{(1)}_0 + \hat{\Psi}^{(1)}_2 + 2\hat{\Psi}^{(1)}_3 \right)
-+ \frac{1}{12} \bar{A}_2 \left( \hat{\Psi}^{(2)}_0 + \hat{\Psi}^{(2)}_1 + 2\hat{\Psi}^{(2)}_3 \right) \\
++ \frac{1}{12} \bar{A}_2 \left( \hat{\Psi}^{(2)}_0 + \hat{\Psi}^{(2)}_1 + 2\hat{\Psi}^{(2)}_3 \right) \notag \\
 + \frac{1}{12} \bar{A}_3 \left( \Psi_0 + \Psi_1 + \Psi_2 + \Psi_3 \right)
 + \frac{\sigma_t V}{20} \left( \Psi_0 + \Psi_1 + \Psi_2 + 2\Psi_3 \right)
 = \frac{V}{20} \left( Q_0 + Q_1 + Q_2 + 2Q_3 \right)
-\end{align*}
+\end{align}
+\end{subequations}
 
 
 \includegraphics[scale=0.5]{tet-eps-converted-to.pdf}
