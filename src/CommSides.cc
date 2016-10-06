@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include <vector>
 #include <algorithm>
+#include <string.h>
 
 
 /*

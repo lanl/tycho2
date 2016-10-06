@@ -27,7 +27,7 @@ LIB_METIS = $(METIS_DIR)/lib/libmetis.a
 
 
 ##### Applications #####
-APPS = SerialToParallelMesh \
+APPS = PartitionMetis \
        SerialMeshInfo \
        ParallelMeshInfo \
        PartitionColumns \
@@ -50,11 +50,11 @@ clean:
 	rm *.x
 	@echo " "
 
-# SerialToParallelMesh
-.PHONY: SerialToParallelMesh
-SerialToParallelMesh:
-	@echo Making SerialToParallelMesh
-	$(CPP1) $(INC) $(SRC_MESH) SerialToParallelMesh.cc -o SerialToParallelMesh.x $(LIB_METIS)
+# PartitionMetis
+.PHONY: PartitionMetis
+PartitionMetis:
+	@echo Making PartitionMetis
+	$(CPP1) $(INC) $(SRC_MESH) PartitionMetis.cc -o PartitionMetis.x $(LIB_METIS)
 	@echo " "
 
 # SerialMeshInfo

@@ -92,13 +92,13 @@ int main(int argc, char* argv[])
     
     
     // Print utility name
-    printf("--- SerialToParallelMesh Utility ---\n");
+    printf("--- PartitionMetis Utility ---\n");
     
     
     // Get input/output files
     if (argc != 4) {
         printf("Incorrect number of arguments\n");
-        printf("Usage: ./SerialToParallelMesh.x <# partitions> <inputFile> <outputFile>\n");
+        printf("Usage: ./PartitionMetis.x <# partitions> <inputFile> <outputFile>\n");
         printf("\n\n\n");
         return 0;
     }
