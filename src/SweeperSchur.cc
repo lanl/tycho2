@@ -281,14 +281,12 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
 */
 void petscInit(Mat &A, Vec &x, Vec &b, KSP &ksp, void (*func)(void))
 {
-    int argc = 0;
-    char **args = NULL;
     PetscInt vecSize;
     PetscInt totalVecSize;
 
 
     // Start up petsc
-    PetscInitialize(&argc, &args, (char*)0, NULL);
+    //PetscInitialize(&argc, &args, (char*)0, NULL);
 
     
     // Local and global vector sizes
@@ -337,7 +335,7 @@ void petscEnd(Mat &A, Vec &x, Vec &b, KSP &ksp)
     
     
     // Destroy petsc
-    PetscFinalize();
+    //PetscFinalize();
 }
 
 

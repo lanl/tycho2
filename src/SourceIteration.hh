@@ -49,6 +49,11 @@ namespace SourceIteration
     UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
                bool onlyScatSource = false);
 }
+namespace GMRESIteration
+{
+    UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
+               bool onlyScatSource = false);
+}
 
 
 #endif

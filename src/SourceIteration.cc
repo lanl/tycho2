@@ -45,6 +45,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Timer.hh"
 #include <math.h>
 #include <vector>
+#include <petscmat.h>
+#include <petscvec.h>
+#include <petscksp.h>
 
 
 using namespace std;
@@ -236,6 +239,22 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
 
 
 /*
+    phiToPsi
+*/
+static
+void phiToPsi(const PhiData &phi, PsiData &psi) 
+{
+    #pragma omp parallel for
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
+    for (UINT angle = 0; angle < g_nAngles; ++angle) {
+    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+    for (UINT group = 0; group < g_nGroups; ++group) {
+        psi(group, vertex, angle, cell) = phi(group, vertex, cell);
+    }}}}
+}
+
+
+/*
     calcTotalSource
 */
 static
@@ -394,5 +413,184 @@ UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
     // Return number of iterations
     return iter;
 }
+}//End namespace SourceIteration
 
-}//End namespace Solver
+
+namespace GMRESIteration
+{
+
+
+
+class LHSData
+{
+public:
+    PsiData &c_psi;
+    PsiData &c_source;
+    SweeperAbstract &c_sweeper;
+
+    LHSData(PsiData &psi, PsiData &source, SweeperAbstract &sweeper) :
+    c_psi(psi), c_source(source), c_sweeper(sweeper)    
+    {}
+};
+
+
+/*
+    lhsOperator
+
+    This performs the sweep and returns the boundary
+*/
+static
+PetscErrorCode lhsOperator(Mat mat, Vec x, Vec b)
+{
+    // Get data for the solve
+    void *dataVoid;
+    MatShellGetContext(mat, &dataVoid);
+    LHSData *data = (LHSData*) dataVoid;
+
+
+    // Copy b to x
+    VecCopy(x, b);
+
+    // Get raw array from Petsc
+    double *bArray;
+    VecGetArray(b, &bArray);
+    PhiData phi(bArray);
+    
+    // S operator
+    for (UINT i = 0; i < phi.size(); i++) {
+        phi[i] = g_sigmaScat / (4.0 * M_PI) * phi[i];
+    }
+
+    // M operator
+    phiToPsi(phi, data->c_source);
+
+    // L^-1 operator
+    data->c_sweeper.sweep(data->c_psi, data->c_source);
+
+    // D operator
+    psiToPhi(phi, data->c_psi);
+
+    // Give array back to Petsc
+    VecRestoreArray(b, &bArray);
+
+    // b = x - b
+    VecAXPBY(b, 1, -1, x);
+
+    
+    return 0;
+}
+
+
+/*
+    Solve problem
+*/
+UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &source, 
+           bool onlyScatSource)
+{
+    UNUSED_VARIABLE(onlyScatSource);
+    
+    KSP ksp;
+    Mat mat;
+    Vec x, b;
+    PetscInt vecSize;
+    PetscInt totalVecSize;
+    //PC pc;
+    int its;
+    double rnorm;
+    double *bArray;
+    double *xArray;
+
+
+    // Local and global vector sizes
+    vecSize = g_nCells * g_nVrtxPerCell * g_nGroups;
+    UINT totalSize = vecSize;
+    Comm::gsum(totalSize);
+    totalVecSize = totalSize;
+
+
+    // Create vectors
+    VecCreate(MPI_COMM_WORLD, &x);
+    VecSetSizes(x, vecSize, totalVecSize);
+    VecSetType(x, VECMPI);
+    VecDuplicate(x, &b);
+    
+
+    // Create matrix shell and define it as the operator
+    MatCreateShell(MPI_COMM_WORLD, vecSize, vecSize, totalVecSize, totalVecSize,
+                   (void*)(NULL), &mat);
+    MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))lhsOperator);
+    
+
+    // Set solver context
+    KSPCreate(MPI_COMM_WORLD, &ksp);
+    
+
+    // Set operator to KSP context. No preconditioning will actually
+    // be used due to the PCNONE option.
+    KSPSetOperators(ksp, mat, mat);
+    KSPSetTolerances(ksp, g_errMax, PETSC_DEFAULT, PETSC_DEFAULT, g_iterMax);
+
+
+    // Setup preconditioner
+    //KSPGetPC(ksp, &pc);
+    //PCSetType(pc, PCNONE);
+
+
+    // Setup RHS
+    hatSource(g_sigmaTotal, g_sigmaScat, source);
+    sweeper->sweep(psi, source);
+
+    VecGetArray(b, &bArray);
+    PhiData phiB(bArray);
+    psiToPhi(phiB, psi);
+    VecRestoreArray(b, &bArray);
+
+
+    // Set LHSData
+    LHSData data(psi, source, *sweeper);
+    MatShellSetContext(mat, &data);
+
+
+    // Solve
+    printf("Begin Solve\n");
+    KSPSolve(ksp, b, x);
+    printf("End Solve\n");
+
+
+    // Get Psi from Phi
+    hatSource(g_sigmaTotal, g_sigmaScat, source);
+    VecGetArray(x, &xArray);
+    PhiData phiX(xArray);
+    for (UINT i = 0; i < phiX.size(); i++) {
+        phiX[i] = g_sigmaScat / (4.0 * M_PI) * phiX[i];
+    }
+    phiToPsi(phiX, psi);
+    VecRestoreArray(x, &xArray);
+    for (UINT i = 0; i < psi.size(); i++) {
+        source[i] += psi[i];
+    }
+
+    sweeper->sweep(psi, source);
+    
+    
+    // Print some stats
+    KSPGetIterationNumber(ksp, &its);
+    KSPGetResidualNorm(ksp, &rnorm);
+    if (Comm::rank() == 0) {
+        printf("   Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
+    }
+
+
+    // Destroy vectors, ksp, and matrices to free work space
+    VecDestroy(&x);
+    VecDestroy(&b);
+    MatDestroy(&mat);
+    KSPDestroy(&ksp);
+    
+    
+    // Return number of iterations
+    return its;
+}
+}//End namespace GMRESIteration
+
+

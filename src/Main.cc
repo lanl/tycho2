@@ -110,6 +110,7 @@ void readInput(const string &inputFileName)
     kvr.getString("OutputFilename", g_outputFilename);
     kvr.getInt("DD_IterMax", ddIterMax);
     kvr.getDouble("DD_ErrMax", g_ddErrMax);
+    kvr.getBool("SourceIteration", g_useSourceIteration);
        
     g_snOrder = snOrder;
     g_iterMax = iterMax;
@@ -173,7 +174,13 @@ int main(int argc, char *argv[])
     int mpiResult = MPI_Init_thread(&argc, &argv, required, &provided);
     Insist (mpiResult == MPI_SUCCESS, "MPI_Init failed.");
     Insist (required <= provided, "");
-    
+
+
+    // Startup Petsc
+    #if USE_PETSC
+    PetscInitialize(&argc, &argv, (char*)0, NULL);
+    #endif
+
 
     // Input data.
     if (argc < 3) {
@@ -277,6 +284,10 @@ int main(int argc, char *argv[])
 
     
     // End program
+    #if USE_PETSC
+    PetscFinalize();
+    #endif
+
     MPI_Finalize();
     return 0;
 }

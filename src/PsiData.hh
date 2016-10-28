@@ -99,6 +99,17 @@ public:
         c_nc = g_nCells;
         c_data = new double[size()];
         setToValue(0.0);
+        c_ownData = true;
+    }
+
+    PsiData(double *data)
+    {
+        c_ng = g_nGroups;
+        c_nv = g_nVrtxPerCell;
+        c_na = g_nAngles;
+        c_nc = g_nCells;
+        c_data = data;
+        c_ownData = false;
     }
     
 
@@ -110,7 +121,7 @@ public:
     //Destructor
     ~PsiData()
     {
-        if (c_data != NULL) {
+        if (c_data != NULL && c_ownData) {
             delete[] c_data;
             c_data = NULL;
         }
@@ -137,6 +148,7 @@ public:
 private:
     size_t c_ng, c_nv, c_na, c_nc;
     double *c_data;
+    bool c_ownData;
 
 
     // Compute the offset into the data array.
@@ -254,98 +266,6 @@ private:
 
 /*
     PhiData
-*/
-/*class PhiData {
-public:
-    
-    // Accessors
-    double& operator()(size_t i, size_t j, size_t k) 
-    {
-        return c_data[index(i,j,k)];
-    }
-    
-    const double& operator()(size_t i, size_t j, size_t k) const 
-    {
-        return c_data[index(i,j,k)];
-    }
-    
-    double& operator[](size_t i)
-    {
-        Assert(i < size());
-        return c_data[i];
-    }
-    
-    const double& operator[](size_t i) const
-    {
-        Assert(i < size());
-        return c_data[i];
-    }
-
-
-    // Size of Mat
-    size_t size() const
-    {
-        return c_len1 * c_len2 * c_len3;
-    }
-
-
-    // Constructor
-    PhiData(size_t len1, size_t len2, size_t len3)
-    {
-        c_len1 = len1;
-        c_len2 = len2;
-        c_len3 = len3;
-        c_data = new double[size()];
-        setToValue(0.0);
-    }
-
-
-    // Don't allow copy constructor or assignment operator
-    PhiData(const PhiData &other) = delete;
-    PhiData & operator= (const PhiData &other) = delete;
-    
-
-    // Destructor
-    ~PhiData()
-    {
-        if (c_data != NULL) {
-            delete[] c_data;
-            c_data = NULL;
-        }
-    }
-    
-    
-    // Set to a constant value
-    void setToValue(double value)
-    {
-        if(c_data == NULL)
-            return;
-        
-        for(size_t i = 0; i < size(); i++) {
-            c_data[i] = value;
-        }
-    }
-
-
-// Private    
-private:
-    size_t c_len1, c_len2, c_len3;
-    double *c_data;
-
-    // Compute the offset into the data array.
-    size_t index(size_t i, size_t j, size_t k) const
-    {
-        Assert( i < c_len1 );
-        Assert( j < c_len2 );
-        Assert( k < c_len3 );
-        
-        return c_len1 * (c_len2 * k + j) + i;
-    }
-};*/
-
-
-/*
-    PhiData
 
     g = group
     v = vertex
@@ -393,6 +313,16 @@ public:
         c_nc = g_nCells;
         c_data = new double[size()];
         setToValue(0.0);
+        c_ownData = true;
+    }
+
+    PhiData(double *data)
+    {
+        c_ng = g_nGroups;
+        c_nv = g_nVrtxPerCell;
+        c_nc = g_nCells;
+        c_data = data;
+        c_ownData = false;
     }
 
 
@@ -404,7 +334,7 @@ public:
     // Destructor
     ~PhiData()
     {
-        if (c_data != NULL) {
+        if (c_data != NULL && c_ownData) {
             delete[] c_data;
             c_data = NULL;
         }
@@ -427,6 +357,7 @@ public:
 private:
     size_t c_ng, c_nv, c_nc;
     double *c_data;
+    bool c_ownData;
 
     // Compute the offset into the data array.
     size_t index(size_t g, size_t v, size_t c) const

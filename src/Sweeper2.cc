@@ -65,7 +65,10 @@ Sweeper2::Sweeper2()
 */
 void Sweeper2::solve()
 {
-    SourceIteration::solve(this, c_psi, c_source);
+    if (g_useSourceIteration)
+        SourceIteration::solve(this, c_psi, c_source);
+    else
+        GMRESIteration::solve(this, c_psi, c_source);
 }
 
 

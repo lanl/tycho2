@@ -118,6 +118,7 @@ EXTERN UINT g_nAngles;
 EXTERN UINT g_nCells;
 EXTERN double g_ddErrMax;
 EXTERN UINT g_ddIterMax;
+EXTERN bool g_useSourceIteration;
 
 #endif
 
