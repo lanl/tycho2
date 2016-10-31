@@ -68,7 +68,7 @@ void SweeperPBJOuter::solve()
     while (iter < g_ddIterMax) {
         
         // Sweep
-        UINT its = SourceIteration::solve(this, c_psi, c_source);
+        UINT its = SourceIteration::fixedPoint(this, c_psi, c_source);
         sourceIts.push_back(its);
         
 
@@ -135,7 +135,7 @@ void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
 void SweeperPBJ::solve()
 {
     c_iters = 0;
-    SourceIteration::solve(this, c_psi, c_source);
+    SourceIteration::fixedPoint(this, c_psi, c_source);
 
     if (Comm::rank() == 0) {
         printf("Num source iters: %" PRIu64 "\n", c_iters);

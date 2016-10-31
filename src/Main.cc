@@ -46,7 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Timer.hh"
 #include "SweeperAbstract.hh"
 #include "Sweeper.hh"
-#include "Sweeper2.hh"
+#include "SweeperTraverse.hh"
 #include "SweeperPBJ.hh"
 #include "SweeperSchur.hh"
 #include <signal.h>
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
             sweeper = new Sweeper();
             break;
         case SweepType_TraverseGraph:
-            sweeper = new Sweeper2();
+            sweeper = new SweeperTraverse();
             break;
         #if USE_PETSC
         case SweepType_Schur:

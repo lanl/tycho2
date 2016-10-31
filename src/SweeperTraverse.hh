@@ -37,52 +37,26 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "Sweeper2.hh"
-#include "SourceIteration.hh"
-#include "SweepData.hh"
-#include "Global.hh"
-#include "TraverseGraph.hh"
-#include "Priorities.hh"
+#ifndef __SWEEPER_TRAVERSE_HH__
+#define __SWEEPER_TRAVERSE_HH__
+
+#include "Mat.hh"
 #include "PsiData.hh"
+#include "Global.hh"
+#include "SweeperAbstract.hh"
 
-using namespace std;
 
-
-/*
-    Sweeper2 constructor
-*/
-Sweeper2::Sweeper2()
+class SweeperTraverse : public SweeperAbstract
 {
-    c_maxComputePerStep = g_maxCellsPerStep;
-    c_sigmaTotal = g_sigmaTotal;
-    c_priorities.resize(g_nCells, g_nAngles);
-    Priorities::calcPriorities(c_priorities);
-}
+public:
+    SweeperTraverse();
+    void sweep(PsiData &psi, const PsiData &source);
+    void solve();
 
+private:
+    Mat2<UINT> c_priorities;
+    UINT c_maxComputePerStep;
+    double c_sigmaTotal;
+};
 
-/*
-    solve
-*/
-void Sweeper2::solve()
-{
-    if (g_useSourceIteration)
-        SourceIteration::solve(this, c_psi, c_source);
-    else
-        GMRESIteration::solve(this, c_psi, c_source);
-}
-
-
-/*
-    Sweeper2::sweep
-    
-    Sweep by traversing graph.
-*/
-void Sweeper2::sweep(PsiData &psi, const PsiData &source)
-{
-    const bool doComm = true;
-    PsiBoundData psiBound;
-    SweepData sweepData(psi, source, psiBound, c_sigmaTotal, c_priorities);
-    traverseGraph(c_maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
-                  Direction_Forward);
-}
-
+#endif

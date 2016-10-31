@@ -46,14 +46,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace SourceIteration
 {
-    UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
-               bool onlyScatSource = false);
-}
-namespace GMRESIteration
-{
-    UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
-               bool onlyScatSource = false);
-}
+
+UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
+                bool onlyScatSource = false);
+
+UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
+            bool onlyScatSource = false);
+
+} // End namespace
 
 
 #endif

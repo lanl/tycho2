@@ -285,14 +285,15 @@ void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld,
 }
 
 
+// Global functions
 namespace SourceIteration
 {
 
 /*
-    Solve problem
+    Fixed point iteration (typical source iteration)
 */
-UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource, 
-           bool onlyScatSource)
+UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource, 
+                bool onlyScatSource)
 {
     // Data for problem
     PsiData fixedSource;
@@ -413,14 +414,13 @@ UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
     // Return number of iterations
     return iter;
 }
-}//End namespace SourceIteration
 
 
-namespace GMRESIteration
-{
-
-
-
+/*
+    LHSData
+    
+    Data needed by the GMRES solver
+*/
 class LHSData
 {
 public:
@@ -482,10 +482,10 @@ PetscErrorCode lhsOperator(Mat mat, Vec x, Vec b)
 
 
 /*
-    Solve problem
+    Krylov solver
 */
-UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &source, 
-           bool onlyScatSource)
+UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source, 
+            bool onlyScatSource)
 {
     UNUSED_VARIABLE(onlyScatSource);
     
@@ -591,6 +591,6 @@ UINT solve(SweeperAbstract *sweeper, PsiData &psi, PsiData &source,
     // Return number of iterations
     return its;
 }
-}//End namespace GMRESIteration
+}//End namespace SourceIteration
 
 

@@ -258,7 +258,7 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
     UINT sourceIts;
     SweepData sweepData(*data->psi, *data->source, *data->psiBound, g_sigmaTotal, 
                         *data->priorities);
-    sourceIts = SourceIteration::solve(data->sweeperSchurOuter, *data->psi, 
+    sourceIts = SourceIteration::fixedPoint(data->sweeperSchurOuter, *data->psi, 
                                        *data->source, true);
     data->sourceIts->push_back(sourceIts);
     data->commSides->commSides(*data->psi, *data->psiBound);
@@ -350,7 +350,7 @@ void SweeperSchur::solve()
     
     // Solve
     c_iters = 0;
-    SourceIteration::solve(this, c_psi, c_source);
+    SourceIteration::fixedPoint(this, c_psi, c_source);
 
     
     // End petsc
@@ -487,7 +487,7 @@ void SweeperSchurOuter::solve()
     c_psi.setToValue(0.0);
     c_source.setToValue(0.0);
     c_psiBound.setToValue(0.0);
-    sourceIts1 = SourceIteration::solve(this, c_psi, c_source);
+    sourceIts1 = SourceIteration::fixedPoint(this, c_psi, c_source);
     if (Comm::rank() == 0) {
         printf("    Source Swept\n");
     }
@@ -529,7 +529,7 @@ void SweeperSchurOuter::solve()
     if (Comm::rank() == 0) {
         printf("    Sweeping to solve non-boundary values\n");
     }
-    sourceIts3 = SourceIteration::solve(this, c_psi, c_source);
+    sourceIts3 = SourceIteration::fixedPoint(this, c_psi, c_source);
     if (Comm::rank() == 0) {
         printf("    Non-boundary values swept\n");
         printf("Num sweeps Q: %" PRIu64 "\n", sourceIts1);
