@@ -354,6 +354,9 @@ void SweeperSchur::solve()
     
     // Solve
     c_iters = 0;
+    SourceIteration::getProblemSource(c_source);
+    c_psi.setToValue(0.0);
+
     if (g_useSourceIteration)
         SourceIteration::fixedPoint(this, c_psi, c_source);
     else
@@ -488,6 +491,9 @@ void SweeperSchurOuter::solve()
     
     
     // Do a sweep on the source 
+    SourceIteration::getProblemSource(c_source);
+    c_psi.setToValue(0.0);
+
     if (Comm::rank() == 0) {
         printf("    Sweeping Source\n");
     }

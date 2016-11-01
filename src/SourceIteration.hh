@@ -47,10 +47,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SourceIteration
 {
 
-UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
+void getProblemSource(PsiData &source);
+
+UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
                 bool onlyScatSource = false);
 
-UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
+UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
             bool onlyScatSource = false);
 
 } // End namespace

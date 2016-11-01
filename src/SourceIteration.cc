@@ -285,6 +285,7 @@ void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld,
 }
 
 
+bool g_useZeroPsiBound = false;
 // Global functions
 namespace SourceIteration
 {
@@ -302,19 +303,15 @@ void getProblemSource(PsiData &source)
 /*
     Fixed point iteration (typical source iteration)
 */
-UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource, 
+UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source, 
                 bool onlyScatSource)
 {
     // Data for problem
-    PsiData fixedSource;
+    PsiData totalSource;
     PhiData phiNew;
     PhiData phiOld;
     
     
-    // Calculate fixed source
-    hatSource(g_sigmaTotal, g_sigmaScat, fixedSource);
-
-
     // Get phi
     psiToPhi(phiNew, psi);
     
@@ -352,7 +349,7 @@ UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, PsiData &totalSource,
         
         // totalSource = fixedSource + phiOld
         timer2.start();
-        calcTotalSource(fixedSource, phiOld, totalSource, onlyScatSource);
+        calcTotalSource(source, phiOld, totalSource, onlyScatSource);
         timer2.stop();
         
         clockTime2 = timer2.wall_clock();
@@ -475,6 +472,7 @@ PetscErrorCode lhsOperator(Mat mat, Vec x, Vec b)
     phiToPsi(phi, data->c_source);
 
     // L^-1 operator
+    g_useZeroPsiBound = true;
     data->c_sweeper.sweep(data->c_psi, data->c_source);
 
     // D operator
@@ -494,7 +492,7 @@ PetscErrorCode lhsOperator(Mat mat, Vec x, Vec b)
 /*
     Krylov solver
 */
-UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source, 
+UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source, 
             bool onlyScatSource)
 {
     UNUSED_VARIABLE(onlyScatSource);
@@ -504,11 +502,11 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source,
     Vec x, b;
     PetscInt vecSize;
     PetscInt totalVecSize;
-    //PC pc;
     int its;
     double rnorm;
     double *bArray;
     double *xArray;
+    PsiData tempSource;
 
 
     // Local and global vector sizes
@@ -541,15 +539,9 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source,
     KSPSetTolerances(ksp, g_errMax, PETSC_DEFAULT, PETSC_DEFAULT, g_iterMax);
 
 
-    // Setup preconditioner
-    //KSPGetPC(ksp, &pc);
-    //PCSetType(pc, PCNONE);
-
-
-    // Setup RHS
+    // Setup RHS (b = D L^{-1} Q)
     if (Comm::rank() == 0)
         printf("Krylov source\n");
-    hatSource(g_sigmaTotal, g_sigmaScat, source);
     sweeper->sweep(psi, source);
 
     VecGetArray(b, &bArray);
@@ -559,7 +551,7 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source,
 
 
     // Set LHSData
-    LHSData data(psi, source, *sweeper);
+    LHSData data(psi, tempSource, *sweeper);
     MatShellSetContext(mat, &data);
 
 
@@ -572,7 +564,7 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source,
 
 
     // Get Psi from Phi
-    hatSource(g_sigmaTotal, g_sigmaScat, source);
+    // Psi = L^{-1} (MS Phi + Q)
     VecGetArray(x, &xArray);
     PhiData phiX(xArray);
     for (UINT i = 0; i < phiX.size(); i++) {
@@ -581,10 +573,10 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source,
     phiToPsi(phiX, psi);
     VecRestoreArray(x, &xArray);
     for (UINT i = 0; i < psi.size(); i++) {
-        source[i] += psi[i];
+        tempSource[i] = source[i] + psi[i];
     }
 
-    sweeper->sweep(psi, source);
+    sweeper->sweep(psi, tempSource);
     
     
     // Print some stats

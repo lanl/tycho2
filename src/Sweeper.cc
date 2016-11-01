@@ -355,6 +355,9 @@ Sweeper::Sweeper()
 */
 void Sweeper::solve()
 {
+    SourceIteration::getProblemSource(c_source);
+    c_psi.setToValue(0.0);
+
     if (g_useSourceIteration)
         SourceIteration::fixedPoint(this, c_psi, c_source);
     else
