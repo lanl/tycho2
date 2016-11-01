@@ -255,12 +255,16 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
 
     // Traverse the graph to get the values on the outward facing boundary
     // call commSides to transfer boundary data
-    UINT sourceIts;
+    UINT its;
     SweepData sweepData(*data->psi, *data->source, *data->psiBound, g_sigmaTotal, 
                         *data->priorities);
-    sourceIts = SourceIteration::fixedPoint(data->sweeperSchurOuter, *data->psi, 
-                                       *data->source, true);
-    data->sourceIts->push_back(sourceIts);
+    if (g_useSourceIteration)
+        its = SourceIteration::fixedPoint(data->sweeperSchurOuter, *data->psi,
+                                          *data->source, true);
+    else
+        its = SourceIteration::krylov(data->sweeperSchurOuter, *data->psi,
+                                      *data->source, true);
+    data->sourceIts->push_back(its);
     data->commSides->commSides(*data->psi, *data->psiBound);
 
     
@@ -350,7 +354,10 @@ void SweeperSchur::solve()
     
     // Solve
     c_iters = 0;
-    SourceIteration::fixedPoint(this, c_psi, c_source);
+    if (g_useSourceIteration)
+        SourceIteration::fixedPoint(this, c_psi, c_source);
+    else
+        SourceIteration::krylov(this, c_psi, c_source);
 
     
     // End petsc
@@ -487,7 +494,12 @@ void SweeperSchurOuter::solve()
     c_psi.setToValue(0.0);
     c_source.setToValue(0.0);
     c_psiBound.setToValue(0.0);
-    sourceIts1 = SourceIteration::fixedPoint(this, c_psi, c_source);
+    
+    if (g_useSourceIteration)
+        sourceIts1 = SourceIteration::fixedPoint(this, c_psi, c_source);
+    else
+        sourceIts1 = SourceIteration::krylov(this, c_psi, c_source);
+    
     if (Comm::rank() == 0) {
         printf("    Source Swept\n");
     }
@@ -516,9 +528,6 @@ void SweeperSchurOuter::solve()
     // Print some stats
     KSPGetIterationNumber(c_ksp, &its);
     KSPGetResidualNorm(c_ksp, &rnorm);
-    if (Comm::rank() == 0) {
-        printf("    Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
-    }
 
 
     // Put x in XOut and output the answer from XOut to psi
@@ -529,9 +538,15 @@ void SweeperSchurOuter::solve()
     if (Comm::rank() == 0) {
         printf("    Sweeping to solve non-boundary values\n");
     }
-    sourceIts3 = SourceIteration::fixedPoint(this, c_psi, c_source);
+    
+    if (g_useSourceIteration)
+        sourceIts3 = SourceIteration::fixedPoint(this, c_psi, c_source);
+    else
+        sourceIts3 = SourceIteration::krylov(this, c_psi, c_source);
+    
     if (Comm::rank() == 0) {
-        printf("    Non-boundary values swept\n");
+        printf("Non-boundary values swept\n");
+        printf("Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
         printf("Num sweeps Q: %" PRIu64 "\n", sourceIts1);
         printf("Num sweeps KSP:");
         for (UINT i = 0; i < sourceItsVec.size(); i++)

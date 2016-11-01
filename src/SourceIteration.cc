@@ -289,6 +289,16 @@ void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld,
 namespace SourceIteration
 {
 
+
+/*
+    getProblemSource
+*/
+void getProblemSource(PsiData &source)
+{
+    hatSource(g_sigmaTotal, g_sigmaScat, source);
+}
+
+
 /*
     Fixed point iteration (typical source iteration)
 */
@@ -537,6 +547,8 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source,
 
 
     // Setup RHS
+    if (Comm::rank() == 0)
+        printf("Krylov source\n");
     hatSource(g_sigmaTotal, g_sigmaScat, source);
     sweeper->sweep(psi, source);
 
@@ -552,9 +564,11 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, PsiData &source,
 
 
     // Solve
-    printf("Begin Solve\n");
+    if (Comm::rank() == 0)
+        printf("Begin Solve\n");
     KSPSolve(ksp, b, x);
-    printf("End Solve\n");
+    if (Comm::rank() == 0)
+        printf("End Solve\n");
 
 
     // Get Psi from Phi

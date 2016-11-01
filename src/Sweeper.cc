@@ -355,7 +355,10 @@ Sweeper::Sweeper()
 */
 void Sweeper::solve()
 {
-    SourceIteration::fixedPoint(this, c_psi, c_source);
+    if (g_useSourceIteration)
+        SourceIteration::fixedPoint(this, c_psi, c_source);
+    else
+        SourceIteration::krylov(this, c_psi, c_source);
 }
 
 
