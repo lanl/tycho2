@@ -285,7 +285,6 @@ void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld,
 }
 
 
-bool g_useZeroPsiBound = false;
 // Global functions
 namespace SourceIteration
 {
@@ -384,7 +383,7 @@ UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
         wallClockTime = timer.wall_clock();
         Comm::gmax(wallClockTime);
         if(Comm::rank() == 0) {
-            printf("   iteration: %" PRIu64 "   error: %f   time: %f\n", 
+            printf("   iteration: %" PRIu64 "   error: %e   time: %f\n", 
                    iter, error, wallClockTime);
         }
         
@@ -472,7 +471,7 @@ PetscErrorCode lhsOperator(Mat mat, Vec x, Vec b)
     phiToPsi(phi, data->c_source);
 
     // L^-1 operator
-    g_useZeroPsiBound = true;
+    data->c_sweeper.setUseZeroPsiBound(true);
     data->c_sweeper.sweep(data->c_psi, data->c_source);
 
     // D operator
@@ -542,6 +541,7 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
     // Setup RHS (b = D L^{-1} Q)
     if (Comm::rank() == 0)
         printf("Krylov source\n");
+    sweeper->setUseZeroPsiBound(false);
     sweeper->sweep(psi, source);
 
     VecGetArray(b, &bArray);
@@ -576,6 +576,7 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
         tempSource[i] = source[i] + psi[i];
     }
 
+    sweeper->setUseZeroPsiBound(false);
     sweeper->sweep(psi, tempSource);
     
     

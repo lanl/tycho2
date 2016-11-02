@@ -58,9 +58,17 @@ public:
         c_psi.writeToFile(filename);
     }
 
+    void setUseZeroPsiBound(bool b)
+    {
+        c_useZeroPsiBound = b;
+    }
+
 protected:
     PsiData c_psi;
     PsiData c_source;
+
+    // Only needed for OuterPBJ and OuterSchur
+    bool c_useZeroPsiBound;
 };
 
 #endif

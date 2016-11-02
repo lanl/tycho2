@@ -256,8 +256,9 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
     // Traverse the graph to get the values on the outward facing boundary
     // call commSides to transfer boundary data
     UINT its;
-    SweepData sweepData(*data->psi, *data->source, *data->psiBound, g_sigmaTotal, 
-                        *data->priorities);
+    data->source->setToValue(0.0);
+    //SweepData sweepData(*data->psi, *data->source, *data->psiBound, g_sigmaTotal, 
+    //                    *data->priorities);
     if (g_useSourceIteration)
         its = SourceIteration::fixedPoint(data->sweeperSchurOuter, *data->psi,
                                           *data->source, true);
@@ -289,10 +290,6 @@ void petscInit(Mat &A, Vec &x, Vec &b, KSP &ksp, void (*func)(void))
     PetscInt totalVecSize;
 
 
-    // Start up petsc
-    //PetscInitialize(&argc, &args, (char*)0, NULL);
-
-    
     // Local and global vector sizes
     vecSize = getVecSize();
     UINT totalSize = vecSize;
@@ -336,10 +333,6 @@ void petscEnd(Mat &A, Vec &x, Vec &b, KSP &ksp)
     VecDestroy(&b);
     MatDestroy(&A);
     KSPDestroy(&ksp);
-    
-    
-    // Destroy petsc
-    //PetscFinalize();
 }
 
 
@@ -478,7 +471,7 @@ void SweeperSchurOuter::solve()
     std::vector<UINT> sourceItsVec;
 
 
-    // Set static variables
+    // Set data for Krylov solver
     SchurData data;
     data.commSides = &c_commSides;
     data.psi = &c_psi;
@@ -488,18 +481,19 @@ void SweeperSchurOuter::solve()
     data.sourceIts = &sourceItsVec;
     data.sweeperSchurOuter = this;
     MatShellSetContext(mat, &data);
+
+
+    // Initialize class variables
+    SourceIteration::getProblemSource(c_source);
+    c_psi.setToValue(0.0);
+    c_psiBound.setToValue(0.0);
+    c_useZeroPsiBound = false;
     
     
     // Do a sweep on the source 
-    SourceIteration::getProblemSource(c_source);
-    c_psi.setToValue(0.0);
-
     if (Comm::rank() == 0) {
         printf("    Sweeping Source\n");
     }
-    c_psi.setToValue(0.0);
-    c_source.setToValue(0.0);
-    c_psiBound.setToValue(0.0);
     
     if (g_useSourceIteration)
         sourceIts1 = SourceIteration::fixedPoint(this, c_psi, c_source);
@@ -512,9 +506,9 @@ void SweeperSchurOuter::solve()
 
 
     // Input source into b
-    PsiBoundData psiBound;
-    c_commSides.commSides(c_psi, psiBound);
-    psiBoundToVec(c_b, psiBound);
+    //PsiBoundData psiBound;
+    c_commSides.commSides(c_psi, c_psiBound);
+    psiBoundToVec(c_b, c_psiBound);
 
 
     // Initial guess
@@ -545,6 +539,7 @@ void SweeperSchurOuter::solve()
         printf("    Sweeping to solve non-boundary values\n");
     }
     
+    SourceIteration::getProblemSource(c_source);
     if (g_useSourceIteration)
         sourceIts3 = SourceIteration::fixedPoint(this, c_psi, c_source);
     else
@@ -574,12 +569,19 @@ void SweeperSchurOuter::solve()
 */
 void SweeperSchurOuter::sweep(PsiData &psi, const PsiData &source)
 {
-    SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
+    PsiBoundData zeroPsiBound;
     
+    if (c_useZeroPsiBound) {
+        SweepData sweepData(psi, source, zeroPsiBound, g_sigmaTotal, c_priorities);
+        traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD,
+                      Direction_Forward);
+    }
+    else {
+        SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
+        traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD,
+                      Direction_Forward);
+    }
 
-    // Do 1 graph traversal
-    traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD,
-                  Direction_Forward);
 }
 
 

@@ -67,6 +67,7 @@ void SweeperPBJOuter::solve()
     SourceIteration::getProblemSource(c_source);
     c_psi.setToValue(0.0);
     c_psiBound.setToValue(0.0);
+    c_useZeroPsiBound = false;
 
     
     // Source iterate till converged
@@ -96,7 +97,7 @@ void SweeperPBJOuter::solve()
         Comm::gsum(normL1);
 
         if (Comm::rank() == 0) {
-            printf("Relative error: %f\n", errL1 / normL1);
+            printf("Relative error: %e\n", errL1 / normL1);
         }
 
         if (errL1 / normL1 < g_ddErrMax)
@@ -126,24 +127,22 @@ void SweeperPBJOuter::solve()
 /*
     sweep
 */
-extern bool g_useZeroPsiBound;
 void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
 {
     const bool doComm = false;
     const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
     PsiBoundData zeroPsiBound;
-    SweepData *sweepData;
     
-    if (g_useZeroPsiBound)
-        sweepData = new SweepData(psi, source, zeroPsiBound, g_sigmaTotal, c_priorities);
-    else
-        sweepData = new SweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
-    g_useZeroPsiBound = false;
-
-    // Do 1 graph traversal
-    traverseGraph(maxComputePerStep, *sweepData, doComm, MPI_COMM_WORLD,
-                  Direction_Forward);
-    delete sweepData;
+    if (c_useZeroPsiBound) {
+        SweepData sweepData(psi, source, zeroPsiBound, g_sigmaTotal, c_priorities);
+        traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
+                      Direction_Forward);
+    }
+    else {
+        SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
+        traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
+                      Direction_Forward);
+    }
 }
 
 
