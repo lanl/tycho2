@@ -83,4 +83,27 @@ private:
 };
 
 
+/*
+    SweeperPBJSI
+
+    Used for PBJ and source iteration at the same time.
+*/
+class SweeperPBJSI : public SweeperAbstract
+{
+public:
+    void solve();
+    void sweep(PsiData &psi, const PsiData &source);
+
+    SweeperPBJSI() : 
+        c_priorities(g_nCells, g_nAngles) 
+    { }
+    
+private:
+    CommSides c_commSides;
+    PsiBoundData c_psiBound;
+    Mat2<UINT> c_priorities;
+};
+
+
+
 #endif

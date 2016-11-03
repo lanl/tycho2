@@ -219,10 +219,13 @@ double calcMass(const PhiData &phi)
 }*/
 
 
+// Global functions
+namespace SourceIteration
+{
+
 /*
     psiToPhi
 */
-static
 void psiToPhi(PhiData &phi, const PsiData &psi) 
 {
     phi.setToValue(0.0);
@@ -241,7 +244,6 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
 /*
     phiToPsi
 */
-static
 void phiToPsi(const PhiData &phi, PsiData &psi) 
 {
     #pragma omp parallel for
@@ -257,7 +259,6 @@ void phiToPsi(const PhiData &phi, PsiData &psi)
 /*
     calcTotalSource
 */
-static
 void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld, 
                      PsiData &totalSource, bool onlyScatSource) 
 {
@@ -283,11 +284,6 @@ void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld,
         }}}}
     }
 }
-
-
-// Global functions
-namespace SourceIteration
-{
 
 
 /*
@@ -337,6 +333,7 @@ UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
         double wallClockTime = 0.0;
         double clockTime2 = 0.0;
         double clockTime3 = 0.0;
+        double norm = 0.0;
         timer.start();
         
 
@@ -367,9 +364,12 @@ UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
         psiToPhi(phiNew, psi);
         error = 0.0;
         for (UINT i = 0; i < phiNew.size(); i++) {
-            error = max(error, fabs(phiNew[i] - phiOld[i]) / phiNew[i]);
+            error += fabs(phiNew[i] - phiOld[i]);
+            norm += fabs(phiNew[i]);
         }
         Comm::gmax(error);
+        Comm::gmax(norm);
+        error = error / norm;
         timer3.stop();
         clockTime3 = timer3.wall_clock();
         Comm::gmax(clockTime3);

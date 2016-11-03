@@ -47,6 +47,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace SourceIteration
 {
 
+void psiToPhi(PhiData &phi, const PsiData &psi);
+void phiToPsi(const PhiData &phi, PsiData &psi);
+void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld, 
+                     PsiData &totalSource, bool onlyScatSource);
 void getProblemSource(PsiData &source);
 
 UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,

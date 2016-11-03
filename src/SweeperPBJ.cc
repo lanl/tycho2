@@ -235,3 +235,93 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+//            SweeperPBJSI functions
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+    solve
+*/
+void SweeperPBJSI::solve()
+{
+    PhiData phi0;
+    PhiData phi1;
+    PsiData totalSource;
+    PsiBoundData psiBound0;
+    vector<UINT> sourceIts;
+    
+    
+    // Initialize source and psi
+    SourceIteration::getProblemSource(c_source);
+    c_psi.setToValue(0.0);
+    c_psiBound.setToValue(0.0);
+    c_useZeroPsiBound = false;
+    phi0.setToValue(0.0);
+
+    
+    // Source iterate till converged
+    UINT iter = 1;
+    while (iter < g_ddIterMax) {
+        
+        SourceIteration::calcTotalSource(c_source, phi0, totalSource, false);
+        sweep(c_psi, totalSource);
+        SourceIteration::psiToPhi(phi1, c_psi);
+        c_commSides.commSides(c_psi, c_psiBound);
+        
+
+        // Check tolerance and set psi0 = psi1
+        double errL1 = 0.0;
+        double normL1 = 0.0;
+        for (UINT i = 0; i < phi1.size(); i++) {
+            errL1  += fabs(phi1[i] - phi0[i]);
+            normL1 += fabs(phi1[i]);
+            phi0[i] = phi1[i];
+        }
+        /*for (UINT i = 0; i < c_psiBound.size(); i++) {
+            errL1  += fabs(c_psiBound[i] - psiBound0[i]);
+            normL1 += fabs(c_psiBound[i]);
+            psiBound0[i] = c_psiBound[i];
+        }*/
+        
+        Comm::gsum(errL1);
+        Comm::gsum(normL1);
+
+        if (Comm::rank() == 0) {
+            printf("Relative error: %e\n", errL1 / normL1);
+        }
+
+        if (errL1 / normL1 < g_ddErrMax)
+            break;
+        
+        
+        // Increment iter
+        iter++;
+    }
+    
+    
+    // Print statistics
+    if (Comm::rank() == 0) {
+        printf("PBJ Iters: %" PRIu64 "\n", iter);
+        printf("Num source iterations:");
+        for (UINT i = 0; i < sourceIts.size(); i++)
+            printf(" %" PRIu64, sourceIts[i]);
+        printf("\n");
+    }
+}
+
+
+/*
+    sweep
+*/
+void SweeperPBJSI::sweep(PsiData &psi, const PsiData &source)
+{
+    const bool doComm = false;
+    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
+    
+    SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
+    traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
+                  Direction_Forward);
+}
+
+
+

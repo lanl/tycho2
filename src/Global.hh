@@ -84,6 +84,7 @@ enum SweepType
     SweepType_PBJOuter,
     SweepType_Schur,
     SweepType_SchurOuter,
+    SweepType_PBJSI,
 };
 
 enum GaussElim
