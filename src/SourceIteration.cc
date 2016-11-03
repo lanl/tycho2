@@ -43,11 +43,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "Timer.hh"
+#include "KrylovSolver.hh"
 #include <math.h>
 #include <vector>
-#include <petscmat.h>
-#include <petscvec.h>
-#include <petscksp.h>
 
 
 using namespace std;
@@ -446,22 +444,23 @@ public:
     This performs the sweep and returns the boundary
 */
 static
-PetscErrorCode lhsOperator(Mat mat, Vec x, Vec b)
+void lhsOperator(const double *x, double *b, void *voidData)
 {
     // Get data for the solve
-    void *dataVoid;
-    MatShellGetContext(mat, &dataVoid);
-    LHSData *data = (LHSData*) dataVoid;
+    LHSData *data = (LHSData*) voidData;
+    UINT vecSize = g_nCells * g_nVrtxPerCell * g_nGroups;
 
 
     // Copy b to x
-    VecCopy(x, b);
+    for (UINT i = 0; i < vecSize; i++) {
+        b[i] = x[i];
+    }
+
 
     // Get raw array from Petsc
-    double *bArray;
-    VecGetArray(b, &bArray);
-    PhiData phi(bArray);
+    PhiData phi(b);
     
+
     // S operator
     for (UINT i = 0; i < phi.size(); i++) {
         phi[i] = g_sigmaScat / (4.0 * M_PI) * phi[i];
@@ -470,21 +469,20 @@ PetscErrorCode lhsOperator(Mat mat, Vec x, Vec b)
     // M operator
     phiToPsi(phi, data->c_source);
 
+
     // L^-1 operator
     data->c_sweeper.setUseZeroPsiBound(true);
     data->c_sweeper.sweep(data->c_psi, data->c_source);
 
+
     // D operator
     psiToPhi(phi, data->c_psi);
 
-    // Give array back to Petsc
-    VecRestoreArray(b, &bArray);
 
     // b = x - b
-    VecAXPBY(b, 1, -1, x);
-
-    
-    return 0;
+    for (UINT i = 0; i < vecSize; i++) {
+        b[i] = x[i] - b[i];
+    }
 }
 
 
@@ -496,11 +494,7 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
 {
     UNUSED_VARIABLE(onlyScatSource);
     
-    KSP ksp;
-    Mat mat;
-    Vec x, b;
-    PetscInt vecSize;
-    PetscInt totalVecSize;
+    UINT vecSize;
     int its;
     double rnorm;
     double *bArray;
@@ -508,34 +502,11 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
     PsiData tempSource;
 
 
-    // Local and global vector sizes
+    // Create the Krylov solver
     vecSize = g_nCells * g_nVrtxPerCell * g_nGroups;
-    UINT totalSize = vecSize;
-    Comm::gsum(totalSize);
-    totalVecSize = totalSize;
-
-
-    // Create vectors
-    VecCreate(MPI_COMM_WORLD, &x);
-    VecSetSizes(x, vecSize, totalVecSize);
-    VecSetType(x, VECMPI);
-    VecDuplicate(x, &b);
-    
-
-    // Create matrix shell and define it as the operator
-    MatCreateShell(MPI_COMM_WORLD, vecSize, vecSize, totalVecSize, totalVecSize,
-                   (void*)(NULL), &mat);
-    MatShellSetOperation(mat, MATOP_MULT, (void(*)(void))lhsOperator);
-    
-
-    // Set solver context
-    KSPCreate(MPI_COMM_WORLD, &ksp);
-    
-
-    // Set operator to KSP context. No preconditioning will actually
-    // be used due to the PCNONE option.
-    KSPSetOperators(ksp, mat, mat);
-    KSPSetTolerances(ksp, g_errMax, PETSC_DEFAULT, PETSC_DEFAULT, g_iterMax);
+    LHSData data(psi, tempSource, *sweeper);
+    KrylovSolver krylovSolver(vecSize, g_errMax, g_iterMax, lhsOperator);
+    krylovSolver.setData(&data);
 
 
     // Setup RHS (b = D L^{-1} Q)
@@ -544,34 +515,29 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
     sweeper->setUseZeroPsiBound(false);
     sweeper->sweep(psi, source);
 
-    VecGetArray(b, &bArray);
+    bArray = krylovSolver.getB();
     PhiData phiB(bArray);
     psiToPhi(phiB, psi);
-    VecRestoreArray(b, &bArray);
-
-
-    // Set LHSData
-    LHSData data(psi, tempSource, *sweeper);
-    MatShellSetContext(mat, &data);
+    krylovSolver.releaseB();
 
 
     // Solve
     if (Comm::rank() == 0)
         printf("Begin Solve\n");
-    KSPSolve(ksp, b, x);
+    krylovSolver.solve();
     if (Comm::rank() == 0)
         printf("End Solve\n");
 
 
     // Get Psi from Phi
     // Psi = L^{-1} (MS Phi + Q)
-    VecGetArray(x, &xArray);
+    xArray = krylovSolver.getX();
     PhiData phiX(xArray);
     for (UINT i = 0; i < phiX.size(); i++) {
         phiX[i] = g_sigmaScat / (4.0 * M_PI) * phiX[i];
     }
     phiToPsi(phiX, psi);
-    VecRestoreArray(x, &xArray);
+    krylovSolver.releaseX();
     for (UINT i = 0; i < psi.size(); i++) {
         tempSource[i] = source[i] + psi[i];
     }
@@ -581,20 +547,13 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
     
     
     // Print some stats
-    KSPGetIterationNumber(ksp, &its);
-    KSPGetResidualNorm(ksp, &rnorm);
+    its = krylovSolver.getNumIterations();
+    rnorm = krylovSolver.getResidualNorm();
     if (Comm::rank() == 0) {
         printf("   Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
     }
 
 
-    // Destroy vectors, ksp, and matrices to free work space
-    VecDestroy(&x);
-    VecDestroy(&b);
-    MatDestroy(&mat);
-    KSPDestroy(&ksp);
-    
-    
     // Return number of iterations
     return its;
 }

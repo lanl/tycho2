@@ -80,16 +80,11 @@ struct SchurData
     psiBoundToVec 
 */
 static
-void psiBoundToVec(Vec &xVec, const PsiBoundData &psiBound)
+void psiBoundToVec(double *x, const PsiBoundData &psiBound)
 {
-    double *xArray;
     int xArrayIndex = 0;
     
-    
-    // Get raw array from vector
-    VecGetArray(xVec, &xArray);
-    
-    
+
     // Set array
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
     for (UINT cell = 0; cell < g_nCells; ++cell) {
@@ -105,16 +100,12 @@ void psiBoundToVec(Vec &xVec, const PsiBoundData &psiBound)
             {
                 UINT side = g_tychoMesh->getSide(cell, face);
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    xArray[xArrayIndex] = psiBound(group, fvrtx, angle, side);
+                    x[xArrayIndex] = psiBound(group, fvrtx, angle, side);
                     xArrayIndex++;
                 }
             }
         }
     }}}}
-    
-    
-    // Return raw array to vector
-    VecRestoreArray(xVec, &xArray);
 }
 
 
@@ -122,14 +113,9 @@ void psiBoundToVec(Vec &xVec, const PsiBoundData &psiBound)
     vecToPsiBound
 */
 static
-void vecToPsiBound(Vec &xVec, PsiBoundData &psiBound)
+void vecToPsiBound(const double *x, PsiBoundData &psiBound)
 {
-    const double *xArray;
     int xArrayIndex = 0;
-    
-
-    // Get raw array from vector
-    VecGetArrayRead(xVec, &xArray);
 
 
     // Set psiBound
@@ -147,16 +133,12 @@ void vecToPsiBound(Vec &xVec, PsiBoundData &psiBound)
             {
                 UINT side = g_tychoMesh->getSide(cell, face);
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    psiBound(group, fvrtx, angle, side) = xArray[xArrayIndex];
+                    psiBound(group, fvrtx, angle, side) = x[xArrayIndex];
                     xArrayIndex++;
                 }
             }
         }
     }}}}
-
-
-    // Return raw array to vector
-    VecRestoreArrayRead(xVec, &xArray);
 }
 
 
@@ -164,10 +146,10 @@ void vecToPsiBound(Vec &xVec, PsiBoundData &psiBound)
     getVecSize
 */
 static
-int getVecSize()
+UINT getVecSize()
 {
     // Start an array index
-    int size = 0;
+    UINT size = 0;
     
 
     // Incoming flux
@@ -202,12 +184,10 @@ int getVecSize()
     This performs the sweep and returns the boundary
 */
 static
-PetscErrorCode Schur(Mat mat, Vec x, Vec b)
+void Schur(const double *x, double *b, void *voidData)
 {
     // Get data for the solve
-    void *dataVoid;
-    MatShellGetContext(mat, &dataVoid);
-    SchurData *data = (SchurData*) dataVoid;
+    SchurData *data = (SchurData*) voidData;
 
 
     // Vector -> array
@@ -228,10 +208,10 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b)
 
 
     // b = x - b (aka Out = In - Out)
-    VecAXPBY(b, 1, -1, x);
-
-    
-    return(0);
+    UINT vecSize = getVecSize();
+    for (UINT i = 0; i < vecSize; i++) {
+        b[i] = x[i] - b[i];
+    }
 }
 
 
@@ -241,12 +221,10 @@ PetscErrorCode Schur(Mat mat, Vec x, Vec b)
     This performs the sweep and returns the boundary
 */
 static
-PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
+void SchurOuter(const double *x, double *b, void *voidData)
 {
     // Get data for the solve
-    void *dataVoid;
-    MatShellGetContext(mat, &dataVoid);
-    SchurData *data = (SchurData*) dataVoid;
+    SchurData *data = (SchurData*) voidData;
 
 
     // Vector -> array
@@ -257,8 +235,6 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
     // call commSides to transfer boundary data
     UINT its;
     data->source->setToValue(0.0);
-    //SweepData sweepData(*data->psi, *data->source, *data->psiBound, g_sigmaTotal, 
-    //                    *data->priorities);
     if (g_useSourceIteration)
         its = SourceIteration::fixedPoint(data->sweeperSchurOuter, *data->psi,
                                           *data->source, true);
@@ -274,17 +250,16 @@ PetscErrorCode SchurOuter(Mat mat, Vec x, Vec b)
 
 
     // b = x - b (aka Out = In - Out)
-    VecAXPBY(b, 1, -1, x);
-
-    
-    return(0);
+    for (UINT i = 0; i < getVecSize(); i++) {
+        b[i] = x[i] - b[i];
+    }
 }
 
 
 /*
     petscInit
 */
-void petscInit(Mat &A, Vec &x, Vec &b, KSP &ksp, void (*func)(void))
+/*void petscInit(Mat &A, Vec &x, Vec &b, KSP &ksp, void (*func)(void))
 {
     PetscInt vecSize;
     PetscInt totalVecSize;
@@ -319,13 +294,13 @@ void petscInit(Mat &A, Vec &x, Vec &b, KSP &ksp, void (*func)(void))
     KSPSetOperators(ksp, A, A);
     KSPSetTolerances(ksp, g_ddErrMax, PETSC_DEFAULT, PETSC_DEFAULT, 
                      g_ddIterMax);
-}
+}*/
 
 
 /*
     petscEnd
 */
-static
+/*static
 void petscEnd(Mat &A, Vec &x, Vec &b, KSP &ksp)
 {
     // Destroy vectors, ksp, and matrices to free work space
@@ -333,7 +308,7 @@ void petscEnd(Mat &A, Vec &x, Vec &b, KSP &ksp)
     VecDestroy(&b);
     MatDestroy(&A);
     KSPDestroy(&ksp);
-}
+}*/
 
 
 /*
@@ -342,7 +317,8 @@ void petscEnd(Mat &A, Vec &x, Vec &b, KSP &ksp)
 void SweeperSchur::solve()
 {
     // Init petsc
-    petscInit(c_mat, c_x, c_b, c_ksp, (void(*)(void))Schur);
+    c_krylovSolver = 
+        new KrylovSolver(getVecSize(), g_ddErrMax, g_ddIterMax, Schur);
 
     
     // Solve
@@ -356,14 +332,12 @@ void SweeperSchur::solve()
         SourceIteration::krylov(this, c_psi, c_source);
 
     
-    // End petsc
-    petscEnd(c_mat, c_x, c_b, c_ksp);
-
-
     // Print data
     if (Comm::rank() == 0) {
         printf("Num source iters: %" PRIu64 "\n", c_iters);
     }
+
+    delete c_krylovSolver;
 }
 
 
@@ -382,8 +356,10 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     PsiBoundData psiBound;
     SweepData sweepData(psi, source, psiBound, g_sigmaTotal, priorities);
     
-    PetscReal rnorm;
-    PetscInt its;
+    double rnorm;
+    UINT its;
+    double *x;
+    double *b;
 
     
     // Set static variables
@@ -393,12 +369,14 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     data.psiBound = &psiBound;
     data.source = &zeroSource;
     data.priorities = &priorities;
-    MatShellSetContext(c_mat, &data);
+    c_krylovSolver->setData(&data);
     
     
     // Initial guess
-    psiBoundToVec(c_x, c_psiBoundPrev);
-    KSPSetInitialGuessNonzero(c_ksp, PETSC_TRUE);
+    x = c_krylovSolver->getX();
+    psiBoundToVec(x, c_psiBoundPrev);
+    c_krylovSolver->releaseX();
+    c_krylovSolver->setInitialGuessNonzero();
     
     
     // Do a sweep on the source 
@@ -415,28 +393,32 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
 
     // Input source into b
     c_commSides.commSides(psi, psiBound);
-    psiBoundToVec(c_b, psiBound);
+    b = c_krylovSolver->getB();
+    psiBoundToVec(b, psiBound);
+    c_krylovSolver->releaseB();
 
 
     // Solve the system (x is the solution, b is the RHS)
     if (Comm::rank() == 0) {
         printf("    Starting Krylov Solve on Boundary\n");
     }
-    KSPSolve(c_ksp, c_b, c_x);
+    c_krylovSolver->solve();
     
 
     // Print some stats
-    KSPGetIterationNumber(c_ksp, &its);
-    KSPGetResidualNorm(c_ksp, &rnorm);
+    its = c_krylovSolver->getNumIterations();
+    rnorm = c_krylovSolver->getResidualNorm();
     if (Comm::rank() == 0) {
-        printf("    Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
+        printf("    Krylov iterations: %" PRIu64 " with Rnorm: %e\n", its, rnorm);
     }
 
 
     // Put x in XOut and output the answer from XOut to psi
-    vecToPsiBound(c_x, psiBound);
-    vecToPsiBound(c_x, c_psiBoundPrev);
-    
+    x = c_krylovSolver->getX();
+    vecToPsiBound(x, psiBound);
+    vecToPsiBound(x, c_psiBoundPrev);
+    c_krylovSolver->releaseX();
+
 
     // Sweep to solve for the non-boundary values
     if (Comm::rank() == 0) {
@@ -458,14 +440,18 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
 */
 void SweeperSchurOuter::solve()
 {
+    double *x;
+    double *b;
+
+
     // Init petsc
-    Mat mat;
-    petscInit(mat, c_x, c_b, c_ksp, (void(*)(void))SchurOuter);
+    c_krylovSolver = 
+        new KrylovSolver(getVecSize(), g_ddErrMax, g_ddIterMax, SchurOuter);
 
     
     // Variables
-    PetscReal rnorm;
-    PetscInt its;
+    double rnorm;
+    UINT its;
     UINT sourceIts1, sourceIts3;
     SweepData sweepData(c_psi, c_source, c_psiBound, g_sigmaTotal, c_priorities);
     std::vector<UINT> sourceItsVec;
@@ -480,7 +466,7 @@ void SweeperSchurOuter::solve()
     data.priorities = &c_priorities;
     data.sourceIts = &sourceItsVec;
     data.sweeperSchurOuter = this;
-    MatShellSetContext(mat, &data);
+    c_krylovSolver->setData(&data);
 
 
     // Initialize class variables
@@ -508,7 +494,9 @@ void SweeperSchurOuter::solve()
     // Input source into b
     //PsiBoundData psiBound;
     c_commSides.commSides(c_psi, c_psiBound);
-    psiBoundToVec(c_b, c_psiBound);
+    b = c_krylovSolver->getB();
+    psiBoundToVec(b, c_psiBound);
+    c_krylovSolver->releaseB();
 
 
     // Initial guess
@@ -521,17 +509,18 @@ void SweeperSchurOuter::solve()
     if (Comm::rank() == 0) {
         printf("    Starting Krylov Solve on Boundary\n");
     }
-    KSPSetInitialGuessNonzero(c_ksp, PETSC_FALSE);
-    KSPSolve(c_ksp, c_b, c_x);
+    c_krylovSolver->solve();
     
 
     // Print some stats
-    KSPGetIterationNumber(c_ksp, &its);
-    KSPGetResidualNorm(c_ksp, &rnorm);
+    its = c_krylovSolver->getNumIterations();
+    rnorm = c_krylovSolver->getResidualNorm();
 
 
     // Put x in XOut and output the answer from XOut to psi
-    vecToPsiBound(c_x, c_psiBound);
+    x = c_krylovSolver->getX();
+    vecToPsiBound(x, c_psiBound);
+    c_krylovSolver->releaseX();
 
 
     // Sweep to solve for the non-boundary values
@@ -547,7 +536,7 @@ void SweeperSchurOuter::solve()
     
     if (Comm::rank() == 0) {
         printf("Non-boundary values swept\n");
-        printf("Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
+        printf("Krylov iterations: %" PRIu64 " with Rnorm: %e\n", its, rnorm);
         printf("Num sweeps Q: %" PRIu64 "\n", sourceIts1);
         printf("Num sweeps KSP:");
         for (UINT i = 0; i < sourceItsVec.size(); i++)
@@ -555,10 +544,6 @@ void SweeperSchurOuter::solve()
         printf("\n");
         printf("Num sweeps END: %" PRIu64 "\n", sourceIts3);
     }
-
-    
-    // End petsc
-    petscEnd(mat, c_x, c_b, c_ksp);
 }
 
 

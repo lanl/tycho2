@@ -42,8 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include "SweeperAbstract.hh"
 #include "CommSides.hh"
-#include <petscvec.h>
-#include <petscksp.h>
+#include "KrylovSolver.hh"
 
 
 /*
@@ -60,9 +59,7 @@ public:
 private:
     CommSides c_commSides;
     PsiBoundData c_psiBoundPrev;
-    Vec c_x, c_b;
-    KSP c_ksp;
-    Mat c_mat;
+    KrylovSolver *c_krylovSolver;
     UINT c_iters;
 };
 
@@ -84,8 +81,7 @@ public:
     
 private:
     CommSides c_commSides;
-    Vec c_x, c_b;
-    KSP c_ksp;
+    KrylovSolver *c_krylovSolver;
     PsiBoundData c_psiBound;
     Mat2<UINT> c_priorities;
 };
