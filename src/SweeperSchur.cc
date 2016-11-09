@@ -373,7 +373,7 @@ void SchurOuter(const double *x, double *b, void *voidData)
                                           *data->source, true);
     else
         its = SourceIteration::krylov(data->sweeperSchurOuter, *data->psi,
-                                      *data->source, true);
+                                      *data->source);
     data->sourceIts->push_back(its);
     data->commSides->commSides(*data->psi, *data->psiBound);
 

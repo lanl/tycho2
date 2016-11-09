@@ -56,8 +56,7 @@ void getProblemSource(PsiData &source);
 UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
                 bool onlyScatSource = false);
 
-UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source,
-            bool onlyScatSource = false);
+UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source);
 
 } // End namespace
 

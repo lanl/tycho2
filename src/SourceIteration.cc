@@ -488,12 +488,12 @@ void lhsOperator(const double *x, double *b, void *voidData)
 
 /*
     Krylov solver
+
+    Solves (I - DL^{-1}MS) \Phi = DL^{-1} Q.
+    L could be the full sweep or a local sweep L_I.
 */
-UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source, 
-            bool onlyScatSource)
+UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source) 
 {
-    UNUSED_VARIABLE(onlyScatSource);
-    
     UINT vecSize;
     int its;
     double rnorm;

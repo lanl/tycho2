@@ -56,6 +56,8 @@ using namespace std;
 
 /*
     solve
+
+    (L_I - MSD) Psi^{n+1} = L_B Psi_B^n + Q
 */
 void SweeperPBJOuter::solve()
 {
