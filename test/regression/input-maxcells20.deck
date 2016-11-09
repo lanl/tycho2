@@ -12,6 +12,7 @@ sigmaTotal      10
 sigmaScat       5
 OutputFile      true
 OutputFilename  out.psi
+SourceIteration true
 
 
 DD_IterMax      100

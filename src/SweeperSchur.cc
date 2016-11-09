@@ -589,8 +589,12 @@ void SweeperSchurKrylov::solve()
     
     double *x;
     double *b;
-    UINT psiBoundSize = getPsiBoundSize();
+    double rnorm;
+    UINT its;
     PhiData phi;
+    SchurData data;
+    
+    UINT psiBoundSize = getPsiBoundSize();
     UINT vecSize = psiBoundSize + phi.size();
 
 
@@ -599,13 +603,7 @@ void SweeperSchurKrylov::solve()
         new KrylovSolver(vecSize, g_ddErrMax, g_ddIterMax, SchurKrylov);
 
     
-    // Variables
-    double rnorm;
-    UINT its;
-
-
     // Set data for Krylov solver
-    SchurData data;
     data.psiBoundSize = psiBoundSize;
     data.commSides = &c_commSides;
     data.psi = &c_psi;
@@ -616,20 +614,16 @@ void SweeperSchurKrylov::solve()
     c_krylovSolver->setData(&data);
 
 
-    // Initialize class variables
+    // Calculate RHS
     SourceIteration::getProblemSource(c_source);
     c_psi.setToValue(0.0);
     c_psiBound.setToValue(0.0);
     
-    
-    // Do a sweep on the source 
     if (Comm::rank() == 0) {
         printf("    Sweeping Source\n");
     }
     sweep(c_psi, c_source);
     
-
-    // Input source into b
     c_commSides.commSides(c_psi, c_psiBound);
     SourceIteration::psiToPhi(phi, c_psi);
     
@@ -666,6 +660,8 @@ void SweeperSchurKrylov::solve()
     {
         phi[i] = x[i+psiBoundSize];
     }
+    SourceIteration::getProblemSource(c_source);
+    SourceIteration::calcTotalSource(c_source, phi, c_source, false);
     c_krylovSolver->releaseX();
 
 
@@ -674,7 +670,6 @@ void SweeperSchurKrylov::solve()
         printf("    Sweeping to solve non-boundary values\n");
     }
     
-    SourceIteration::phiToPsi(phi, c_source);
     sweep(c_psi, c_source);
     
     if (Comm::rank() == 0) {
