@@ -38,7 +38,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SWEEPER_SCHUR_HH__
 #define __SWEEPER_SCHUR_HH__
 
-#if USE_PETSC
 #include "PsiData.hh"
 #include "SweeperAbstract.hh"
 #include "CommSides.hh"
@@ -48,7 +47,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 /*
     SweeperSchur
 
-    User for Schur inside collision operator.
+    Used for Schur inside collision operator.
 */
 class SweeperSchur : public SweeperAbstract
 {
@@ -86,6 +85,29 @@ private:
     Mat2<UINT> c_priorities;
 };
 
-#endif
+
+/*
+    SweeperSchurKrylov
+    
+    Combine Schur and Krylov iterations.
+*/
+class SweeperSchurKrylov : public SweeperAbstract
+{
+public:
+    void solve();
+    void sweep(PsiData &psi, const PsiData &source);
+
+    SweeperSchurKrylov() :
+        c_priorities(g_nCells, g_nAngles)
+    { }
+    
+private:
+    CommSides c_commSides;
+    KrylovSolver *c_krylovSolver;
+    PsiBoundData c_psiBound;
+    Mat2<UINT> c_priorities;
+};
+
+
 #endif
 

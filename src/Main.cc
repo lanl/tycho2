@@ -140,6 +140,8 @@ void readInput(const string &inputFileName)
         g_sweepType = SweepType_SchurOuter;
     else if (sweepType == "PBJSI")
         g_sweepType = SweepType_PBJSI;
+    else if (sweepType == "SchurKrylov")
+        g_sweepType = SweepType_SchurKrylov;
     else
         Insist(false, "Sweep type not recognized.");
 
@@ -251,6 +253,9 @@ int main(int argc, char *argv[])
             break;
         case SweepType_SchurOuter:
             sweeper = new SweeperSchurOuter();
+            break;
+        case SweepType_SchurKrylov:
+            sweeper = new SweeperSchurKrylov();
             break;
         #endif
         case SweepType_PBJ:
