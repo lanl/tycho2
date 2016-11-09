@@ -3,7 +3,7 @@
 
 snOrder         8
 iterMax         100
-errMax          0.000100
+errMax          1e-10
 maxCellsPerStep 100
 intraAngleP     3
 interAngleP     1
@@ -15,7 +15,7 @@ OutputFilename  out.psi
 SourceIteration true
 
 DD_IterMax      100
-DD_ErrMax       1e-5
+DD_ErrMax       1e-10
 
 # Types: OriginalTycho1, OriginalTycho2, TraverseGraph
 SweepType TraverseGraph

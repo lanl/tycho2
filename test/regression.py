@@ -34,10 +34,12 @@ for s in output1:
     subprocess.check_output(["sh", name, ">", name2])
     status = subprocess.call(["python", "diff.py", "regression/gold.psi", "out.psi", tolerance])
     if status == 0:
-        print "   Test", s, "Pass"
+        print "Test", s, "Pass"
+        print " "
         numPass = numPass + 1
     else:
-        print "   Test", s, "Fail"
+        print "Test", s, "Fail"
+        print " "
         numFail = numFail + 1
 
 

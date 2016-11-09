@@ -10,7 +10,7 @@ if len(sys.argv) < 3:
     print "Usage 1: python diff.py <file1> <file2>"
     print "   Prints differences."
     print "Usage 2: python diff.py <file1> <file2> <tolerance>"
-    print "   Prints differences if tolerance is not met."
+    print "   Prints differences."
     print "   Returns 1 to OS if errors not within tolerance."
     sys.exit(1)
 
@@ -43,15 +43,15 @@ errL1   = numpy.linalg.norm(v1, 1) / numpy.linalg.norm(v2, 1)
 errLinf = max(abs(v1)) / max(abs(v2))
 
 
+# Print the errors if either:
+# tolerance not specified or errors don't meet tolerance
+print "   L1   relative error:", errL1
+print "   Linf relative error:", errLinf
+
+
 # Check tolerance
 if errL1 < tolerance and errLinf < tolerance and tolerance > 0.0:
     sys.exit(0)
-
-
-# Print the errors if either:
-# tolerance not specified or errors don't meet tolerance
-print "L1   relative error:", errL1
-print "Linf relative error:", errLinf
 
 sys.exit(1)
 
