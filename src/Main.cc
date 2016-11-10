@@ -38,6 +38,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "TychoMesh.hh"
+#include "Problem.hh"
+#include "SourceIteration.hh"
+#include "Util.hh"
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "KeyValueReader.hh"
@@ -288,6 +291,15 @@ int main(int argc, char *argv[])
     }
     
     
+    // Print tests 
+    double psiError = Problem::hatL2Error(sweeper->getPsi());
+    double diffGroups = Util::diffBetweenGroups(sweeper->getPsi());
+    if(Comm::rank() == 0) {
+        printf("L2 Relative Error: %e\n", psiError);
+        printf("Diff between groups: %e\n", diffGroups);
+    }
+
+
     // Output psi to file
     if(g_outputFile)
         sweeper->writePsiToFile(g_outputFilename);

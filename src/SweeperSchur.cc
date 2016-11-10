@@ -34,29 +34,27 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
 OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+
 #include "SweeperSchur.hh"
+#include "Util.hh"
+#include "Problem.hh"
 #include "SourceIteration.hh"
 #include "Global.hh"
-#include "TraverseGraph.hh"
-#include "Priorities.hh"
-#include "Transport.hh"
 #include "PsiData.hh"
 #include "Comm.hh"
-#include "SweepData.hh"
 #include "CommSides.hh"
-#include <omp.h>
 #include <vector>
 #include <math.h>
-#include <limits>
 #include <string.h>
 
 
-// Constants
-static const bool s_doComm = false;
-static const UINT s_maxComputePerStep = std::numeric_limits<uint64_t>::max();
+namespace
+{
 
-
-// Data needed for Schur and SchurOuter functions
+/*
+    Data needed for Schur, SchurOuter, and SchurKrylov functions
+*/
 struct SchurData
 {
     UINT psiBoundSize;
@@ -64,7 +62,8 @@ struct SchurData
     PsiData *psi;
     PsiBoundData *psiBound;
     PsiData *source;
-    Mat2<UINT> *priorities;
+    
+    // Only needed for SchurKrylov
     PhiData *phi;
 
     // Only needed for SchurOuter
@@ -76,11 +75,9 @@ struct SchurData
 /*
     psiBoundToVec 
 */
-static
 void psiBoundToVec(double *x, const PsiBoundData &psiBound)
 {
     int xArrayIndex = 0;
-    
 
     // Set array
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
@@ -109,11 +106,9 @@ void psiBoundToVec(double *x, const PsiBoundData &psiBound)
 /*
     vecToPsiBound
 */
-static
 void vecToPsiBound(const double *x, PsiBoundData &psiBound)
 {
     int xArrayIndex = 0;
-
 
     // Set psiBound
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
@@ -142,12 +137,10 @@ void vecToPsiBound(const double *x, PsiBoundData &psiBound)
 /*
     getPsiBoundSize
 */
-static
 UINT getPsiBoundSize()
 {
     // Start an array index
     UINT size = 0;
-    
 
     // Incoming flux
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
@@ -175,6 +168,9 @@ UINT getPsiBoundSize()
 }
 
 
+} // End anonymous namespace
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -186,32 +182,29 @@ UINT getPsiBoundSize()
     Schur 
 
     This performs the sweep and returns the boundary
+    Performs b = (I - W L_I^{-1} L_B) x
 */
 static
 void Schur(const double *x, double *b, void *voidData)
 {
-    // Get data for the solve
+    // Unpack data
     SchurData *data = (SchurData*) voidData;
 
 
-    // Vector -> array
+    // x -> psiBound data type
     vecToPsiBound(x, *data->psiBound);
 
 
-    // Traverse the graph to get the values on the outward facing boundary
-    // call commSides to transfer boundary data
-    SweepData sweepData(*data->psi, *data->source, *data->psiBound, g_sigmaTotal, 
-                        *data->priorities);
-    traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD, 
-                  Direction_Forward);
+    // Perform W L_I^{-1} L_B
+    Util::sweepLocal(*data->psi, *data->source, *data->psiBound);
     data->commSides->commSides(*data->psi, *data->psiBound);
 
     
-    // Take the values of s_psi from the sweep and put them in b
+    // psiBound -> b
     psiBoundToVec(b, *data->psiBound);
 
 
-    // b = x - b (aka Out = In - Out)
+    // b = x - b
     for (UINT i = 0; i < data->psiBoundSize; i++) {
         b[i] = x[i] - b[i];
     }
@@ -223,28 +216,25 @@ void Schur(const double *x, double *b, void *voidData)
 */
 void SweeperSchur::solve()
 {
-    // Init petsc
-    c_krylovSolver = 
-        new KrylovSolver(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, Schur);
-
-    
-    // Solve
+    // Setup problem
+    KrylovSolver ks(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, Schur);
+    c_krylovSolver = &ks;
     c_iters = 0;
-    SourceIteration::getProblemSource(c_source);
+    Problem::getSource(c_source);
     c_psi.setToValue(0.0);
 
+
+    // Solve
     if (g_useSourceIteration)
-        SourceIteration::fixedPoint(this, c_psi, c_source);
+        SourceIteration::fixedPoint(*this, c_psi, c_source);
     else
-        SourceIteration::krylov(this, c_psi, c_source);
+        SourceIteration::krylov(*this, c_psi, c_source);
 
     
     // Print data
     if (Comm::rank() == 0) {
-        printf("Num source iters: %" PRIu64 "\n", c_iters);
+        printf("Schur: Num local sweeps: %" PRIu64 "\n", c_iters);
     }
-
-    delete c_krylovSolver;
 }
 
 
@@ -253,15 +243,14 @@ void SweeperSchur::solve()
     
     Run the Krylov solver
 */
-void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
+void SweeperSchur::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
 {
+    UNUSED_VARIABLE(zeroPsiBound);
+    
     // Initialize variables
     PsiData zeroSource;
     zeroSource.setToValue(0.0);
-    
-    Mat2<UINT> priorities(g_nCells, g_nAngles);
     PsiBoundData psiBound;
-    SweepData sweepData(psi, source, psiBound, g_sigmaTotal, priorities);
     
     double rnorm;
     UINT its;
@@ -275,7 +264,6 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     data.psi = &psi;
     data.psiBound = &psiBound;
     data.source = &zeroSource;
-    data.priorities = &priorities;
     data.psiBoundSize = getPsiBoundSize();
     c_krylovSolver->setData(&data);
     
@@ -287,58 +275,47 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
     c_krylovSolver->setInitialGuessNonzero();
     
     
-    // Do a sweep on the source 
+    // Set RHS
     if (Comm::rank() == 0) {
-        printf("    Sweeping Source\n");
+        printf("      Schur: Set RHS\n");
     }
     psiBound.setToValue(0.0);
-    traverseGraph(s_maxComputePerStep, sweepData, s_doComm, 
-                  MPI_COMM_WORLD, Direction_Forward);
-    if (Comm::rank() == 0) {
-        printf("    Source Swept\n");
-    }
+    Util::sweepLocal(psi, source, psiBound);
 
-
-    // Input source into b
     c_commSides.commSides(psi, psiBound);
     b = c_krylovSolver->getB();
     psiBoundToVec(b, psiBound);
     c_krylovSolver->releaseB();
 
 
-    // Solve the system (x is the solution, b is the RHS)
+    // Solve the system
     if (Comm::rank() == 0) {
-        printf("    Starting Krylov Solve on Boundary\n");
+        printf("      Schur: Krylov solve\n");
     }
     c_krylovSolver->solve();
     
 
-    // Print some stats
-    its = c_krylovSolver->getNumIterations();
-    rnorm = c_krylovSolver->getResidualNorm();
+    // Got Psi_B.  Now do a local sweep for Psi.
     if (Comm::rank() == 0) {
-        printf("    Krylov iterations: %" PRIu64 " with Rnorm: %e\n", its, rnorm);
+        printf("      Schur: Post solve processing\n");
     }
-
-
-    // Put x in XOut and output the answer from XOut to psi
     x = c_krylovSolver->getX();
     vecToPsiBound(x, psiBound);
     vecToPsiBound(x, c_psiBoundPrev);
     c_krylovSolver->releaseX();
-
-
-    // Sweep to solve for the non-boundary values
+    Util::sweepLocal(psi, source, psiBound);
+    
+    
+    // Print some stats
+    its = c_krylovSolver->getNumIterations();
+    rnorm = c_krylovSolver->getResidualNorm();
     if (Comm::rank() == 0) {
-        printf("    Sweeping to solve non-boundary values\n");
-    }
-    traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD, 
-                  Direction_Forward);
-    if (Comm::rank() == 0) {
-        printf("    Non-boundary values swept\n");
+        printf("      Schur: Krylov iterations: %" PRIu64 "\n", its);
+        printf("      Schur: Residual norm: %e\n", rnorm);
     }
 
-
+    
+    // Increment number of sweep calls
     c_iters += 2 + its;
 }
 
@@ -351,7 +328,7 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source)
 /*
     SchurOuter 
 
-    This performs the sweep and returns the boundary
+    Performs b = (I - W (L_i - MSD)^{-1} L_B) x
 */
 static
 void SchurOuter(const double *x, double *b, void *voidData)
@@ -360,29 +337,28 @@ void SchurOuter(const double *x, double *b, void *voidData)
     SchurData *data = (SchurData*) voidData;
 
 
-    // Vector -> array
+    // x -> psiBound
     vecToPsiBound(x, *data->psiBound);
 
 
-    // Traverse the graph to get the values on the outward facing boundary
-    // call commSides to transfer boundary data
+    // Perform W (L_i - MSD)^{-1} L_B
     UINT its;
     data->source->setToValue(0.0);
     if (g_useSourceIteration)
-        its = SourceIteration::fixedPoint(data->sweeperSchurOuter, *data->psi,
-                                          *data->source, true);
+        its = SourceIteration::fixedPoint(*data->sweeperSchurOuter, *data->psi,
+                                          *data->source);
     else
-        its = SourceIteration::krylov(data->sweeperSchurOuter, *data->psi,
+        its = SourceIteration::krylov(*data->sweeperSchurOuter, *data->psi,
                                       *data->source);
     data->sourceIts->push_back(its);
     data->commSides->commSides(*data->psi, *data->psiBound);
 
     
-    // Take the values of s_psi from the sweep and put them in b
+    // psiBound -> b
     psiBoundToVec(b, *data->psiBound);
 
 
-    // b = x - b (aka Out = In - Out)
+    // b = x - b
     for (UINT i = 0; i < data->psiBoundSize; i++) {
         b[i] = x[i] - b[i];
     }
@@ -394,110 +370,89 @@ void SchurOuter(const double *x, double *b, void *voidData)
 */
 void SweeperSchurOuter::solve()
 {
-    double *x;
-    double *b;
-
-
-    // Init petsc
-    c_krylovSolver = 
-        new KrylovSolver(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, SchurOuter);
-
-    
     // Variables
     double rnorm;
     UINT its;
     UINT sourceIts1, sourceIts3;
-    SweepData sweepData(c_psi, c_source, c_psiBound, g_sigmaTotal, c_priorities);
     std::vector<UINT> sourceItsVec;
+    double *x;
+    double *b;
 
 
+    // Initialize class variables
+    Problem::getSource(c_source);
+    c_psi.setToValue(0.0);
+    c_psiBound.setToValue(0.0);
+    KrylovSolver ks(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, SchurOuter);
+    c_krylovSolver = &ks;
+    
+    
     // Set data for Krylov solver
     SchurData data;
     data.commSides = &c_commSides;
     data.psi = &c_psi;
     data.psiBound = &c_psiBound;
     data.source = &c_source;
-    data.priorities = &c_priorities;
     data.sourceIts = &sourceItsVec;
     data.sweeperSchurOuter = this;
     data.psiBoundSize = getPsiBoundSize();
     c_krylovSolver->setData(&data);
 
 
-    // Initialize class variables
-    SourceIteration::getProblemSource(c_source);
-    c_psi.setToValue(0.0);
-    c_psiBound.setToValue(0.0);
-    c_useZeroPsiBound = false;
-    
-    
-    // Do a sweep on the source 
+    // RHS
     if (Comm::rank() == 0) {
-        printf("    Sweeping Source\n");
+        printf("SchurOuter: Calculate RHS\n");
     }
     
     if (g_useSourceIteration)
-        sourceIts1 = SourceIteration::fixedPoint(this, c_psi, c_source);
+        sourceIts1 = SourceIteration::fixedPoint(*this, c_psi, c_source);
     else
-        sourceIts1 = SourceIteration::krylov(this, c_psi, c_source);
+        sourceIts1 = SourceIteration::krylov(*this, c_psi, c_source);
     
-    if (Comm::rank() == 0) {
-        printf("    Source Swept\n");
-    }
-
-
-    // Input source into b
-    //PsiBoundData psiBound;
     c_commSides.commSides(c_psi, c_psiBound);
     b = c_krylovSolver->getB();
     psiBoundToVec(b, c_psiBound);
     c_krylovSolver->releaseB();
 
 
-    // Initial guess
+    // Initial values
     c_psiBound.setToValue(0.0);
     c_psi.setToValue(0.0);
     c_source.setToValue(0.0);
     
     
-    // Solve the system (x is the solution, b is the RHS)
+    // Solve the system
     if (Comm::rank() == 0) {
-        printf("    Starting Krylov Solve on Boundary\n");
+        printf("SchurOuter: Krylov solve\n");
     }
     c_krylovSolver->solve();
     
 
-    // Print some stats
-    its = c_krylovSolver->getNumIterations();
-    rnorm = c_krylovSolver->getResidualNorm();
-
-
-    // Put x in XOut and output the answer from XOut to psi
+    // Got Psi_B.  Now calculate Psi.
     x = c_krylovSolver->getX();
     vecToPsiBound(x, c_psiBound);
     c_krylovSolver->releaseX();
-
-
-    // Sweep to solve for the non-boundary values
-    if (Comm::rank() == 0) {
-        printf("    Sweeping to solve non-boundary values\n");
-    }
     
-    SourceIteration::getProblemSource(c_source);
+    Problem::getSource(c_source);
     if (g_useSourceIteration)
-        sourceIts3 = SourceIteration::fixedPoint(this, c_psi, c_source);
+        sourceIts3 = SourceIteration::fixedPoint(*this, c_psi, c_source);
     else
-        sourceIts3 = SourceIteration::krylov(this, c_psi, c_source);
+        sourceIts3 = SourceIteration::krylov(*this, c_psi, c_source);
+
+    
+    // Print some stats
+    its = c_krylovSolver->getNumIterations();
+    rnorm = c_krylovSolver->getResidualNorm();
     
     if (Comm::rank() == 0) {
-        printf("Non-boundary values swept\n");
-        printf("Krylov iterations: %" PRIu64 " with Rnorm: %e\n", its, rnorm);
-        printf("Num sweeps Q: %" PRIu64 "\n", sourceIts1);
-        printf("Num sweeps KSP:");
+        printf("SchurOuter: Krylov iterations: %" PRIu64 "\n", its);
+        printf("SchurOuter: Residual Norm: %e\n", rnorm);
+        printf("SchurOuter: Num sweeps Q: %" PRIu64 "\n", sourceIts1);
+        printf("SchurOuter: Num sweeps KSP:");
         for (UINT i = 0; i < sourceItsVec.size(); i++)
             printf(" %" PRIu64, sourceItsVec[i]);
         printf("\n");
-        printf("Num sweeps END: %" PRIu64 "\n", sourceIts3);
+        printf("SchurOuter: Num sweeps END: %" PRIu64 "\n", sourceIts3);
     }
 }
 
@@ -507,19 +462,14 @@ void SweeperSchurOuter::solve()
     
     Run the Krylov solver
 */
-void SweeperSchurOuter::sweep(PsiData &psi, const PsiData &source)
+void SweeperSchurOuter::sweep(PsiData &psi, const PsiData &source, 
+                              bool zeroPsiBound)
 {
-    PsiBoundData zeroPsiBound;
-    
-    if (c_useZeroPsiBound) {
-        SweepData sweepData(psi, source, zeroPsiBound, g_sigmaTotal, c_priorities);
-        traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD,
-                      Direction_Forward);
+    if (zeroPsiBound) {
+        Util::sweepLocal(psi, source, c_zeroPsiBound);
     }
     else {
-        SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
-        traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD,
-                      Direction_Forward);
+        Util::sweepLocal(psi, source, c_psiBound);
     }
 
 }
@@ -533,7 +483,8 @@ void SweeperSchurOuter::sweep(PsiData &psi, const PsiData &source)
 /*
     SchurKrylov
 
-    This performs the sweep and returns the boundary
+    Performs (I - W L_I^{-1} L_B) Psi_B -   (W L_I^{-1} M S)   Phi
+              -(D L_I^{-1} L_B)   Psi_B + (I - D L_I^{-1} M S) Phi
 */
 static
 void SchurKrylov(const double *x, double *b, void *voidData)
@@ -545,36 +496,32 @@ void SchurKrylov(const double *x, double *b, void *voidData)
     PsiData &psi = *(data->psi);
     PsiBoundData &psiBound = *(data->psiBound);
     PsiData &source = *(data->source);
-    Mat2<UINT> &priorities = *(data->priorities);
     PhiData &phi = *(data->phi);
 
 
-    // Vector -> array
+    // x -> (Psi_B, Phi)
     vecToPsiBound(x, psiBound);
     for (UINT i = 0; i < phi.size(); i++)
     {
         phi[i] = x[i+psiBoundSize] * g_sigmaScat / (4.0 * M_PI);
     }
-    SourceIteration::phiToPsi(phi, source);
+    Util::phiToPsi(phi, source);
 
 
-    // Traverse the graph to get the values on the outward facing boundary
-    // call commSides to transfer boundary data
-    SweepData sweepData(psi, source, psiBound, g_sigmaTotal, priorities);
-    traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD, 
-                  Direction_Forward);
+    // Perform most of the operator
+    Util::sweepLocal(psi, source, psiBound);
     commSides.commSides(psi, psiBound);
-    SourceIteration::psiToPhi(phi, psi);
+    Util::psiToPhi(phi, psi);
 
     
-    // Take the values of s_psi from the sweep and put them in b
+    // (Psi_B, Phi) -> b
     psiBoundToVec(b, psiBound);
     for (UINT i = 0; i < phi.size(); i++) {
         b[i+psiBoundSize] = phi[i];
     }
 
 
-    // b = x - b (aka Out = In - Out)
+    // b = x - b
     for (UINT i = 0; i < psiBoundSize + phi.size(); i++) {
         b[i] = x[i] - b[i];
     }
@@ -596,11 +543,10 @@ void SweeperSchurKrylov::solve()
     
     UINT psiBoundSize = getPsiBoundSize();
     UINT vecSize = psiBoundSize + phi.size();
+    const bool zeroPsiBound = false;
 
-
-    // Init petsc
-    c_krylovSolver = 
-        new KrylovSolver(vecSize, g_ddErrMax, g_ddIterMax, SchurKrylov);
+    KrylovSolver ks(vecSize, g_ddErrMax, g_ddIterMax, SchurKrylov);
+    c_krylovSolver = &ks;
 
     
     // Set data for Krylov solver
@@ -609,23 +555,22 @@ void SweeperSchurKrylov::solve()
     data.psi = &c_psi;
     data.psiBound = &c_psiBound;
     data.source = &c_source;
-    data.priorities = &c_priorities;
     data.phi = &phi;
     c_krylovSolver->setData(&data);
 
 
     // Calculate RHS
-    SourceIteration::getProblemSource(c_source);
+    Problem::getSource(c_source);
     c_psi.setToValue(0.0);
     c_psiBound.setToValue(0.0);
     
     if (Comm::rank() == 0) {
-        printf("    Sweeping Source\n");
+        printf("SchurKrylov: Calculate RHS\n");
     }
-    sweep(c_psi, c_source);
+    sweep(c_psi, c_source, zeroPsiBound);
     
     c_commSides.commSides(c_psi, c_psiBound);
-    SourceIteration::psiToPhi(phi, c_psi);
+    Util::psiToPhi(phi, c_psi);
     
     b = c_krylovSolver->getB();
     psiBoundToVec(b, c_psiBound);
@@ -635,59 +580,53 @@ void SweeperSchurKrylov::solve()
     c_krylovSolver->releaseB();
 
 
-    // Initial guess
+    // Initial data
     c_psiBound.setToValue(0.0);
     c_psi.setToValue(0.0);
     c_source.setToValue(0.0);
     
     
-    // Solve the system (x is the solution, b is the RHS)
+    // Solve the system
     if (Comm::rank() == 0) {
-        printf("    Starting Krylov Solve on Boundary\n");
+        printf("SchurKrylov: Solve system\n");
     }
     c_krylovSolver->solve();
     
 
+    // Got Psi_B and Phi.  Solve for Psi.
+    if (Comm::rank() == 0) {
+        printf("SchurKrylov: Postprocess\n");
+    }
+    x = c_krylovSolver->getX();
+    vecToPsiBound(x, c_psiBound);
+    for (UINT i = 0; i < phi.size(); i++) {
+        phi[i] = x[i+psiBoundSize];
+    }
+    Problem::getSource(c_source);
+    Util::calcTotalSource(c_source, phi, c_source);
+    c_krylovSolver->releaseX();
+    
+    sweep(c_psi, c_source, zeroPsiBound);
+    
+    
     // Print some stats
     its = c_krylovSolver->getNumIterations();
     rnorm = c_krylovSolver->getResidualNorm();
 
-
-    // Put x in XOut and output the answer from XOut to psi
-    x = c_krylovSolver->getX();
-    vecToPsiBound(x, c_psiBound);
-    for (UINT i = 0; i < phi.size(); i++)
-    {
-        phi[i] = x[i+psiBoundSize];
-    }
-    SourceIteration::getProblemSource(c_source);
-    SourceIteration::calcTotalSource(c_source, phi, c_source, false);
-    c_krylovSolver->releaseX();
-
-
-    // Sweep to solve for the non-boundary values
     if (Comm::rank() == 0) {
-        printf("    Sweeping to solve non-boundary values\n");
-    }
-    
-    sweep(c_psi, c_source);
-    
-    if (Comm::rank() == 0) {
-        printf("Non-boundary values swept\n");
-        printf("Krylov iterations: %" PRIu64 " with Rnorm: %e\n", its, rnorm);
+        printf("SchurKrylov: Krylov iterations: %" PRIu64 "\n", its);
+        printf("SchurKrylov: Residual Norm: %e\n", rnorm);
     }
 }
 
 
 /*
     sweep
-    
-    Run the Krylov solver
 */
-void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source)
+void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source, 
+                               bool zeroPsiBound)
 {
-    SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
-    traverseGraph(s_maxComputePerStep, sweepData, s_doComm, MPI_COMM_WORLD,
-                  Direction_Forward);
+    UNUSED_VARIABLE(zeroPsiBound);
+    Util::sweepLocal(psi, source, c_psiBound);
 }
 

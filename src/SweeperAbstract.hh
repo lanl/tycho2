@@ -48,7 +48,8 @@ class SweeperAbstract
 {
 public:
     virtual
-    void sweep(PsiData &psi, const PsiData &source) = 0;
+    void sweep(PsiData &psi, const PsiData &source, 
+               bool zeroPsiBound = false) = 0;
 
     virtual
     void solve() = 0;
@@ -58,17 +59,14 @@ public:
         c_psi.writeToFile(filename);
     }
 
-    void setUseZeroPsiBound(bool b)
+    PsiData& getPsi()
     {
-        c_useZeroPsiBound = b;
+        return c_psi;
     }
 
 protected:
     PsiData c_psi;
     PsiData c_source;
-
-    // Only needed for OuterPBJ and OuterSchur
-    bool c_useZeroPsiBound;
 };
 
 #endif

@@ -1,6 +1,7 @@
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
+
 Copyright 2016. Los Alamos National Security, LLC. This software was produced 
 under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
 Laboratory (LANL), which is operated by Los Alamos National Security, LLC for 
@@ -10,6 +11,7 @@ ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR
 ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified 
 to produce derivative works, such modified software should be clearly marked, 
 so as not to confuse it with the version available from LANL.
+
 Additionally, redistribution and use in source and binary forms, with or 
 without modification, are permitted provided that the following conditions 
 are met:
@@ -35,49 +37,16 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __KRYLOV_SOLVER_HH__
-#define __KRYLOV_SOLVER_HH__
+#ifndef __PROBLEM_HH__
+#define __PROBLEM_HH__
 
+#include "PsiData.hh"
 
-#include "Global.hh"
-#include <petscmat.h>
-#include <petscvec.h>
-#include <petscksp.h>
-
-class KrylovSolver
+namespace Problem
 {
-public:
-    typedef void (*Function)(const double*, double*, void*);
 
+double hatL2Error(const PsiData &psi);
+void getSource(PsiData &source);
 
-    KrylovSolver(UINT localVecSize, double rtol, UINT iterMax,
-                 Function lhsOperator);
-    ~KrylovSolver();
-
-
-    void solve();
-    double* getB();
-    void releaseB();
-    double* getX();
-    void releaseX();
-    UINT getNumIterations();
-    double getResidualNorm();
-    void setData(void *data);
-    void setInitialGuessNonzero();
-
-
-    struct Data
-    {
-        void *data;
-        Function lhsOperator;
-    };
-
-private:
-    KSP c_ksp;
-    Mat c_mat;
-    Vec c_x, c_b;
-    Data c_krylovData;
-};
-
+} // End namespace
 #endif
-

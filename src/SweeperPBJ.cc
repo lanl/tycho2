@@ -36,16 +36,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "SweeperPBJ.hh"
+#include "Util.hh"
+#include "Problem.hh"
 #include "Global.hh"
-#include "TraverseGraph.hh"
-#include "Priorities.hh"
 #include "PsiData.hh"
 #include "Comm.hh"
-#include "SweepData.hh"
 #include "CommSides.hh"
 #include "SourceIteration.hh"
 #include <math.h>
-#include <limits>
 
 using namespace std;
 
@@ -66,10 +64,9 @@ void SweeperPBJOuter::solve()
     
     
     // Initialize source and psi
-    SourceIteration::getProblemSource(c_source);
+    Problem::getSource(c_source);
     c_psi.setToValue(0.0);
     c_psiBound.setToValue(0.0);
-    c_useZeroPsiBound = false;
 
     
     // Source iterate till converged
@@ -79,9 +76,9 @@ void SweeperPBJOuter::solve()
         // Sweep
         UINT its;
         if (g_useSourceIteration)
-            its = SourceIteration::fixedPoint(this, c_psi, c_source);
+            its = SourceIteration::fixedPoint(*this, c_psi, c_source);
         else
-            its = SourceIteration::krylov(this, c_psi, c_source);
+            its = SourceIteration::krylov(*this, c_psi, c_source);
         sourceIts.push_back(its);
         
 
@@ -129,21 +126,14 @@ void SweeperPBJOuter::solve()
 /*
     sweep
 */
-void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
+void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source, 
+                            bool zeroPsiBound)
 {
-    const bool doComm = false;
-    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-    PsiBoundData zeroPsiBound;
-    
-    if (c_useZeroPsiBound) {
-        SweepData sweepData(psi, source, zeroPsiBound, g_sigmaTotal, c_priorities);
-        traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
-                      Direction_Forward);
+    if (zeroPsiBound) {
+        Util::sweepLocal(psi, source, c_zeroPsiBound);
     }
     else {
-        SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
-        traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
-                      Direction_Forward);
+        Util::sweepLocal(psi, source, c_psiBound);
     }
 }
 
@@ -158,13 +148,13 @@ void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source)
 void SweeperPBJ::solve()
 {
     c_iters = 0;
-    SourceIteration::getProblemSource(c_source);
+    Problem::getSource(c_source);
     c_psi.setToValue(0.0);
 
     if (g_useSourceIteration)
-        SourceIteration::fixedPoint(this, c_psi, c_source);
+        SourceIteration::fixedPoint(*this, c_psi, c_source);
     else
-        SourceIteration::krylov(this, c_psi, c_source);
+        SourceIteration::krylov(*this, c_psi, c_source);
 
     if (Comm::rank() == 0) {
         printf("Num source iters: %" PRIu64 "\n", c_iters);
@@ -175,12 +165,11 @@ void SweeperPBJ::solve()
 /*
     sweep
 */
-void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
+void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
 {
-    const bool doComm = false;
-    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-    
-    
+    UNUSED_VARIABLE(zeroPsiBound);
+
+
     // Set psi0
     PsiData psi0;
     for (UINT i = 0; i < psi.size(); i++) {
@@ -188,19 +177,12 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source)
     }
     
     
-    // Create SweepData for traversal
-    // Use a dummy set of priorities
-    Mat2<UINT> priorities(g_nCells, g_nAngles);
-    SweepData sweepData(psi, source, c_psiBoundPrev, g_sigmaTotal, priorities);
-    
-    
     // Sweep till converged
     UINT iter = 1;
     while (iter < g_ddIterMax) {
         
         // Sweep
-        traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
-                      Direction_Forward);
+        Util::sweepLocal(psi, source, c_psiBoundPrev);
         c_iters++;
         
 
@@ -254,10 +236,9 @@ void SweeperPBJSI::solve()
     
     
     // Initialize source and psi
-    SourceIteration::getProblemSource(c_source);
+    Problem::getSource(c_source);
     c_psi.setToValue(0.0);
     c_psiBound.setToValue(0.0);
-    c_useZeroPsiBound = false;
     phi0.setToValue(0.0);
 
     
@@ -265,13 +246,13 @@ void SweeperPBJSI::solve()
     UINT iter = 1;
     while (iter < g_ddIterMax) {
         
-        SourceIteration::calcTotalSource(c_source, phi0, totalSource, false);
-        sweep(c_psi, totalSource);
-        SourceIteration::psiToPhi(phi1, c_psi);
+        Util::calcTotalSource(c_source, phi0, totalSource);
+        sweep(c_psi, totalSource, false);
+        Util::psiToPhi(phi1, c_psi);
         c_commSides.commSides(c_psi, c_psiBound);
         
 
-        // Check tolerance and set psi0 = psi1
+        // Check tolerance and set phi0 = phi1
         double errL1 = 0.0;
         double normL1 = 0.0;
         for (UINT i = 0; i < phi1.size(); i++) {
@@ -279,11 +260,6 @@ void SweeperPBJSI::solve()
             normL1 += fabs(phi1[i]);
             phi0[i] = phi1[i];
         }
-        /*for (UINT i = 0; i < c_psiBound.size(); i++) {
-            errL1  += fabs(c_psiBound[i] - psiBound0[i]);
-            normL1 += fabs(c_psiBound[i]);
-            psiBound0[i] = c_psiBound[i];
-        }*/
         
         Comm::gsum(errL1);
         Comm::gsum(normL1);
@@ -315,14 +291,10 @@ void SweeperPBJSI::solve()
 /*
     sweep
 */
-void SweeperPBJSI::sweep(PsiData &psi, const PsiData &source)
+void SweeperPBJSI::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
 {
-    const bool doComm = false;
-    const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-    
-    SweepData sweepData(psi, source, c_psiBound, g_sigmaTotal, c_priorities);
-    traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
-                  Direction_Forward);
+    UNUSED_VARIABLE(zeroPsiBound);
+    Util::sweepLocal(psi, source, c_psiBound);
 }
 
 

@@ -45,8 +45,8 @@ errLinf = max(abs(v1)) / max(abs(v2))
 
 # Print the errors if either:
 # tolerance not specified or errors don't meet tolerance
-print "   L1   relative error:", errL1
-print "   Linf relative error:", errLinf
+print "   L1   relative error:", "%.2e" % errL1
+print "   Linf relative error:", "%.2e" % errLinf
 
 
 # Check tolerance

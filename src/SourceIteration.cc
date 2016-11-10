@@ -40,390 +40,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SourceIteration.hh"
 #include "Global.hh"
 #include "PsiData.hh"
-#include "Quadrature.hh"
 #include "Comm.hh"
 #include "Timer.hh"
+#include "Util.hh"
 #include "KrylovSolver.hh"
 #include <math.h>
-#include <vector>
 
 
-using namespace std;
-
-
-// cubeSize assumes using cube meshes in util folder
-static const double cubeSize = 100.0;
-
-
-/*
-    hatSource
-*/
-static
-void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
+namespace
 {
-    for(UINT cell = 0; cell < g_nCells; cell++) {
-    for(UINT angle = 0; angle < g_nAngles; angle++) {
-    for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        
-        UINT node = g_tychoMesh->getCellNode(cell, vrtx);
-        double x = g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-        double y = g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-        double z = g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
-        
-        double xi  = g_quadrature->getXi(angle);
-        double eta = g_quadrature->getEta(angle);
-        double mu  = g_quadrature->getMu(angle);
-        
-        double c = sqrt(x*x + y*y + z*z);
-        
-        for(UINT group = 0; group < g_nGroups; group++) {
-            if(c <= 30.0) {
-                source(group, vrtx, angle, cell) = 
-                    - x / (30.0*c) * xi - y / (30.0*c) * eta - z / (30.0*c) * mu
-                    + (sigmaT - sigmaS) * (1.0 - c / 30.0);
-            }
-            else {
-                source(group, vrtx, angle, cell) = 0.0;
-            }
-        }
-    }}}
-}
-
-
-/*
-    hatL2Error
-*/
-static
-double hatL2Error(const PsiData &psi)
-{
-    double diff = 0.0;
-    double norm = 0.0;
-    
-    
-    for(UINT cell = 0; cell < g_nCells; cell++) {
-    for(UINT angle = 0; angle < g_nAngles; angle++) {
-    for(UINT group = 0; group < g_nGroups; group++) {
-        double x = 0.0;
-        double y = 0.0;
-        double z = 0.0;
-        double psiVal = 0.0;
-        
-        for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            UINT node = g_tychoMesh->getCellNode(cell, vrtx);
-            x += g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-            y += g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-            z += g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
-            psiVal += psi(group, vrtx, angle, cell);
-        }
-        
-        x = x / g_nVrtxPerCell;
-        y = y / g_nVrtxPerCell;
-        z = z / g_nVrtxPerCell;
-        psiVal = psiVal / g_nVrtxPerCell;
-        
-        double c = sqrt(x*x + y*y + z*z);
-        double psiAct = 0.0;
-        if(c <= 30.0) {
-            psiAct = 1.0 - c / 30.0;
-        }
-        
-        double localDiff = psiVal - psiAct;
-        norm += psiVal * psiVal;
-        diff += localDiff * localDiff;
-    }}}
-    
-    
-    Comm::gsum(norm);
-    Comm::gsum(diff);
-    
-    return sqrt(diff / norm);
-}
-
-
-/*
-    diffBetweenGroups
-*/
-static
-double diffBetweenGroups(const PsiData &psi)
-{
-    double maxDiff = 0.0;
-    double maxEntry = 0.0;
-    
-    for(UINT cell = 0; cell < g_nCells; cell++) {
-    for(UINT angle = 0; angle < g_nAngles; angle++) {
-    for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        
-        double psi0 = psi(0, vrtx, angle, cell);
-        
-        if(fabs(psi0) > maxEntry)
-            maxEntry = psi0;
-        
-        for(UINT group = 1; group < g_nGroups; group++) {
-            double psi1 = psi(group, vrtx, angle, cell);
-            if (fabs(psi0 - psi1) > maxDiff)
-                maxDiff = fabs(psi0 - psi1);
-        }
-    }}}
-    
-    maxDiff = maxDiff / maxEntry;
-    Comm::gsum(maxDiff);
-    return maxDiff;
-}
-
-
-/*
-    calcMass
-*/
-static
-double calcMass(const PsiData &psi)
-{
-    double mass = 0.0;
-    
-    for(UINT cell = 0; cell < g_nCells; cell++) {
-        double sumVrtxMass = 0.0;
-        for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            double localMass = 0.0;
-            for(UINT angle = 0; angle < g_nAngles; angle++) {
-                localMass += psi(0, vrtx, angle, cell) * g_quadrature->getWt(angle);
-            }
-            sumVrtxMass += localMass;
-        }
-        mass += sumVrtxMass / g_nVrtxPerCell * g_tychoMesh->getCellVolume(cell);
-    }
-    
-    Comm::gsum(mass);
-    return mass;
-}
-
-
-/*
-    calcMass
-*/
-/*static
-double calcMass(const PhiData &phi)
-{
-    double mass = 0.0;
-    
-    for(UINT cell = 0; cell < g_nCells; cell++) {
-        double sumVrtxMass = 0.0;
-        for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            sumVrtxMass += phi(0, vrtx, cell);
-        }
-        mass += sumVrtxMass / g_nVrtxPerCell * g_tychoMesh->getCellVolume(cell);
-    }
-    
-    Comm::gsum(mass);
-    return mass;
-}*/
-
-
-// Global functions
-namespace SourceIteration
-{
-
-/*
-    psiToPhi
-*/
-void psiToPhi(PhiData &phi, const PsiData &psi) 
-{
-    phi.setToValue(0.0);
-    
-    #pragma omp parallel for
-    for (UINT cell = 0; cell < g_nCells; ++cell) {
-    for (UINT angle = 0; angle < g_nAngles; ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-    for (UINT group = 0; group < g_nGroups; ++group) {
-        phi(group, vertex, cell) +=
-            psi(group, vertex, angle, cell) * g_quadrature->getWt(angle);
-    }}}}
-}
-
-
-/*
-    phiToPsi
-*/
-void phiToPsi(const PhiData &phi, PsiData &psi) 
-{
-    #pragma omp parallel for
-    for (UINT cell = 0; cell < g_nCells; ++cell) {
-    for (UINT angle = 0; angle < g_nAngles; ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-    for (UINT group = 0; group < g_nGroups; ++group) {
-        psi(group, vertex, angle, cell) = phi(group, vertex, cell);
-    }}}}
-}
-
-
-/*
-    calcTotalSource
-*/
-void calcTotalSource(const PsiData &fixedSource, const PhiData &phiOld, 
-                     PsiData &totalSource, bool onlyScatSource) 
-{
-    if (onlyScatSource) {
-        #pragma omp parallel for
-        for (UINT cell = 0; cell < g_nCells; ++cell) {
-        for (UINT angle = 0; angle < g_nAngles; ++angle) {
-        for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-        for (UINT group = 0; group < g_nGroups; ++group) {
-            totalSource(group, vertex, angle, cell) = 
-                g_sigmaScat / (4.0 * M_PI) *  phiOld(group, vertex, cell);
-        }}}}
-    }
-    else {
-        #pragma omp parallel for
-        for (UINT cell = 0; cell < g_nCells; ++cell) {
-        for (UINT angle = 0; angle < g_nAngles; ++angle) {
-        for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-        for (UINT group = 0; group < g_nGroups; ++group) {
-            totalSource(group, vertex, angle, cell) = 
-                fixedSource(group, vertex, angle, cell) + 
-                g_sigmaScat / (4.0 * M_PI) *  phiOld(group, vertex, cell);
-        }}}}
-    }
-}
-
-
-/*
-    getProblemSource
-*/
-void getProblemSource(PsiData &source)
-{
-    hatSource(g_sigmaTotal, g_sigmaScat, source);
-}
-
-
-/*
-    Fixed point iteration (typical source iteration)
-*/
-UINT fixedPoint(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source, 
-                bool onlyScatSource)
-{
-    // Data for problem
-    PsiData totalSource;
-    PhiData phiNew;
-    PhiData phiOld;
-    
-    
-    // Get phi
-    psiToPhi(phiNew, psi);
-    
-    
-    // Volume of mesh
-    double volume = 0.0;
-    for(UINT cell = 0; cell < g_nCells; cell++) {
-        volume += g_tychoMesh->getCellVolume(cell);
-    }
-    Comm::gsum(volume);
-    if(Comm::rank() == 0) {
-        printf("Volume of mesh: %e\n", volume);
-    }
-
-
-    // Source iteration
-    UINT iter = 0;
-    double error = 1.0;
-    Timer innerTimer;
-    innerTimer.start();
-    while (iter < g_iterMax && error > g_errMax)
-    {
-        Timer timer, timer2, timer3, timer4;
-        double wallClockTime = 0.0;
-        double clockTime2 = 0.0;
-        double clockTime3 = 0.0;
-        double norm = 0.0;
-        timer.start();
-        
-
-        // phiOld = phiNew
-        for(UINT i = 0; i < phiOld.size(); i++) {
-            phiOld[i] = phiNew[i];
-        }
-
-        
-        // totalSource = fixedSource + phiOld
-        timer2.start();
-        calcTotalSource(source, phiOld, totalSource, onlyScatSource);
-        timer2.stop();
-        
-        clockTime2 = timer2.wall_clock();
-        Comm::gmax(clockTime2);
-        if(Comm::rank() == 0) {
-            printf("\n   Source time: %f\n", clockTime2);
-        }
-
-        
-        // Sweep
-        sweeper->sweep(psi, totalSource);
-        
-        
-        // Calculate L_inf relative error for phi
-        timer3.start();
-        psiToPhi(phiNew, psi);
-        error = 0.0;
-        for (UINT i = 0; i < phiNew.size(); i++) {
-            error += fabs(phiNew[i] - phiOld[i]);
-            norm += fabs(phiNew[i]);
-        }
-        Comm::gmax(error);
-        Comm::gmax(norm);
-        error = error / norm;
-        timer3.stop();
-        clockTime3 = timer3.wall_clock();
-        Comm::gmax(clockTime3);
-        if(Comm::rank() == 0) {
-            printf("   psiToPhi Time: %f\n", clockTime3);
-        }
-        
-
-        // Print iteration stats
-        timer.stop();
-        wallClockTime = timer.wall_clock();
-        Comm::gmax(wallClockTime);
-        if(Comm::rank() == 0) {
-            printf("   iteration: %" PRIu64 "   error: %e   time: %f\n", 
-                   iter, error, wallClockTime);
-        }
-        
-
-        // Increment iteration
-        ++iter;
-    }
-    
-    
-    // Print tests 
-    double mass = calcMass(psi);
-    double mass2 = calcMass(totalSource);
-    double psiError = hatL2Error(psi);
-    double diffGroups = diffBetweenGroups(psi);
-    if(Comm::rank() == 0) {
-        printf("Mass of psi: %e %e\n", mass, mass2);
-        printf("L2 Relative Error: %e\n", psiError);
-        printf("Diff between groups: %e\n", diffGroups);
-    }
-
-
-    // Time total solve
-    innerTimer.stop();
-    double clockTime = innerTimer.wall_clock();
-    Comm::gmax(clockTime);
-    if(Comm::rank() == 0) {
-        printf("\nTotal source iteration time: %.2f\n",
-               clockTime);
-        printf("Solve time per iteration: %.2f\n\n",
-               clockTime / iter);
-    }
-
-
-    // Return number of iterations
-    return iter;
-}
-
 
 /*
     LHSData
     
-    Data needed by the GMRES solver
+    Data needed by the Krylov solver
 */
 class LHSData
 {
@@ -441,17 +71,17 @@ public:
 /*
     lhsOperator
 
-    This performs the sweep and returns the boundary
+    Performs b = (I - D L^{-1} M S) x
 */
-static
 void lhsOperator(const double *x, double *b, void *voidData)
 {
     // Get data for the solve
     LHSData *data = (LHSData*) voidData;
     UINT vecSize = g_nCells * g_nVrtxPerCell * g_nGroups;
+    const bool zeroPsiBound = true;
 
 
-    // Copy b to x
+    // b = x
     for (UINT i = 0; i < vecSize; i++) {
         b[i] = x[i];
     }
@@ -466,23 +96,116 @@ void lhsOperator(const double *x, double *b, void *voidData)
         phi[i] = g_sigmaScat / (4.0 * M_PI) * phi[i];
     }
 
+
     // M operator
-    phiToPsi(phi, data->c_source);
+    Util::phiToPsi(phi, data->c_source);
 
 
     // L^-1 operator
-    data->c_sweeper.setUseZeroPsiBound(true);
-    data->c_sweeper.sweep(data->c_psi, data->c_source);
+    data->c_sweeper.sweep(data->c_psi, data->c_source, zeroPsiBound);
 
 
     // D operator
-    psiToPhi(phi, data->c_psi);
+    Util::psiToPhi(phi, data->c_psi);
 
 
     // b = x - b
     for (UINT i = 0; i < vecSize; i++) {
         b[i] = x[i] - b[i];
     }
+}
+
+} // End anonymous namespace
+
+
+// Global functions
+namespace SourceIteration
+{
+
+/*
+    Fixed point iteration (typically called source iteration)
+    L Psi^{n+1} = MS \Phi^n + Q
+*/
+UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
+{
+    // Data for problem
+    PsiData totalSource;
+    PhiData phiNew;
+    PhiData phiOld;
+    
+    
+    // Get phi
+    Util::psiToPhi(phiNew, psi);
+    
+    
+    // Source iteration
+    UINT iter = 0;
+    double error = 1.0;
+    Timer totalTimer;
+    totalTimer.start();
+    while (iter < g_iterMax && error > g_errMax)
+    {
+        Timer timer;
+        double wallClockTime = 0.0;
+        double norm = 0.0;
+        timer.start();
+        
+
+        // phiOld = phiNew
+        for(UINT i = 0; i < phiOld.size(); i++) {
+            phiOld[i] = phiNew[i];
+        }
+
+        
+        // totalSource = fixedSource + phiOld
+        Util::calcTotalSource(source, phiOld, totalSource);
+
+        
+        // Sweep
+        sweeper.sweep(psi, totalSource);
+        
+        
+        // Calculate L_1 relative error for phi
+        Util::psiToPhi(phiNew, psi);
+        error = 0.0;
+        for (UINT i = 0; i < phiNew.size(); i++) {
+            error += fabs(phiNew[i] - phiOld[i]);
+            norm += fabs(phiNew[i]);
+        }
+        Comm::gsum(error);
+        Comm::gsum(norm);
+        error = error / norm;
+        
+
+        // Print iteration stats
+        timer.stop();
+        wallClockTime = timer.wall_clock();
+        Comm::gmax(wallClockTime);
+        if(Comm::rank() == 0) {
+            printf("   iteration: %" PRIu64 "   error: %e   time: %f\n", 
+                   iter, error, wallClockTime);
+        }
+        
+
+        // Increment iteration
+        ++iter;
+    }
+    
+    
+    // Time total solve
+    totalTimer.stop();
+    double clockTime = totalTimer.wall_clock();
+    Comm::gmax(clockTime);
+    if(Comm::rank() == 0) {
+        printf("\nTotal source iteration time: %.2f\n",
+               clockTime);
+        printf("Average source iteration time: %.2f\n\n",
+               clockTime / iter);
+    }
+
+
+    // Return number of iterations
+    return iter;
 }
 
 
@@ -492,7 +215,7 @@ void lhsOperator(const double *x, double *b, void *voidData)
     Solves (I - DL^{-1}MS) \Phi = DL^{-1} Q.
     L could be the full sweep or a local sweep L_I.
 */
-UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source) 
+UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
 {
     UINT vecSize;
     int its;
@@ -500,11 +223,13 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source)
     double *bArray;
     double *xArray;
     PsiData tempSource;
+    Timer totalTimer;
+    totalTimer.start();
 
 
     // Create the Krylov solver
     vecSize = g_nCells * g_nVrtxPerCell * g_nGroups;
-    LHSData data(psi, tempSource, *sweeper);
+    LHSData data(psi, tempSource, sweeper);
     KrylovSolver krylovSolver(vecSize, g_errMax, g_iterMax, lhsOperator);
     krylovSolver.setData(&data);
 
@@ -512,45 +237,48 @@ UINT krylov(SweeperAbstract *sweeper, PsiData &psi, const PsiData &source)
     // Setup RHS (b = D L^{-1} Q)
     if (Comm::rank() == 0)
         printf("Krylov source\n");
-    sweeper->setUseZeroPsiBound(false);
-    sweeper->sweep(psi, source);
+    sweeper.sweep(psi, source);
 
     bArray = krylovSolver.getB();
     PhiData phiB(bArray);
-    psiToPhi(phiB, psi);
+    Util::psiToPhi(phiB, psi);
     krylovSolver.releaseB();
 
 
     // Solve
     if (Comm::rank() == 0)
-        printf("Begin Solve\n");
+        printf("Krylov Begin Solve\n");
     krylovSolver.solve();
     if (Comm::rank() == 0)
-        printf("End Solve\n");
+        printf("Krylov End Solve\n");
 
 
     // Get Psi from Phi
     // Psi = L^{-1} (MS Phi + Q)
     xArray = krylovSolver.getX();
     PhiData phiX(xArray);
-    for (UINT i = 0; i < phiX.size(); i++) {
-        phiX[i] = g_sigmaScat / (4.0 * M_PI) * phiX[i];
-    }
-    phiToPsi(phiX, psi);
+    Util::calcTotalSource(source, phiX, tempSource);
     krylovSolver.releaseX();
-    for (UINT i = 0; i < psi.size(); i++) {
-        tempSource[i] = source[i] + psi[i];
-    }
-
-    sweeper->setUseZeroPsiBound(false);
-    sweeper->sweep(psi, tempSource);
+    sweeper.sweep(psi, tempSource);
     
     
     // Print some stats
     its = krylovSolver.getNumIterations();
     rnorm = krylovSolver.getResidualNorm();
     if (Comm::rank() == 0) {
-        printf("   Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
+        printf("Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
+    }
+
+
+    // Time total solve
+    totalTimer.stop();
+    double clockTime = totalTimer.wall_clock();
+    Comm::gmax(clockTime);
+    if(Comm::rank() == 0) {
+        printf("\nTotal Krylov time: %.2f\n",
+               clockTime);
+        printf("Average Krylov time: %.2f\n\n",
+               clockTime / its);
     }
 
 

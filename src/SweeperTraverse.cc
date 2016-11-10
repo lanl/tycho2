@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "SweeperTraverse.hh"
 #include "SourceIteration.hh"
+#include "Problem.hh"
 #include "SweepData.hh"
 #include "Global.hh"
 #include "TraverseGraph.hh"
@@ -65,13 +66,13 @@ SweeperTraverse::SweeperTraverse()
 */
 void SweeperTraverse::solve()
 {
-    SourceIteration::getProblemSource(c_source);
+    Problem::getSource(c_source);
     c_psi.setToValue(0.0);
 
     if (g_useSourceIteration)
-        SourceIteration::fixedPoint(this, c_psi, c_source);
+        SourceIteration::fixedPoint(*this, c_psi, c_source);
     else
-        SourceIteration::krylov(this, c_psi, c_source);
+        SourceIteration::krylov(*this, c_psi, c_source);
 }
 
 
@@ -80,8 +81,10 @@ void SweeperTraverse::solve()
     
     Sweep by traversing graph.
 */
-void SweeperTraverse::sweep(PsiData &psi, const PsiData &source)
+void SweeperTraverse::sweep(PsiData &psi, const PsiData &source, 
+                            bool zeroPsiBound)
 {
+    UNUSED_VARIABLE(zeroPsiBound);
     const bool doComm = true;
     PsiBoundData psiBound;
     SweepData sweepData(psi, source, psiBound, c_sigmaTotal, c_priorities);

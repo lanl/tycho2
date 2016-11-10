@@ -52,7 +52,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 class SweeperSchur : public SweeperAbstract
 {
 public:
-    void sweep(PsiData &psi, const PsiData &source);
+    void sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound);
     void solve();
 
 private:
@@ -72,40 +72,31 @@ class SweeperSchurOuter : public SweeperAbstract
 {
 public:
     void solve();
-    void sweep(PsiData &psi, const PsiData &source);
+    void sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound);
 
-    SweeperSchurOuter() :
-        c_priorities(g_nCells, g_nAngles)
-    { }
-    
 private:
     CommSides c_commSides;
     KrylovSolver *c_krylovSolver;
     PsiBoundData c_psiBound;
-    Mat2<UINT> c_priorities;
+    PsiBoundData c_zeroPsiBound;
 };
 
 
 /*
     SweeperSchurKrylov
     
-    Combine Schur and Krylov iterations.
+    Combines Schur and Krylov iterations.
 */
 class SweeperSchurKrylov : public SweeperAbstract
 {
 public:
     void solve();
-    void sweep(PsiData &psi, const PsiData &source);
+    void sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound);
 
-    SweeperSchurKrylov() :
-        c_priorities(g_nCells, g_nAngles)
-    { }
-    
 private:
     CommSides c_commSides;
     KrylovSolver *c_krylovSolver;
     PsiBoundData c_psiBound;
-    Mat2<UINT> c_priorities;
 };
 
 

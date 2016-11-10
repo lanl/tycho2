@@ -51,7 +51,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 class SweeperPBJ : public SweeperAbstract
 {
 public:
-    void sweep(PsiData &psi, const PsiData &source);
+    void sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound);
     void solve();
     
 private:
@@ -70,16 +70,12 @@ class SweeperPBJOuter : public SweeperAbstract
 {
 public:
     void solve();
-    void sweep(PsiData &psi, const PsiData &source);
+    void sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound);
 
-    SweeperPBJOuter() : 
-        c_priorities(g_nCells, g_nAngles) 
-    { }
-    
 private:
     CommSides c_commSides;
     PsiBoundData c_psiBound;
-    Mat2<UINT> c_priorities;
+    PsiBoundData c_zeroPsiBound;
 };
 
 
@@ -92,16 +88,11 @@ class SweeperPBJSI : public SweeperAbstract
 {
 public:
     void solve();
-    void sweep(PsiData &psi, const PsiData &source);
+    void sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound);
 
-    SweeperPBJSI() : 
-        c_priorities(g_nCells, g_nAngles) 
-    { }
-    
 private:
     CommSides c_commSides;
     PsiBoundData c_psiBound;
-    Mat2<UINT> c_priorities;
 };
 
 
