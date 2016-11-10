@@ -250,7 +250,6 @@ int main(int argc, char *argv[])
         case SweepType_TraverseGraph:
             sweeper = new SweeperTraverse();
             break;
-        #if USE_PETSC
         case SweepType_Schur:
             sweeper = new SweeperSchur();
             break;
@@ -260,7 +259,6 @@ int main(int argc, char *argv[])
         case SweepType_SchurKrylov:
             sweeper = new SweeperSchurKrylov();
             break;
-        #endif
         case SweepType_PBJ:
             sweeper = new SweeperPBJ();
             break;

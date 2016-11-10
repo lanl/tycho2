@@ -39,6 +39,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __KRYLOV_SOLVER_HH__
 
 
+/*
+    If using PETSc.
+*/
+#if USE_PETSC
 #include "Global.hh"
 #include <petscmat.h>
 #include <petscvec.h>
@@ -73,11 +77,70 @@ public:
     };
 
 private:
+    
     KSP c_ksp;
     Mat c_mat;
     Vec c_x, c_b;
     Data c_krylovData;
 };
+
+
+
+
+
+
+
+/*
+    If not using PETSc.
+*/
+#else
+#include "Global.hh"
+
+class KrylovSolver
+{
+public:
+    typedef void (*Function)(const double*, double*, void*);
+
+
+    KrylovSolver(UINT localVecSize, double rtol, UINT iterMax,
+                 Function lhsOperator)
+    {
+        UNUSED_VARIABLE(localVecSize);
+        UNUSED_VARIABLE(rtol);
+        UNUSED_VARIABLE(iterMax);
+        UNUSED_VARIABLE(lhsOperator);
+        Insist(false, "KrylovSolver: PETSc not in use.");
+    }
+    ~KrylovSolver() {}
+
+
+    void solve()                    { }
+    double* getB()                  { return NULL; }
+    void releaseB()                 {}
+    double* getX()                  { return NULL; }
+    void releaseX()                 {}
+    UINT getNumIterations()         { return 0; }
+    double getResidualNorm()        { return 0.0; }
+    void setData(void *data)        { UNUSED_VARIABLE(data); }
+    void setInitialGuessNonzero()   {}
+
+
+    struct Data
+    {
+        void *data;
+        Function lhsOperator;
+    };
+
+private:
+    
+};
+
+
+
+#endif
+
+
+
 
 #endif
 

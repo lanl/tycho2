@@ -35,6 +35,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if USE_PETSC
 
 #include "KrylovSolver.hh"
 #include "Comm.hh"
@@ -176,4 +177,4 @@ KrylovSolver::~KrylovSolver()
     KSPDestroy(&c_ksp);
 }
 
-
+#endif
