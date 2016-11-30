@@ -31,14 +31,15 @@ for s in output1:
     name = "regression/" + s
     name2 = s + ".regression.txt"
     
+    print "Test", s
     subprocess.check_output(["sh", name, ">", name2])
     status = subprocess.call(["python", "diff.py", "regression/gold.psi", "out.psi", tolerance])
     if status == 0:
-        print "Test", s, "Pass"
+        print "                                                       Pass"
         print " "
         numPass = numPass + 1
     else:
-        print "Test", s, "Fail"
+        print "                                                       Fail"
         print " "
         numFail = numFail + 1
 
