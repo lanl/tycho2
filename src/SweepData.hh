@@ -58,9 +58,8 @@ class SweepData : public TraverseData
 public:
     
     SweepData(PsiData &psi, const PsiData &source, PsiBoundData &psiBound,  
-               const double sigmaTotal,
                const Mat2<UINT> &priorities)
-    : c_psi(psi), c_psiBound(psiBound), c_source(source), c_sigmaTotal(sigmaTotal),
+    : c_psi(psi), c_psiBound(psiBound), c_source(source), 
       c_priorities(priorities), c_localFaceData(g_nThreads)
     {
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
@@ -156,7 +155,7 @@ public:
         
         
         // Transport solve
-        Transport::solve(cell, angle, c_sigmaTotal, 
+        Transport::solve(cell, angle, g_sigmaT[cell],
                          localPsiBound, localSource, localPsi);
         
         
@@ -171,7 +170,6 @@ private:
     PsiData &c_psi;
     PsiBoundData &c_psiBound;
     const PsiData &c_source;
-    const double c_sigmaTotal;
     const Mat2<UINT> &c_priorities;
     std::vector<Mat2<double>> c_localFaceData;
 };

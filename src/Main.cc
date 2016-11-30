@@ -87,7 +87,9 @@ void signalHandler(int sig)
     readInput
 */
 static
-void readInput(const string &inputFileName)
+void readInput(const string &inputFileName, 
+               double &sigmaT1, double &sigmaS1,
+               double &sigmaT2, double &sigmaS2)
 {
     // Read data
     CKG_Utils::KeyValueReader kvr;
@@ -107,10 +109,10 @@ void readInput(const string &inputFileName)
     kvr.getInt("intraAngleP", intraAngleP);
     kvr.getInt("interAngleP", interAngleP);
     kvr.getInt("nGroups", nGroups);
-    kvr.getDouble("sigmaT1", g_sigmaT1);
-    kvr.getDouble("sigmaS1", g_sigmaS1);
-    kvr.getDouble("sigmaT2", g_sigmaT2);
-    kvr.getDouble("sigmaS2", g_sigmaS2);
+    kvr.getDouble("sigmaT1", sigmaT1);
+    kvr.getDouble("sigmaS1", sigmaS1);
+    kvr.getDouble("sigmaT2", sigmaT2);
+    kvr.getDouble("sigmaS2", sigmaS2);
     kvr.getBool("OutputFile", g_outputFile);
     kvr.getString("OutputFilename", g_outputFilename);
     kvr.getInt("DD_IterMax", ddIterMax);
@@ -172,6 +174,9 @@ void readInput(const string &inputFileName)
 */
 int main(int argc, char *argv[])
 {
+    double sigmaT1, sigmaS1, sigmaT2, sigmaS2;
+
+    
     // For Debugging (prints a backtrace)
     signal(SIGSEGV, signalHandler);
     signal(SIGABRT, signalHandler);
@@ -199,13 +204,14 @@ int main(int argc, char *argv[])
         MPI_Finalize();
         return 0;
     }
-    readInput(argv[2]);
+    readInput(argv[2], sigmaT1, sigmaS1, sigmaT2, sigmaS2);
     
 
     // Print initial stuff
     if(Comm::rank() == 0) {
         printf("\n\n--- Initiating test of parallel sweeps. ---\n");
-        printf("sigmaTotal: %lf   sigmaScat: %lf\n", g_sigmaT1, g_sigmaS1);
+        printf("sigmaT1: %lf   sigmaS1: %lf\n", sigmaT1, sigmaS1);
+        printf("sigmaT2: %lf   sigmaS2: %lf\n", sigmaT2, sigmaS2);
         printf("ASSERT_ON: %d\n", ASSERT_ON);
     }
     
@@ -243,7 +249,8 @@ int main(int argc, char *argv[])
 
 
     // Create cross sections for each cell
-    Problem::createCrossSections(g_sigmaT, g_sigmaS);
+    Problem::createCrossSections(g_sigmaT, g_sigmaS, sigmaT1, sigmaS1, 
+                                 sigmaT2, sigmaS2);
     
     
     // Setup sweeper

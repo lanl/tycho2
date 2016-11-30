@@ -147,7 +147,9 @@ void getSource(PsiData &source)
     createCrossSections
 */
 void createCrossSections(std::vector<double> &sigmaT, 
-                         std::vector<double> &sigmaS)
+                         std::vector<double> &sigmaS,
+                         double sigmaT1, double sigmaS1,
+                         double sigmaT2, double sigmaS2)
 {
     sigmaT.resize(g_nCells);
     sigmaS.resize(g_nCells);
@@ -171,13 +173,13 @@ void createCrossSections(std::vector<double> &sigmaT,
 
         // Cross sections not in inner cell
         if (x > 25.0 || x < -25.0 || y > 25.0 || y < 25.0 || z > 25.0 || z < 25.0) {
-            sigmaT[cell] = g_sigmaT1;
-            sigmaS[cell] = g_sigmaS1;
+            sigmaT[cell] = sigmaT1;
+            sigmaS[cell] = sigmaS1;
         }
         // Cross sections in inner cell
         else {
-            sigmaT[cell] = g_sigmaT2;
-            sigmaS[cell] = g_sigmaS2;
+            sigmaT[cell] = sigmaT2;
+            sigmaS[cell] = sigmaS2;
         }
     }
 }

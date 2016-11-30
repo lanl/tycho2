@@ -49,7 +49,9 @@ namespace Problem
 double hatL2Error(const PsiData &psi);
 void getSource(PsiData &source);
 void createCrossSections(std::vector<double> &sigmaT, 
-                         std::vector<double> &sigmaS);
+                         std::vector<double> &sigmaS,
+                         double sigmaT1, double sigmaS1,
+                         double sigmaT2, double sigmaS2);
 
 } // End namespace
 #endif

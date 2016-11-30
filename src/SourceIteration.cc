@@ -92,12 +92,7 @@ void lhsOperator(const double *x, double *b, void *voidData)
     
 
     // S operator
-    for (UINT cell = 0; cell < g_nCells; ++cell) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-    for (UINT group = 0; group < g_nGroups; ++group) {
-        phi(group,vertex,cell) = g_sigmaS[cell] / (4.0 * M_PI) * 
-        phi(group,vertex,cell);
-    }}}
+    Util::operatorS(phi, phi);
 
 
     // M operator

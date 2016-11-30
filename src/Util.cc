@@ -140,12 +140,25 @@ void sweepLocal(PsiData &psi, const PsiData &source, PsiBoundData &psiBound)
     Mat2<UINT> priorities(g_nCells, g_nAngles);
     const bool doComm = false;
     const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-    SweepData sweepData(psi, source, psiBound, g_sigmaT1, priorities);
+    SweepData sweepData(psi, source, psiBound, priorities);
     
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
                   Direction_Forward);
 }
 
+
+/*
+    operatorS
+*/
+void operatorS(const PhiData &phi1, PhiData &phi2)
+{
+    for (UINT cell = 0; cell < g_nCells; ++cell) {
+    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+    for (UINT group = 0; group < g_nGroups; ++group) {
+        phi2(group,vertex,cell) = g_sigmaS[cell] / (4.0 * M_PI) * 
+                                  phi1(group,vertex,cell);
+    }}}
+}
 
 
 } // End namespace Util

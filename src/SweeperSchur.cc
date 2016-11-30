@@ -501,10 +501,8 @@ void SchurKrylov(const double *x, double *b, void *voidData)
 
     // x -> (Psi_B, Phi)
     vecToPsiBound(x, psiBound);
-    for (UINT i = 0; i < phi.size(); i++)
-    {
-        phi[i] = x[i+psiBoundSize] * g_sigmaS1 / (4.0 * M_PI);
-    }
+    const PhiData phi1(const_cast<double*>(&x[psiBoundSize]));
+    Util::operatorS(phi1, phi);
     Util::phiToPsi(phi, source);
 
 

@@ -55,7 +55,6 @@ using namespace std;
 SweeperTraverse::SweeperTraverse()
 {
     c_maxComputePerStep = g_maxCellsPerStep;
-    c_sigmaTotal = g_sigmaT1;
     c_priorities.resize(g_nCells, g_nAngles);
     Priorities::calcPriorities(c_priorities);
 }
@@ -87,7 +86,7 @@ void SweeperTraverse::sweep(PsiData &psi, const PsiData &source,
     UNUSED_VARIABLE(zeroPsiBound);
     const bool doComm = true;
     PsiBoundData psiBound;
-    SweepData sweepData(psi, source, psiBound, c_sigmaTotal, c_priorities);
+    SweepData sweepData(psi, source, psiBound, c_priorities);
     traverseGraph(c_maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
                   Direction_Forward);
 }

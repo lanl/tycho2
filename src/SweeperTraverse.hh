@@ -56,7 +56,6 @@ public:
 private:
     Mat2<UINT> c_priorities;
     UINT c_maxComputePerStep;
-    double c_sigmaTotal;
 };
 
 #endif

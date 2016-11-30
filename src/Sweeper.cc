@@ -263,7 +263,6 @@ void updateBoundData(const UINT cell, const UINT angle, PsiBoundData &psiBound,
 static
 void doComputation(const UINT step,
                    const UINT angleGroup, 
-                   const double sigmaTotal,
                    const PsiData &source, 
                    PsiData &psi, 
                    Mat2<vector<UINT>> &commSidesAngles,
@@ -294,7 +293,7 @@ void doComputation(const UINT step,
                                              localPsiBound);
             
             // Transport solve
-            Transport::solve(cell, angle, sigmaTotal, 
+            Transport::solve(cell, angle, g_sigmaT[cell], 
                              localPsiBound, localSource, localPsi);
             
             // localPsi -> psi
@@ -413,7 +412,7 @@ void Sweeper::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
                 Timer timer1;
                 timer1.start();
                 UINT angleGroup = omp_get_thread_num();
-                doComputation(step, angleGroup, g_sigmaT1, source, psi, 
+                doComputation(step, angleGroup, source, psi, 
                               commSidesAngles, commPsi, psiBound);
                 timer1.stop();
                 computationTimes[angleGroup] += timer1.wall_clock();
@@ -455,7 +454,7 @@ void Sweeper::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
                 // Computation
                 Timer timer1;
                 timer1.start();
-                doComputation(step, angleGroup, g_sigmaT1, source, psi, 
+                doComputation(step, angleGroup, source, psi, 
                               commSidesAngles, commPsi, psiBound);
                 timer1.stop();
                 computationTimes[angleGroup] += timer1.wall_clock();
