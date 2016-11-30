@@ -98,6 +98,7 @@ KrylovSolver::KrylovSolver(UINT localVecSize, double rtol, UINT iterMax,
     KSPCreate(MPI_COMM_WORLD, &c_ksp);
     KSPSetOperators(c_ksp, c_mat, c_mat);
     KSPSetTolerances(c_ksp, rtol, PETSC_DEFAULT, PETSC_DEFAULT, iterMax);
+    KSPSetType(c_ksp, KSPGMRES);
 
 
     // Set data
