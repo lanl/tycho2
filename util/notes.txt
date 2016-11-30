@@ -1,0 +1,4 @@
+Made PartitionedMesh.hdf and PartitionedMesh.cgns with Salome.
+The mesh is made up of two cubes both centered at (50,50) with sizes 
+100x100x100 and 50x50x50.
+The mesh hint for the tet generator was length=20.
