@@ -41,12 +41,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __PROBLEM_HH__
 
 #include "PsiData.hh"
+#include <vector>
 
 namespace Problem
 {
 
 double hatL2Error(const PsiData &psi);
 void getSource(PsiData &source);
+void createCrossSections(std::vector<double> &sigmaT, 
+                         std::vector<double> &sigmaS);
 
 } // End namespace
 #endif

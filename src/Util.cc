@@ -125,7 +125,7 @@ void calcTotalSource(const PsiData &source, const PhiData &phi,
     for (UINT group = 0; group < g_nGroups; ++group) {
         totalSource(group, vertex, angle, cell) = 
             source(group, vertex, angle, cell) + 
-            g_sigmaS1 / (4.0 * M_PI) *  phi(group, vertex, cell);
+            g_sigmaS[cell] / (4.0 * M_PI) *  phi(group, vertex, cell);
     }}}}
 }
 

@@ -51,7 +51,7 @@ static const double cubeSize = 100.0;
     hatSource
 */
 static
-void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
+void hatSource(PsiData &source)
 {
     for(UINT cell = 0; cell < g_nCells; cell++) {
     for(UINT angle = 0; angle < g_nAngles; angle++) {
@@ -72,7 +72,7 @@ void hatSource(const double sigmaT, const double sigmaS, PsiData &source)
             if(c <= 30.0) {
                 source(group, vrtx, angle, cell) = 
                     - x / (30.0*c) * xi - y / (30.0*c) * eta - z / (30.0*c) * mu
-                    + (sigmaT - sigmaS) * (1.0 - c / 30.0);
+                    + (g_sigmaT[cell] - g_sigmaS[cell]) * (1.0 - c / 30.0);
             }
             else {
                 source(group, vrtx, angle, cell) = 0.0;
@@ -139,10 +139,48 @@ double hatL2Error(const PsiData &psi)
 */
 void getSource(PsiData &source)
 {
-    hatSource(g_sigmaT1, g_sigmaS1, source);
+    hatSource(source);
 }
 
 
+/*
+    createCrossSections
+*/
+void createCrossSections(std::vector<double> &sigmaT, 
+                         std::vector<double> &sigmaS)
+{
+    sigmaT.resize(g_nCells);
+    sigmaS.resize(g_nCells);
+
+    for (UINT cell = 0; cell < g_nCells; cell++) {
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+        
+        // Get centroid of tet
+        for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+            UINT node = g_tychoMesh->getCellNode(cell, vrtx);
+            x += g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
+            y += g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
+            z += g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
+        }
+        
+        x = x / g_nVrtxPerCell;
+        y = y / g_nVrtxPerCell;
+        z = z / g_nVrtxPerCell;
+
+        // Cross sections not in inner cell
+        if (x > 25.0 || x < -25.0 || y > 25.0 || y < 25.0 || z > 25.0 || z < 25.0) {
+            sigmaT[cell] = g_sigmaT1;
+            sigmaS[cell] = g_sigmaS1;
+        }
+        // Cross sections in inner cell
+        else {
+            sigmaT[cell] = g_sigmaT2;
+            sigmaS[cell] = g_sigmaS2;
+        }
+    }
+}
 
 
 } // End namespace Problem

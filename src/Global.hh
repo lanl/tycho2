@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <cinttypes>
+#include <vector>
 
 
 // Hack so I don't have to redefine extern variables in Global.cc
@@ -108,6 +109,8 @@ EXTERN double g_sigmaT1;
 EXTERN double g_sigmaS1;
 EXTERN double g_sigmaT2;
 EXTERN double g_sigmaS2;
+EXTERN std::vector<double> g_sigmaT;
+EXTERN std::vector<double> g_sigmaS;
 EXTERN UINT g_maxCellsPerStep;
 EXTERN UINT g_intraAngleP;
 EXTERN UINT g_interAngleP;

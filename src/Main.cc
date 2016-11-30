@@ -240,6 +240,10 @@ int main(int argc, char *argv[])
         meshTimer.stop();
         printf("Create Tycho Mesh Done: %fs\n", meshTimer.wall_clock());
     }
+
+
+    // Create cross sections for each cell
+    Problem::createCrossSections(g_sigmaT, g_sigmaS);
     
     
     // Setup sweeper
