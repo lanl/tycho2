@@ -42,6 +42,8 @@ for s in output1:
         print "                                                       Fail"
         print " "
         numFail = numFail + 1
+    
+    subprocess.call(["rm", "out.psi"])
 
 
 
@@ -54,4 +56,3 @@ print " "
 subprocess.call(["rm", "sweep.x"])
 subprocess.call(["rm", "PartitionColumns.x"])
 subprocess.call(["rm", "cube-208.smesh"])
-subprocess.call(["rm", "out.psi"])

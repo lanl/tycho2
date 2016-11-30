@@ -139,7 +139,7 @@ double hatL2Error(const PsiData &psi)
 */
 void getSource(PsiData &source)
 {
-    hatSource(g_sigmaTotal, g_sigmaScat, source);
+    hatSource(g_sigmaT1, g_sigmaS1, source);
 }
 
 

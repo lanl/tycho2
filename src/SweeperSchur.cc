@@ -503,7 +503,7 @@ void SchurKrylov(const double *x, double *b, void *voidData)
     vecToPsiBound(x, psiBound);
     for (UINT i = 0; i < phi.size(); i++)
     {
-        phi[i] = x[i+psiBoundSize] * g_sigmaScat / (4.0 * M_PI);
+        phi[i] = x[i+psiBoundSize] * g_sigmaS1 / (4.0 * M_PI);
     }
     Util::phiToPsi(phi, source);
 

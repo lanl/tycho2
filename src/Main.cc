@@ -107,8 +107,10 @@ void readInput(const string &inputFileName)
     kvr.getInt("intraAngleP", intraAngleP);
     kvr.getInt("interAngleP", interAngleP);
     kvr.getInt("nGroups", nGroups);
-    kvr.getDouble("sigmaTotal", g_sigmaTotal);
-    kvr.getDouble("sigmaScat", g_sigmaScat);
+    kvr.getDouble("sigmaT1", g_sigmaT1);
+    kvr.getDouble("sigmaS1", g_sigmaS1);
+    kvr.getDouble("sigmaT2", g_sigmaT2);
+    kvr.getDouble("sigmaS2", g_sigmaS2);
     kvr.getBool("OutputFile", g_outputFile);
     kvr.getString("OutputFilename", g_outputFilename);
     kvr.getInt("DD_IterMax", ddIterMax);
@@ -203,7 +205,7 @@ int main(int argc, char *argv[])
     // Print initial stuff
     if(Comm::rank() == 0) {
         printf("\n\n--- Initiating test of parallel sweeps. ---\n");
-        printf("sigmaTotal: %lf   sigmaScat: %lf\n", g_sigmaTotal, g_sigmaScat);
+        printf("sigmaTotal: %lf   sigmaScat: %lf\n", g_sigmaT1, g_sigmaS1);
         printf("ASSERT_ON: %d\n", ASSERT_ON);
     }
     

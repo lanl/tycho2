@@ -413,7 +413,7 @@ void Sweeper::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
                 Timer timer1;
                 timer1.start();
                 UINT angleGroup = omp_get_thread_num();
-                doComputation(step, angleGroup, g_sigmaTotal, source, psi, 
+                doComputation(step, angleGroup, g_sigmaT1, source, psi, 
                               commSidesAngles, commPsi, psiBound);
                 timer1.stop();
                 computationTimes[angleGroup] += timer1.wall_clock();
@@ -455,7 +455,7 @@ void Sweeper::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
                 // Computation
                 Timer timer1;
                 timer1.start();
-                doComputation(step, angleGroup, g_sigmaTotal, source, psi, 
+                doComputation(step, angleGroup, g_sigmaT1, source, psi, 
                               commSidesAngles, commPsi, psiBound);
                 timer1.stop();
                 computationTimes[angleGroup] += timer1.wall_clock();

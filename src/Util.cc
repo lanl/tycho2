@@ -125,7 +125,7 @@ void calcTotalSource(const PsiData &source, const PhiData &phi,
     for (UINT group = 0; group < g_nGroups; ++group) {
         totalSource(group, vertex, angle, cell) = 
             source(group, vertex, angle, cell) + 
-            g_sigmaScat / (4.0 * M_PI) *  phi(group, vertex, cell);
+            g_sigmaS1 / (4.0 * M_PI) *  phi(group, vertex, cell);
     }}}}
 }
 
@@ -140,7 +140,7 @@ void sweepLocal(PsiData &psi, const PsiData &source, PsiBoundData &psiBound)
     Mat2<UINT> priorities(g_nCells, g_nAngles);
     const bool doComm = false;
     const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
-    SweepData sweepData(psi, source, psiBound, g_sigmaTotal, priorities);
+    SweepData sweepData(psi, source, psiBound, g_sigmaT1, priorities);
     
     traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
                   Direction_Forward);

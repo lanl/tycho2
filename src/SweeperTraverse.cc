@@ -55,7 +55,7 @@ using namespace std;
 SweeperTraverse::SweeperTraverse()
 {
     c_maxComputePerStep = g_maxCellsPerStep;
-    c_sigmaTotal = g_sigmaTotal;
+    c_sigmaTotal = g_sigmaT1;
     c_priorities.resize(g_nCells, g_nAngles);
     Priorities::calcPriorities(c_priorities);
 }

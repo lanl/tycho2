@@ -8,8 +8,10 @@ maxCellsPerStep 100
 intraAngleP     3
 interAngleP     0
 nGroups         2
-sigmaTotal      10
-sigmaScat       5
+sigmaT1         10
+sigmaS1         5
+sigmaT2         10
+sigmaS2         5
 OutputFile      true
 OutputFilename  out.psi
 SourceIteration true
