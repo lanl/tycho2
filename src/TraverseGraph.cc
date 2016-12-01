@@ -368,7 +368,6 @@ void traverseGraph(const UINT maxComputePerStep,
     vector<bool> commDark;
     Timer totalTimer;
     Timer commTimer;
-    Timer updateTimer;
     
 
     // Start total timer
@@ -507,13 +506,7 @@ void traverseGraph(const UINT maxComputePerStep,
                 
                 
                 // Update data for this cell-angle pair
-                #pragma omp master
-                updateTimer.start();
-
                 traverseData.update(cell, angle, adjCellsSides, bdryType);
-                
-                #pragma omp master
-                updateTimer.stop();
                 
                 
                 // Update dependency for children
@@ -624,12 +617,8 @@ void traverseGraph(const UINT maxComputePerStep,
     double commTime = commTimer.sum_wall_clock();
     Comm::gmax(commTime, mpiComm);
     
-    double updateTime = updateTimer.sum_wall_clock();
-    Comm::gmax(updateTime, mpiComm);
-
     if (Comm::rank(mpiComm) == 0) {
         printf("      Traverse Timer (comm):    %fs\n", commTime);
-        printf("      Traverse Timer (update):  %fs\n", updateTime);
         printf("      Traverse Timer (total):   %fs\n", totalTime);
     }
 }

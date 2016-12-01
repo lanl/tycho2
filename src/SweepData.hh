@@ -60,10 +60,16 @@ public:
     SweepData(PsiData &psi, const PsiData &source, PsiBoundData &psiBound,  
                const Mat2<UINT> &priorities)
     : c_psi(psi), c_psiBound(psiBound), c_source(source), 
-      c_priorities(priorities), c_localFaceData(g_nThreads)
+      c_priorities(priorities), c_localFaceData(g_nThreads),
+      c_localSource(g_nThreads), c_localPsi(g_nThreads),
+      c_localPsiBound(g_nThreads)
     {
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
             c_localFaceData[angleGroup].resize(g_nVrtxPerFace, g_nGroups);
+            c_localSource[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
+            c_localPsi[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
+            c_localPsiBound[angleGroup].resize(g_nVrtxPerFace, g_nFacePerCell, 
+                                               g_nGroups);
         }
     }
     
@@ -136,10 +142,10 @@ public:
         UNUSED_VARIABLE(adjCellsSides);
         UNUSED_VARIABLE(bdryType);
         
-        Mat2<double> localSource(g_nVrtxPerCell, g_nGroups);
-        Mat2<double> localPsi(g_nVrtxPerCell, g_nGroups);
-        Mat3<double> localPsiBound(g_nVrtxPerFace, g_nFacePerCell, g_nGroups);
-        
+        Mat2<double> &localSource = c_localSource[omp_get_thread_num()];
+        Mat2<double> &localPsi = c_localPsi[omp_get_thread_num()];
+        Mat3<double> &localPsiBound = c_localPsiBound[omp_get_thread_num()];
+
         
         // Populate localSource
         #pragma omp simd
@@ -172,6 +178,9 @@ private:
     const PsiData &c_source;
     const Mat2<UINT> &c_priorities;
     std::vector<Mat2<double>> c_localFaceData;
+    std::vector<Mat2<double>> c_localSource;
+    std::vector<Mat2<double>> c_localPsi;
+    std::vector<Mat3<double>> c_localPsiBound;
 };
 
 #endif
