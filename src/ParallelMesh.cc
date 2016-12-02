@@ -115,6 +115,8 @@ void ParallelMesh::printPartitionData(const PartitionData &partData,
                partData.cellData[cell].boundingNodes[3]);
         printf("      globalID: %" PRIu64 "\n", 
                partData.cellData[cell].globalID);
+        printf("      materialIndex: %" PRIu64 "\n", 
+               partData.cellData[cell].materialIndex);
     }
     
     
@@ -212,6 +214,7 @@ void ParallelMesh::write(const std::string &filename)
             bufferUint.push_back(partData.cellData[cell].boundingNodes[3]);
 
             bufferUint.push_back(partData.cellData[cell].globalID);
+            bufferUint.push_back(partData.cellData[cell].materialIndex);
         }
         
         
@@ -292,7 +295,7 @@ void ParallelMesh::read(const std::string &filename)
     assert(numRead == 2);
     c_version = bufferUint[0];
     c_numPartitions = bufferUint[1];
-    assert(c_version == 1);
+    assert(c_version == ParallelMesh::VERSION);
 
 
     // Partition offsets
@@ -318,24 +321,25 @@ void ParallelMesh::read(const std::string &filename)
         
         
         // Cell Data
-        bufferUint.resize(partData.numCells * 9);
+        bufferUint.resize(partData.numCells * 10);
         numRead = fread(bufferUint.data(), sizeof(uint64_t), 
-                        partData.numCells * 9, file);
-        assert(numRead == partData.numCells * 9);
+                        partData.numCells * 10, file);
+        assert(numRead == partData.numCells * 10);
 
         partData.cellData.resize(partData.numCells);
         for (uint64_t cell = 0; cell < partData.numCells; cell++) {
-            partData.cellData[cell].boundingFaces[0] = bufferUint[cell * 9 + 0];
-            partData.cellData[cell].boundingFaces[1] = bufferUint[cell * 9 + 1];
-            partData.cellData[cell].boundingFaces[2] = bufferUint[cell * 9 + 2];
-            partData.cellData[cell].boundingFaces[3] = bufferUint[cell * 9 + 3];
+            partData.cellData[cell].boundingFaces[0] = bufferUint[cell * 10 + 0];
+            partData.cellData[cell].boundingFaces[1] = bufferUint[cell * 10 + 1];
+            partData.cellData[cell].boundingFaces[2] = bufferUint[cell * 10 + 2];
+            partData.cellData[cell].boundingFaces[3] = bufferUint[cell * 10 + 3];
 
-            partData.cellData[cell].boundingNodes[0] = bufferUint[cell * 9 + 4];
-            partData.cellData[cell].boundingNodes[1] = bufferUint[cell * 9 + 5];
-            partData.cellData[cell].boundingNodes[2] = bufferUint[cell * 9 + 6];
-            partData.cellData[cell].boundingNodes[3] = bufferUint[cell * 9 + 7];
+            partData.cellData[cell].boundingNodes[0] = bufferUint[cell * 10 + 4];
+            partData.cellData[cell].boundingNodes[1] = bufferUint[cell * 10 + 5];
+            partData.cellData[cell].boundingNodes[2] = bufferUint[cell * 10 + 6];
+            partData.cellData[cell].boundingNodes[3] = bufferUint[cell * 10 + 7];
             
-            partData.cellData[cell].globalID         = bufferUint[cell * 9 + 8];
+            partData.cellData[cell].globalID         = bufferUint[cell * 10 + 8];
+            partData.cellData[cell].materialIndex    = bufferUint[cell * 10 + 9];
         }
         
         
@@ -478,6 +482,7 @@ void ParallelMesh::createFromSerialMesh(const SerialMesh &serialMesh,
             CellData &cellData = partData.cellData[pcell];
             
             cellData.globalID = gcell;
+            cellData.materialIndex = serialMesh.c_cellData[gcell].materialIndex;
             for (int lface = 0; lface < 4; lface++) {
                 uint64_t gface = serialMesh.c_cellData[gcell].boundingFaces[lface];
                 cellData.boundingFaces[lface] = gpFaces[part].find(gface)->second;
@@ -620,22 +625,23 @@ void ParallelMesh::readInParallel(const std::string &filename,
     
     
     // Cell Data
-    bufferUint.resize(partData.numCells * 9);
-    Comm::readUint64(file, bufferUint.data(), partData.numCells * 9);
+    bufferUint.resize(partData.numCells * 10);
+    Comm::readUint64(file, bufferUint.data(), partData.numCells * 10);
     partData.cellData.resize(partData.numCells);
     
     for (uint64_t cell = 0; cell < partData.numCells; cell++) {
-        partData.cellData[cell].boundingFaces[0] = bufferUint[cell * 9 + 0];
-        partData.cellData[cell].boundingFaces[1] = bufferUint[cell * 9 + 1];
-        partData.cellData[cell].boundingFaces[2] = bufferUint[cell * 9 + 2];
-        partData.cellData[cell].boundingFaces[3] = bufferUint[cell * 9 + 3];
+        partData.cellData[cell].boundingFaces[0] = bufferUint[cell * 10 + 0];
+        partData.cellData[cell].boundingFaces[1] = bufferUint[cell * 10 + 1];
+        partData.cellData[cell].boundingFaces[2] = bufferUint[cell * 10 + 2];
+        partData.cellData[cell].boundingFaces[3] = bufferUint[cell * 10 + 3];
 
-        partData.cellData[cell].boundingNodes[0] = bufferUint[cell * 9 + 4];
-        partData.cellData[cell].boundingNodes[1] = bufferUint[cell * 9 + 5];
-        partData.cellData[cell].boundingNodes[2] = bufferUint[cell * 9 + 6];
-        partData.cellData[cell].boundingNodes[3] = bufferUint[cell * 9 + 7];
+        partData.cellData[cell].boundingNodes[0] = bufferUint[cell * 10 + 4];
+        partData.cellData[cell].boundingNodes[1] = bufferUint[cell * 10 + 5];
+        partData.cellData[cell].boundingNodes[2] = bufferUint[cell * 10 + 6];
+        partData.cellData[cell].boundingNodes[3] = bufferUint[cell * 10 + 7];
 
-        partData.cellData[cell].globalID         = bufferUint[cell * 9 + 8];
+        partData.cellData[cell].globalID         = bufferUint[cell * 10 + 8];
+        partData.cellData[cell].materialIndex    = bufferUint[cell * 10 + 9];
     }
     
     

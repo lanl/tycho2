@@ -432,6 +432,11 @@ void refineMesh(const SerialMesh &coarseMesh, SerialMesh &refinedMesh)
                     refinedMesh.c_faceData[face].boundingCells[1] = cell;
                 }
             }
+
+
+            // Material Index
+            cellData.materialIndex = 
+                coarseMesh.c_cellData[coarseCell].materialIndex;
             
             
             // Add new cell

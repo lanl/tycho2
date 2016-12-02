@@ -44,7 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     File format on disk.
     
     (Array<char>(32)) "Tycho 2 Serial Mesh" (Rest of characters set to 0)
-    (uint64_t) version of serial mesh format (version 1 currently)
+    (uint64_t) version of serial mesh format (version 2 currently)
     (uint64_t) number of cells
     (uint64_t) number of faces
     (uint64_t) number of nodes
@@ -55,6 +55,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     Cell Data Format:
     (uint64_t[4]) bounding faces
     (uint64_t[4]) bounding nodes
+    (uint64_t)    material index
     
     Face Data Format:
     (uint64_t[2]) bounding cells
@@ -76,7 +77,7 @@ class SerialMesh
 public:
     
     static const uint64_t INVALID_INDEX = UINT64_MAX; // Indicates boundary
-    static const uint64_t VERSION = 1;
+    static const uint64_t VERSION = 2;
     static const uint64_t MESH_FORMAT_NAME_LEN = 32;
     
     
@@ -85,6 +86,7 @@ public:
     {
         uint64_t boundingFaces[4];
         uint64_t boundingNodes[4];
+        uint64_t materialIndex;
     };
     struct FaceData
     {

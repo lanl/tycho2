@@ -86,6 +86,9 @@ void createSerialMesh(Core &moab, SerialMesh &mesh)
             cellData.boundingNodes[lnode] = 
                 nodeMap.find(localNodeRange[lnode])->second;
         }
+
+        // Material Index (default to 1)
+        cellData.materialIndex = 1;
     }
     
     

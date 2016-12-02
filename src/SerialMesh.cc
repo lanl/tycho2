@@ -84,6 +84,8 @@ void SerialMesh::print(bool printVerbose)
                c_cellData[cell].boundingNodes[1],
                c_cellData[cell].boundingNodes[2],
                c_cellData[cell].boundingNodes[3]);
+        printf("   Material Index %" PRIu64 "\n", 
+               c_cellData[cell].materialIndex);
     }
     
     
@@ -158,6 +160,8 @@ void SerialMesh::write(const std::string &filename)
         bufferUint.push_back(c_cellData[cell].boundingNodes[1]);
         bufferUint.push_back(c_cellData[cell].boundingNodes[2]);
         bufferUint.push_back(c_cellData[cell].boundingNodes[3]);
+
+        bufferUint.push_back(c_cellData[cell].materialIndex);
     }
     
     
@@ -231,25 +235,27 @@ void SerialMesh::read(const std::string &filename)
     c_numCells = bufferUint[1];
     c_numFaces = bufferUint[2];
     c_numNodes = bufferUint[3];
-    assert(c_version == 1);
+    assert(c_version == SerialMesh::VERSION);
 
     
     // Cell Data
-    bufferUint.resize(c_numCells * 8);
-    numRead = fread(bufferUint.data(), sizeof(uint64_t), c_numCells * 8, file);
-    assert(numRead == c_numCells * 8);
+    bufferUint.resize(c_numCells * 9);
+    numRead = fread(bufferUint.data(), sizeof(uint64_t), c_numCells * 9, file);
+    assert(numRead == c_numCells * 9);
 
     c_cellData.resize(c_numCells);
     for (uint64_t cell = 0; cell < c_numCells; cell++) {
-        c_cellData[cell].boundingFaces[0] = bufferUint[cell * 8 + 0];
-        c_cellData[cell].boundingFaces[1] = bufferUint[cell * 8 + 1];
-        c_cellData[cell].boundingFaces[2] = bufferUint[cell * 8 + 2];
-        c_cellData[cell].boundingFaces[3] = bufferUint[cell * 8 + 3];
+        c_cellData[cell].boundingFaces[0] = bufferUint[cell * 9 + 0];
+        c_cellData[cell].boundingFaces[1] = bufferUint[cell * 9 + 1];
+        c_cellData[cell].boundingFaces[2] = bufferUint[cell * 9 + 2];
+        c_cellData[cell].boundingFaces[3] = bufferUint[cell * 9 + 3];
 
-        c_cellData[cell].boundingNodes[0] = bufferUint[cell * 8 + 4];
-        c_cellData[cell].boundingNodes[1] = bufferUint[cell * 8 + 5];
-        c_cellData[cell].boundingNodes[2] = bufferUint[cell * 8 + 6];
-        c_cellData[cell].boundingNodes[3] = bufferUint[cell * 8 + 7];
+        c_cellData[cell].boundingNodes[0] = bufferUint[cell * 9 + 4];
+        c_cellData[cell].boundingNodes[1] = bufferUint[cell * 9 + 5];
+        c_cellData[cell].boundingNodes[2] = bufferUint[cell * 9 + 6];
+        c_cellData[cell].boundingNodes[3] = bufferUint[cell * 9 + 7];
+
+        c_cellData[cell].materialIndex    = bufferUint[cell * 9 + 8];
     }
     
     
