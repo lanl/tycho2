@@ -3,17 +3,18 @@
 
 snOrder         8
 iterMax         100
-errMax          0.000100
+errMax          1e-6
 maxCellsPerStep 100
 intraAngleP     3
 interAngleP     1
 nGroups         2
-sigmaT1         10
-sigmaS1         5
-sigmaT2         10
-sigmaS2         5
+sigmaT1         10.0
+sigmaS1         5.0
+sigmaT2         10.0
+sigmaS2         5.0
 OutputFile      false
 OutputFilename  out.psi
+SourceIteration true
 
 DD_IterMax      100
 DD_ErrMax       1e-5

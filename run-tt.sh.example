@@ -1,0 +1,19 @@
+# Run script for Trinitite
+# -j oe means combine standard error and out
+# -V means keep all environment variables and modules
+
+#!/bin/bash
+#MSUB -l walltime=10:00
+#MSUB -l nodes=1
+#MSUB -o /users/ckgarrett/git/tycho2/tt.out
+#MSUB -j oe
+#MSUB -V
+
+NUM_PARTS=1
+IN_FILE="./util/cube-4128.smesh"
+OUT_FILE="temp.pmesh"
+INPUT_DECK="input.deck"
+export OMP_NUM_THREADS=1
+
+aprun -n 1 ./util/PartitionMetis.x $NUM_PARTS $IN_FILE $OUT_FILE
+aprun -n $NUM_PARTS ./sweep.x $OUT_FILE $INPUT_DECK

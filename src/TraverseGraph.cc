@@ -358,7 +358,7 @@ void traverseGraph(const UINT maxComputePerStep,
     UINT numCells = g_nCells;
     UINT numAngles = g_nAngles;
     vector<priority_queue<Tuple>> canCompute(g_nThreads);
-    Mat2<UINT> numDependencies(numCells, numAngles);
+    Mat2<UINT> numDependencies(numAngles, numCells);
     UINT numCellAnglePairsToCalculate = numAngles * numCells;
     vector<UINT> adjRankIndexToRank;
     map<UINT,UINT> adjRankToRankIndex;
@@ -375,10 +375,10 @@ void traverseGraph(const UINT maxComputePerStep,
     
     
     // Calc num dependencies for each (cell, angle) pair
-    for (UINT angle = 0; angle < numAngles; angle++) {
     for (UINT cell = 0; cell < g_nCells; cell++) {
+    for (UINT angle = 0; angle < numAngles; angle++) {
         
-        numDependencies(cell, angle) = 0;
+        numDependencies(angle, cell) = 0;
         for (UINT face = 0; face < g_nFacePerCell; face++) {
             
             bool incoming = isIncoming(angle, cell, face, direction);
@@ -386,10 +386,10 @@ void traverseGraph(const UINT maxComputePerStep,
             UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
             
             if (doComm && incoming && adjRank != TychoMesh::BAD_RANK) {
-                numDependencies(cell, angle)++;
+                numDependencies(angle, cell)++;
             }
             else if (!doComm && incoming && adjCell != TychoMesh::BOUNDARY_FACE) {
-                numDependencies(cell, angle)++;
+                numDependencies(angle, cell)++;
             }
         }
     }}
@@ -421,9 +421,9 @@ void traverseGraph(const UINT maxComputePerStep,
     
     
     // Initialize canCompute queue
-    for (UINT angle = 0; angle < numAngles; angle++) {
     for (UINT cell = 0; cell < g_nCells; cell++) {
-        if (numDependencies(cell, angle) == 0) {
+    for (UINT angle = 0; angle < numAngles; angle++) {
+        if (numDependencies(angle, cell) == 0) {
             UINT priority = traverseData.getPriority(cell, angle);
             UINT angleGroup = angleGroupIndex(angle);
             canCompute[angleGroup].push(Tuple(cell, angle, priority));
@@ -456,6 +456,7 @@ void traverseGraph(const UINT maxComputePerStep,
                 // Get boundary type and adjacent cell/side data for each face
                 BoundaryType bdryType[g_nFacePerCell];
                 UINT adjCellsSides[g_nFacePerCell];
+                bool isOutgoingWrtDirection[g_nFacePerCell];
                 for (UINT face = 0; face < g_nFacePerCell; face++) {
                     
                     UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
@@ -481,6 +482,13 @@ void traverseGraph(const UINT maxComputePerStep,
                         else {
                             bdryType[face] = BoundaryType_OutInt;
                         }
+                        
+                        if (direction == Direction_Forward) {
+                            isOutgoingWrtDirection[face] = true;
+                        }
+                        else {
+                            isOutgoingWrtDirection[face] = false;
+                        }
                     }
                     else {
                         
@@ -501,6 +509,13 @@ void traverseGraph(const UINT maxComputePerStep,
                         else {
                             bdryType[face] = BoundaryType_InInt;
                         }
+                        
+                        if (direction == Direction_Forward) {
+                            isOutgoingWrtDirection[face] = false;
+                        }
+                        else {
+                            isOutgoingWrtDirection[face] = true;
+                        }
                     }
                 }
                 
@@ -512,14 +527,14 @@ void traverseGraph(const UINT maxComputePerStep,
                 // Update dependency for children
                 for (UINT face = 0; face < g_nFacePerCell; face++) {
                     
-                    if (!isIncoming(angle, cell, face, direction)) {
-                        
+                    if (isOutgoingWrtDirection[face]) {
+
                         UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
                         UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
                         
                         if (adjCell != TychoMesh::BOUNDARY_FACE) {
-                            numDependencies(adjCell, angle)--;
-                            if (numDependencies(adjCell, angle) == 0) {
+                            numDependencies(angle, adjCell)--;
+                            if (numDependencies(angle, adjCell) == 0) {
                                 UINT priority = 
                                     traverseData.getPriority(adjCell, angle);
                                 Tuple tuple(adjCell, angle, priority);
@@ -586,8 +601,8 @@ void traverseGraph(const UINT maxComputePerStep,
                 UINT side = sideAngle.first;
                 UINT angle = sideAngle.second;
                 UINT cell = g_tychoMesh->getSideCell(side);
-                numDependencies(cell, angle)--;
-                if (numDependencies(cell, angle) == 0) {
+                numDependencies(angle, cell)--;
+                if (numDependencies(angle, cell) == 0) {
                     UINT priority = traverseData.getPriority(cell, angle);
                     Tuple tuple(cell, angle, priority);
                     canCompute[angleGroupIndex(angle)].push(tuple);
