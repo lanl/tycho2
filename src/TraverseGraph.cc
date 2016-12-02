@@ -367,11 +367,13 @@ void traverseGraph(const UINT maxComputePerStep,
     vector<vector<char>> sendBuffers1;
     vector<bool> commDark;
     Timer totalTimer;
+    Timer setupTimer;
     Timer commTimer;
     
 
     // Start total timer
     totalTimer.start();
+    setupTimer.start();
     
     
     // Calc num dependencies for each (cell, angle) pair
@@ -429,6 +431,10 @@ void traverseGraph(const UINT maxComputePerStep,
             canCompute[angleGroup].push(Tuple(cell, angle, priority));
         }
     }}
+
+
+    // End setup timer
+    setupTimer.stop();
     
     
     // Traverse the graph
@@ -629,11 +635,15 @@ void traverseGraph(const UINT maxComputePerStep,
     double totalTime = totalTimer.wall_clock();
     Comm::gmax(totalTime, mpiComm);
 
+    double setupTime = setupTimer.wall_clock();
+    Comm::gmax(setupTime, mpiComm);
+
     double commTime = commTimer.sum_wall_clock();
     Comm::gmax(commTime, mpiComm);
     
     if (Comm::rank(mpiComm) == 0) {
         printf("      Traverse Timer (comm):    %fs\n", commTime);
+        printf("      Traverse Timer (setup):   %fs\n", setupTime);
         printf("      Traverse Timer (total):   %fs\n", totalTime);
     }
 }
