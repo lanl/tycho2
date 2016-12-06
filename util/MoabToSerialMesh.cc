@@ -1,3 +1,42 @@
+/*
+Copyright (c) 2016, Los Alamos National Security, LLC
+All rights reserved.
+
+Copyright 2016. Los Alamos National Security, LLC. This software was produced 
+under U.S. Government contract DE-AC52-06NA25396 for Los Alamos National 
+Laboratory (LANL), which is operated by Los Alamos National Security, LLC for 
+the U.S. Department of Energy. The U.S. Government has rights to use, 
+reproduce, and distribute this software.  NEITHER THE GOVERNMENT NOR LOS 
+ALAMOS NATIONAL SECURITY, LLC MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR 
+ASSUMES ANY LIABILITY FOR THE USE OF THIS SOFTWARE.  If software is modified 
+to produce derivative works, such modified software should be clearly marked, 
+so as not to confuse it with the version available from LANL.
+
+Additionally, redistribution and use in source and binary forms, with or 
+without modification, are permitted provided that the following conditions 
+are met:
+1.      Redistributions of source code must retain the above copyright notice, 
+        this list of conditions and the following disclaimer.
+2.      Redistributions in binary form must reproduce the above copyright 
+        notice, this list of conditions and the following disclaimer in the 
+        documentation and/or other materials provided with the distribution.
+3.      Neither the name of Los Alamos National Security, LLC, Los Alamos 
+        National Laboratory, LANL, the U.S. Government, nor the names of its 
+        contributors may be used to endorse or promote products derived from 
+        this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY LOS ALAMOS NATIONAL SECURITY, LLC AND 
+CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT 
+NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL LOS ALAMOS NATIONAL 
+SECURITY, LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
+OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include <moab/Core.hpp>
 #include <string>
 #include <cstdio>
@@ -15,11 +54,29 @@ static const int NODE_DIMENSION = 0;
 static const bool CREATE_MISSING = true;
 
 
+enum ProblemType
+{
+    PROBLEM_ONE_MATERIAL, PROBLEM_TWO_NESTED_MATERIALS, PROBLEM_NONE
+};
+
+
+/*
+    getCoords
+*/
+static
+void getCoords(Core &moab, EntityHandle nodeHandle, double coords[3])
+{
+    ErrorCode moabStatus;
+    moabStatus = moab.get_coords(&nodeHandle, ONE_ENTITY, coords);
+    assert(moabStatus == MB_SUCCESS);
+}
+
+
 /*
     createSerialMesh
 */
 static
-void createSerialMesh(Core &moab, SerialMesh &mesh)
+void createSerialMesh(Core &moab, SerialMesh &mesh, ProblemType problemType)
 {
     ErrorCode moabStatus;
     Range cellRange, faceRange, nodeRange;
@@ -89,6 +146,28 @@ void createSerialMesh(Core &moab, SerialMesh &mesh)
 
         // Material Index (default to 1)
         cellData.materialIndex = 1;
+        if (problemType == PROBLEM_TWO_NESTED_MATERIALS) {
+            double centroid[3] = {0.0, 0.0, 0.0};
+            double coords[3]   = {0.0, 0.0, 0.0};
+
+            for (uint64_t lnode = 0; lnode < localNodeRange.size(); lnode++) {
+                getCoords(moab, localNodeRange[lnode], coords);
+                centroid[0] += coords[0];
+                centroid[1] += coords[1];
+                centroid[2] += coords[2];
+            }
+
+            centroid[0] = centroid[0] / localNodeRange.size();
+            centroid[1] = centroid[1] / localNodeRange.size();
+            centroid[2] = centroid[2] / localNodeRange.size();
+
+            if (centroid[0] > 25.0 && centroid[0] < 75.0 && 
+                centroid[1] > 25.0 && centroid[1] < 75.0 && 
+                centroid[2] > 25.0 && centroid[2] < 75.0)
+            {
+                cellData.materialIndex = 2;
+            }
+        }
     }
     
     
@@ -129,11 +208,12 @@ void createSerialMesh(Core &moab, SerialMesh &mesh)
     // Put in node data
     for (uint64_t node = 0; node < mesh.c_numNodes; node++) {
         double coords[3];
-        EntityHandle nodeHandle = nodeRange[node];
+        //EntityHandle nodeHandle = nodeRange[node];
         SerialMesh::NodeData &nodeData = mesh.c_nodeData[node];
         
-        moabStatus = moab.get_coords(&nodeHandle, ONE_ENTITY, coords);
-        assert(moabStatus == MB_SUCCESS);
+        //moabStatus = moab.get_coords(&nodeHandle, ONE_ENTITY, coords);
+        //assert(moabStatus == MB_SUCCESS);
+        getCoords(moab, nodeRange[node], coords);
         
         nodeData.coords[0] = coords[0];
         nodeData.coords[1] = coords[1];
@@ -175,6 +255,8 @@ int main(int argc, char* argv[])
     string outputFile;
     ErrorCode moabStatus;
     SerialMesh mesh;
+    ProblemType problemType;
+    int menuChoice;
     
     
     // Print utility name
@@ -197,17 +279,39 @@ int main(int argc, char* argv[])
     outputFile = argv[2];
     
     
-    // Load file
-    printf("Loading file %s ...\n", inputFile.c_str());
-    moabStatus = moab->load_file(inputFile.c_str());
-    assert(moabStatus == MB_SUCCESS);
+    // Ask for material problem type
+    printf("1 - Uniform material\n");
+    printf("2 - Two nested materials\n"); 
+    scanf("%d", &menuChoice);
+    switch (menuChoice) {
+        case 1:
+            problemType = PROBLEM_ONE_MATERIAL;
+            break;
+        case 2:
+            problemType = PROBLEM_TWO_NESTED_MATERIALS;
+            break;
+        default:
+            printf("Menu option not recognized\n");
+            printf("Exiting without processing mesh\n");
+            problemType = PROBLEM_NONE;
+            break;
+    }
     
-    
-    // Create mesh and write it to file
-    moabCreateAllFaces(*moab);
-    createSerialMesh(*moab, mesh);
-    mesh.write(outputFile);
-    
+
+    // Do mesh conversion
+    if (problemType != PROBLEM_NONE) {
+        
+        // Load file
+        printf("Loading file %s ...\n", inputFile.c_str());
+        moabStatus = moab->load_file(inputFile.c_str());
+        assert(moabStatus == MB_SUCCESS);
+
+        // Create mesh and write it to file
+        moabCreateAllFaces(*moab);
+        createSerialMesh(*moab, mesh, problemType);
+        mesh.write(outputFile);
+    }
+
     
     // Clean up
     printf("\n\n\n");

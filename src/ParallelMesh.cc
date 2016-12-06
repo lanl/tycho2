@@ -545,7 +545,7 @@ void ParallelMesh::createFromSerialMesh(const SerialMesh &serialMesh,
     for (uint64_t part = 0; part < c_numPartitions; part++) {
         
         // Structure sizes in bytes
-        const uint64_t cellDataSize = 9 * sizeof(uint64_t);
+        const uint64_t cellDataSize = 10 * sizeof(uint64_t);
         const uint64_t faceDataSize = 9 * sizeof(uint64_t);
         const uint64_t nodeDataSize = 3 * sizeof(double) + 1 * sizeof(uint64_t);
         

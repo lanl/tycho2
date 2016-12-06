@@ -157,6 +157,7 @@ private:
     Mat3<UINT> c_neighborVrtx;      // (cell, face, fvrtx) -> vrtx
     Mat1<UINT> c_adjCellFromSide;   // side -> adj cell
     Mat1<UINT> c_adjFaceFromSide;   // side -> adj face
+    Mat1<UINT> c_cellMaterial;      // cell -> material index
 };
 
 
