@@ -1,7 +1,7 @@
 import subprocess
 
 
-tolerance = "1e-6"
+tolerance = "1e-10"
 
 
 # Print what we're doing

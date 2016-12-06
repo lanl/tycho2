@@ -112,6 +112,8 @@ public:
         { return c_adjCellFromSide(side); }
     UINT getAdjFaceFromSide(const UINT side) const
         { return c_adjFaceFromSide(side); }
+    UINT getCellMaterial(const UINT cell) const
+        { return c_cellMaterial(cell); }
     
     
     // Arbitrary value to mark any face that lies on a boundary.

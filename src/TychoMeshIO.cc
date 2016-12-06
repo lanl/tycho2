@@ -177,6 +177,7 @@ void TychoMesh::readTychoMesh(const std::string &filename)
 
     // c_lGCells, c_cellMaterial
     c_lGCells.resize(g_nCells);
+    c_cellMaterial.resize(g_nCells);
     for (UINT cell = 0; cell < g_nCells; cell++) {
         c_lGCells(cell) = partData.cellData[cell].globalID;
         c_cellMaterial(cell) = partData.cellData[cell].materialIndex;

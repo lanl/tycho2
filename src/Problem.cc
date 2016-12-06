@@ -155,31 +155,18 @@ void createCrossSections(std::vector<double> &sigmaT,
     sigmaS.resize(g_nCells);
 
     for (UINT cell = 0; cell < g_nCells; cell++) {
-        double x = 0.0;
-        double y = 0.0;
-        double z = 0.0;
         
-        // Get centroid of tet
-        for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            UINT node = g_tychoMesh->getCellNode(cell, vrtx);
-            x += g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-            y += g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-            z += g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
-        }
-        
-        x = x / g_nVrtxPerCell;
-        y = y / g_nVrtxPerCell;
-        z = z / g_nVrtxPerCell;
-
-        // Cross sections not in inner cell
-        if (x > 25.0 || x < -25.0 || y > 25.0 || y < 25.0 || z > 25.0 || z < 25.0) {
+        UINT material = g_tychoMesh->getCellMaterial(cell);
+        if (material == 1) {
             sigmaT[cell] = sigmaT1;
             sigmaS[cell] = sigmaS1;
         }
-        // Cross sections in inner cell
-        else {
+        else if (material == 2) {
             sigmaT[cell] = sigmaT2;
             sigmaS[cell] = sigmaS2;
+        }
+        else {
+            Insist(false, "Material index out of bounds.");
         }
     }
 }
