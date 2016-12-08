@@ -175,6 +175,122 @@ UINT angleGroupIndex(UINT angle)
 }
 
 
+
+TraverseGraph::TraverseGraph()
+{
+    MPI_Win_create(c_shared.data(), c_shared.size(), 1, mpiInfo, 
+                   MPI_COMM_WORLD, &c_mpiWin);
+}
+
+
+TraverseGraph::~TraverseGraph()
+{
+    MPI_Win_free(&c_mpiWin);
+}
+
+
+static 
+void sendData(const vector<vector<char>> &sendBuffers,
+              const vector<UINT> &adjRankIndexToRank,
+              const vector<UINT> &adjRankOffsets,
+              const UINT packetSizeInBytes,
+              cosnt UINT maxPackets,
+              const MPI_Win &mpiWin)
+{
+    // Send data to each adjacent rank
+    for (UINT index = 0; index < numAdjRanks; index++) {
+        
+        // Useful values
+        int adjRank = adjRankIndexToRank[index];
+        UINT offsetForAdjRank = adjRankOffsets[index];
+        const vector<char> &sendBuffer = sendBuffers[index];
+
+
+        // Make sure there is data to send
+        if (sendBuffer.size() == 0)
+            continue;
+        
+
+        // Lock the window and write data
+        MPI_Win_lock(MPI_LOCK_SHARED, adjRank, 0, mpiWin);
+            
+            // Get number of packets still not read by adjRank
+            UINT numPacketsWritten = 0;
+            MPI_Get(&numPacketsWritten, 8, MPI_BYTE, adjRank, 
+                    offsetForAdjRank, 8, MPI_BYTE, mpiWin);
+            
+            // Check to see if there is room to write data
+            UINT numPacketsToSend = sendBuffer.size() / packetSizeInBytes;
+            if (numPacketsWritten + numPacketsToSend < maxPackets) {
+                
+                // Write the packets to adjRank
+                UINT offset = offsetForAdjRank + 4 + 
+                              numPacketsWritten * packetSize;
+                MPI_Put(sendBuffer.data(), sendBuffer.size(), MPI_BYTE, 
+                        adjRank, offset, sendBuffer.size(), MPI_CHAR, mpiWin);
+                
+                // Update number of packets written
+                numPacketsWritten += numPackets;
+                MPI_Put(&numPacketsWritten, 8, MPI_BYTE, adjRank, 
+                        offsetForAdjRank, 8, MPI_BYTE, mpiWin);
+            }
+        MPI_Win_unlock(rank, mpiWin);
+    }
+}
+
+
+
+static
+void recvData()
+{
+    // Recv data from each adjacent rank
+    int myRank = Comm::getRank();
+    MPI_Win_lock(MPI_LOCK_EXCLUSIVE, myRank, 0, mpiWin);
+        for (UINT index = 0; index < numAdjRanks; index++) {
+        
+            // Useful values
+            int adjRank = adjRankIndexToRank[index];
+            UINT offsetForAdjRank = adjRankOffsets[index];
+            
+            
+            // Get number of packets written
+            UINT numPacketsWritten = 0;
+            MPI_Get(&numPacketsWritten, 8, MPI_BYTE, myRank,
+                    offsetForAdjRank, 8 MPI_BYTE, mpiWin);
+            
+            
+            // Read packets
+            if (numPacketsWritten > 0) {
+                UINT dataSizeInBytes = numPacketsWritten * packetSizeInBytes;
+                UINT offset = offsetForAdjRank + 4;
+                vector<char> dataPackets(dataSizeInBytes);
+                
+                mpiError = MPI_Get(dataPackets.data(), dataSizeInBytes, 
+                                   MPI_BYTE, myRank, offset, dataSizeInBytes, 
+                                   MPI_BYTE, mpiWin);
+                Insist(mpiError == MPI_SUCCESS, "");
+                
+                
+                for (UINT i = 0; i < numPackets; i++) {
+                    char *packet = &dataPackets[i * packetSize];
+                    UINT globalSide;
+                    UINT angle;
+                    char *packetData;
+                    splitPacket(packet, globalSide, angle, &packetData);
+                    
+                    UINT localSide = g_tychoMesh->getGLSide(globalSide);
+                    traverseData.setSideData(localSide, angle, packetData);
+                    sideRecv.insert(make_pair(localSide,angle));
+                }
+            }
+        }
+    MPI_Win_unlock(myRank, mpiWin);
+}
+
+
+
+
+
 /*
     sendAndRecvData()
     
