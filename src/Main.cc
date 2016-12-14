@@ -44,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "KeyValueReader.hh"
+#include "TraverseGraph.hh"
 #include "Global.hh"
 #include "Assert.hh"
 #include "Timer.hh"
@@ -258,27 +259,35 @@ int main(int argc, char *argv[])
     switch (g_sweepType) {
         case SweepType_OriginalTycho1:
         case SweepType_OriginalTycho2:
+            g_graphTraverserForward = NULL;
             sweeper = new Sweeper();
             break;
         case SweepType_TraverseGraph:
+            g_graphTraverserForward = new GraphTraverser(Direction_Forward, true);
             sweeper = new SweeperTraverse();
             break;
         case SweepType_Schur:
+            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
             sweeper = new SweeperSchur();
             break;
         case SweepType_SchurOuter:
+            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
             sweeper = new SweeperSchurOuter();
             break;
         case SweepType_SchurKrylov:
+            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
             sweeper = new SweeperSchurKrylov();
             break;
         case SweepType_PBJ:
+            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
             sweeper = new SweeperPBJ();
             break;
         case SweepType_PBJOuter:
+            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
             sweeper = new SweeperPBJOuter();
             break;
         case SweepType_PBJSI:
+            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
             sweeper = new SweeperPBJSI();
             break;
         default:

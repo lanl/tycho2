@@ -297,13 +297,11 @@ private:
     calcBLevels
 */
 static
-UINT calcBLevels(const UINT maxComputePerStep,
-                 Mat2<UINT> &bLevels, Mat2<UINT> &sideBLevels)
+UINT calcBLevels(Mat2<UINT> &bLevels, Mat2<UINT> &sideBLevels,
+                 GraphTraverser *graphTraverser)
 {
     BLevelData bLevelData(bLevels, sideBLevels);
-    const bool doComm = true;
-    traverseGraph(maxComputePerStep, bLevelData, doComm, 
-                  MPI_COMM_WORLD, Direction_Backward);
+    graphTraverser->traverse(g_maxCellsPerStep, bLevelData);
     
     UINT maxBLevel = bLevelData.getMaxBLevel();
     Comm::gmax(maxBLevel);
@@ -347,14 +345,12 @@ void neighborPriorities(const Mat2<UINT> &sideBLevels,
                         const UINT boundScale, 
                         const UINT boundShift, 
                         const int parentShift,  // Can be -1 or 0
-                        const UINT maxComputePerStep,
-                        Mat2<UINT> &priorities)
+                        Mat2<UINT> &priorities,
+                        GraphTraverser *graphTraverser)
 {
     NeighborPriorityData priorityData(priorities, sideBLevels, 
                                       boundScale, boundShift, parentShift);
-    const bool doComm = false;
-    traverseGraph(maxComputePerStep, priorityData, doComm, 
-                  MPI_COMM_WORLD, Direction_Backward);
+    graphTraverser->traverse(g_maxCellsPerStep, priorityData);
 }
 
 
@@ -417,11 +413,15 @@ namespace Priorities
 */
 void calcPriorities(Mat2<UINT> &priorities)
 {
+    const bool doComm = false;
+    GraphTraverser graphTraverser(Direction_Backward, doComm);
+    
     UINT numAngles = g_nAngles;
     Mat2<UINT> bLevels(g_nCells, numAngles);
     Mat2<UINT> sideBLevels(g_tychoMesh->getNSides(), numAngles);
     
-    UINT maxBLevel = calcBLevels(g_maxCellsPerStep, bLevels, sideBLevels);
+    UINT maxBLevel = calcBLevels(bLevels, sideBLevels, 
+                                 &graphTraverser);
     
     
     // Calculate intra-angle priorities
@@ -435,17 +435,15 @@ void calcPriorities(Mat2<UINT> &priorities)
         break;
       case 2:  // breadth-first dependent seeking
         neighborPriorities(sideBLevels, 1, 0, 0, 
-                           g_maxCellsPerStep, priorities);
+                           priorities, &graphTraverser);
         break;
       case 3:  // depth-first dependent seeking
-        neighborPriorities(sideBLevels, 
-                           1, maxBLevel, -1, 
-                           g_maxCellsPerStep, priorities);
+        neighborPriorities(sideBLevels, 1, maxBLevel, -1, 
+                           priorities, &graphTraverser);
         break;
       case 4:  // strict depth-first dependent seeking
-        neighborPriorities(sideBLevels, 
-                           maxBLevel, maxBLevel, -1, 
-                           g_maxCellsPerStep, priorities);
+        neighborPriorities(sideBLevels, maxBLevel, maxBLevel, -1, 
+                           priorities, &graphTraverser);
         break;
     }
     
