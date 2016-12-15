@@ -82,7 +82,6 @@ class TraverseData
 {
 public:
     virtual const char* getData(UINT cell, UINT face, UINT angle) = 0;
-    virtual size_t getDataSize() = 0;
     virtual void setSideData(UINT side, UINT angle, const char *data) = 0;
     virtual UINT getPriority(UINT cell, UINT angle) = 0;
     virtual void update(UINT cell, UINT angle, 
@@ -97,7 +96,8 @@ protected:
 class GraphTraverser
 {
 public:
-    GraphTraverser(Direction direction, bool doComm);
+    GraphTraverser(Direction direction, bool doComm, UINT dataSizeInBytes);
+    ~GraphTraverser();
 
     void traverse(const UINT maxComputePerStep, TraverseData &traverseData);
 
@@ -108,6 +108,11 @@ private:
     Mat2<UINT> c_initNumDependencies;
     Direction c_direction;
     bool c_doComm;
+    MPI_Win c_mpiWin;
+    char *c_mpiWinMemory;
+    UINT c_dataSizeInBytes;
+    std::vector<UINT> c_onRankOffsets;
+    std::vector<UINT> c_offRankOffsets;
 };
 
 #endif

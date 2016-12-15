@@ -48,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Global.hh"
 #include "Assert.hh"
 #include "Timer.hh"
+#include "SweepData.hh"
 #include "SweeperAbstract.hh"
 #include "Sweeper.hh"
 #include "SweeperTraverse.hh"
@@ -263,31 +264,45 @@ int main(int argc, char *argv[])
             sweeper = new Sweeper();
             break;
         case SweepType_TraverseGraph:
-            g_graphTraverserForward = new GraphTraverser(Direction_Forward, true);
+            g_graphTraverserForward = 
+                new GraphTraverser(Direction_Forward, true, 
+                                   SweepData::getDataSizeInBytes());
             sweeper = new SweeperTraverse();
             break;
         case SweepType_Schur:
-            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
+            g_graphTraverserForward = 
+                new GraphTraverser(Direction_Forward, false, 
+                                   SweepData::getDataSizeInBytes());
             sweeper = new SweeperSchur();
             break;
         case SweepType_SchurOuter:
-            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
+            g_graphTraverserForward = 
+                new GraphTraverser(Direction_Forward, false, 
+                                   SweepData::getDataSizeInBytes());
             sweeper = new SweeperSchurOuter();
             break;
         case SweepType_SchurKrylov:
-            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
+            g_graphTraverserForward = 
+                new GraphTraverser(Direction_Forward, false, 
+                                   SweepData::getDataSizeInBytes());
             sweeper = new SweeperSchurKrylov();
             break;
         case SweepType_PBJ:
-            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
+            g_graphTraverserForward = 
+                new GraphTraverser(Direction_Forward, false, 
+                                   SweepData::getDataSizeInBytes());
             sweeper = new SweeperPBJ();
             break;
         case SweepType_PBJOuter:
-            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
+            g_graphTraverserForward = 
+                new GraphTraverser(Direction_Forward, false, 
+                                   SweepData::getDataSizeInBytes());
             sweeper = new SweeperPBJOuter();
             break;
         case SweepType_PBJSI:
-            g_graphTraverserForward = new GraphTraverser(Direction_Forward, false);
+            g_graphTraverserForward = 
+                new GraphTraverser(Direction_Forward, false, 
+                                   SweepData::getDataSizeInBytes());
             sweeper = new SweeperPBJSI();
             break;
         default:

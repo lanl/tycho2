@@ -75,6 +75,16 @@ public:
     
 
     /*
+        getDataSizeInBytes
+    */
+    static
+    size_t getDataSizeInBytes()
+    {
+        return g_nGroups * g_nVrtxPerFace * sizeof(double);
+    }
+    
+    
+    /*
         data
         
         Return psi for vertices and groups at the given (cell,face,angle) tuple
@@ -93,15 +103,6 @@ public:
     }
        
         
-    /*
-        getDataSize
-    */
-    virtual size_t getDataSize()
-    {
-        return g_nGroups * g_nVrtxPerFace * sizeof(double);
-    }
-    
-    
     /*
         sideData
         
