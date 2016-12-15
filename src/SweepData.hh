@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "Assert.hh"
-#include "TraverseGraph.hh"
+#include "GraphTraverser.hh"
 #include "Transport.hh"
 #include "Global.hh"
 #include <stddef.h>

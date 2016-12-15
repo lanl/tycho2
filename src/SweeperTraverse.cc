@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Problem.hh"
 #include "SweepData.hh"
 #include "Global.hh"
-#include "TraverseGraph.hh"
+#include "GraphTraverser.hh"
 #include "Priorities.hh"
 #include "PsiData.hh"
 

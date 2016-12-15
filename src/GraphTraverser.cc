@@ -37,7 +37,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "TraverseGraph.hh"
+#include "GraphTraverser.hh"
 #include "Mat.hh"
 #include "Global.hh"
 #include "TychoMesh.hh"
@@ -239,7 +239,8 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
         int tag0 = 0;
         
         mpiError = MPI_Irecv(&recvSizes[index], numDataToRecv, MPI_UINT64_T, 
-                             adjRank, tag0, MPI_COMM_WORLD, &mpiRecvRequests[index]);
+                             adjRank, tag0, MPI_COMM_WORLD, 
+                             &mpiRecvRequests[index]);
         Insist(mpiError == MPI_SUCCESS, "");
     }
     

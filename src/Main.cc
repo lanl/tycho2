@@ -44,7 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "KeyValueReader.hh"
-#include "TraverseGraph.hh"
+#include "GraphTraverser.hh"
 #include "Global.hh"
 #include "Assert.hh"
 #include "Timer.hh"

@@ -38,7 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "Priorities.hh"
-#include "TraverseGraph.hh"
+#include "GraphTraverser.hh"
 #include "Mat.hh"
 #include "Global.hh"
 #include "TychoMesh.hh"
