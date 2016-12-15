@@ -37,10 +37,11 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __TRAVERSE_GRAPH_HH__
-#define __TRAVERSE_GRAPH_HH__
+#ifndef __GRAPH_TRAVERSER_HH__
+#define __GRAPH_TRAVERSER_HH__
 
 #include "Global.hh"
+#include "Mat.hh"
 #include <mpi.h>
 #include <vector>
 
@@ -93,9 +94,20 @@ protected:
     TraverseData() { }
 };
 
+class GraphTraverser
+{
+public:
+    GraphTraverser(Direction direction, bool doComm);
 
-void traverseGraph(const UINT maxComputePerStep,
-                   TraverseData &traverseData, bool doComm,
-                   MPI_Comm mpiComm, Direction direction);
+    void traverse(const UINT maxComputePerStep, TraverseData &traverseData);
+
+private:
+    
+    std::vector<UINT> c_adjRankIndexToRank;
+    std::map<UINT,UINT> c_adjRankToRankIndex;
+    Mat2<UINT> c_initNumDependencies;
+    Direction c_direction;
+    bool c_doComm;
+};
 
 #endif

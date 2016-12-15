@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Problem.hh"
 #include "SweepData.hh"
 #include "Global.hh"
-#include "TraverseGraph.hh"
+#include "GraphTraverser.hh"
 #include "Priorities.hh"
 #include "PsiData.hh"
 
@@ -54,7 +54,6 @@ using namespace std;
 */
 SweeperTraverse::SweeperTraverse()
 {
-    c_maxComputePerStep = g_maxCellsPerStep;
     c_priorities.resize(g_nCells, g_nAngles);
     Priorities::calcPriorities(c_priorities);
 }
@@ -84,10 +83,8 @@ void SweeperTraverse::sweep(PsiData &psi, const PsiData &source,
                             bool zeroPsiBound)
 {
     UNUSED_VARIABLE(zeroPsiBound);
-    const bool doComm = true;
     PsiBoundData psiBound;
     SweepData sweepData(psi, source, psiBound, c_priorities);
-    traverseGraph(c_maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD, 
-                  Direction_Forward);
+    g_graphTraverserForward->traverse(g_maxCellsPerStep, sweepData);
 }
 

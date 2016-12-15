@@ -138,12 +138,10 @@ void calcTotalSource(const PsiData &source, const PhiData &phi,
 void sweepLocal(PsiData &psi, const PsiData &source, PsiBoundData &psiBound)
 {
     Mat2<UINT> priorities(g_nCells, g_nAngles);
-    const bool doComm = false;
     const UINT maxComputePerStep = std::numeric_limits<uint64_t>::max();
     SweepData sweepData(psi, source, psiBound, priorities);
     
-    traverseGraph(maxComputePerStep, sweepData, doComm, MPI_COMM_WORLD,
-                  Direction_Forward);
+    g_graphTraverserForward->traverse(maxComputePerStep, sweepData);
 }
 
 

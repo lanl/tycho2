@@ -37,7 +37,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "TraverseGraph.hh"
+#include "GraphTraverser.hh"
 #include "Mat.hh"
 #include "Global.hh"
 #include "TychoMesh.hh"
@@ -321,8 +321,7 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
                      const vector<UINT> &adjRankIndexToRank, 
                      TraverseData &traverseData, 
                      set<pair<UINT,UINT>> &sideRecv,
-                     vector<bool> &commDark, const bool killComm,
-                     MPI_Comm mpiComm)
+                     vector<bool> &commDark, const bool killComm)
 {
     // Check input
     Assert(adjRankIndexToRank.size() == sendBuffers.size());
@@ -356,7 +355,8 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
         int tag0 = 0;
         
         mpiError = MPI_Irecv(&recvSizes[index], numDataToRecv, MPI_UINT64_T, 
-                             adjRank, tag0, mpiComm, &mpiRecvRequests[index]);
+                             adjRank, tag0, MPI_COMM_WORLD, 
+                             &mpiRecvRequests[index]);
         Insist(mpiError == MPI_SUCCESS, "");
     }
     
@@ -382,7 +382,7 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
             sendSizes[index] = UINT64_MAX;
         
         mpiError = MPI_Isend(&sendSizes[index], numDataToSend, MPI_UINT64_T, 
-                             adjRank, tag0, mpiComm, &request);
+                             adjRank, tag0, MPI_COMM_WORLD, &request);
         Insist(mpiError == MPI_SUCCESS, "");
         mpiSendRequests.push_back(request);
         
@@ -395,7 +395,7 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
             mpiError = MPI_Isend(const_cast<char*>(sendBuffer.data()), 
                                  sendBuffer.size(), 
                                  MPI_BYTE, adjRank, tag1, 
-                                 mpiComm, &request);
+                                 MPI_COMM_WORLD, &request);
             Insist(mpiError == MPI_SUCCESS, "");
             mpiSendRequests.push_back(request);
         }
@@ -420,7 +420,7 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
             vector<char> dataPackets(recvSizes[index]);
             
             mpiError = MPI_Recv(dataPackets.data(), recvSizes[index], 
-                                MPI_BYTE, adjRank, tag1, mpiComm, 
+                                MPI_BYTE, adjRank, tag1, MPI_COMM_WORLD, 
                                 MPI_STATUS_IGNORE);
             Insist(mpiError == MPI_SUCCESS, "");
             
@@ -460,24 +460,68 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
 
 
 /*
-    traverseGraph
+    GraphTraverser
     
-    Traverses g_tychoMesh.
     If doComm is true, this is done globally.
     If doComm is false, each mesh partition is traversed locally with no
     consideration for boundaries between partitions.
 */
-void traverseGraph(const UINT maxComputePerStep,
-                   TraverseData &traverseData, bool doComm,
-                   MPI_Comm mpiComm, Direction direction)
+GraphTraverser::GraphTraverser(Direction direction, bool doComm)
+    : c_direction(direction), c_doComm(doComm)
 {
-    UINT numCells = g_nCells;
-    UINT numAngles = g_nAngles;
+    // Get adjacent ranks
+    for (UINT cell = 0; cell < g_nCells; cell++) {
+    for (UINT face = 0; face < g_nFacePerCell; face++) {
+        
+        UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
+        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
+        
+        if (adjCell == TychoMesh::BOUNDARY_FACE && 
+            adjRank != TychoMesh::BAD_RANK &&
+            c_adjRankToRankIndex.count(adjRank) == 0)
+        {
+            UINT rankIndex = c_adjRankIndexToRank.size();
+            c_adjRankToRankIndex.insert(make_pair(adjRank, rankIndex));
+            c_adjRankIndexToRank.push_back(adjRank);
+        }
+    }}
+    
+    
+    // Calc num dependencies for each (cell, angle) pair
+    c_initNumDependencies.resize(g_nAngles, g_nCells);
+    for (UINT cell = 0; cell < g_nCells; cell++) {
+    for (UINT angle = 0; angle < g_nAngles; angle++) {
+        
+        c_initNumDependencies(angle, cell) = 0;
+        for (UINT face = 0; face < g_nFacePerCell; face++) {
+            
+            bool incoming = isIncoming(angle, cell, face, c_direction);
+            UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
+            UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
+            
+            if (c_doComm && incoming && adjRank != TychoMesh::BAD_RANK) {
+                c_initNumDependencies(angle, cell)++;
+            }
+            else if (!c_doComm && incoming && adjCell != TychoMesh::BOUNDARY_FACE) {
+                c_initNumDependencies(angle, cell)++;
+            }
+        }
+    }}
+
+}
+
+
+/*
+    traverse
+    
+    Traverses g_tychoMesh.
+*/
+void GraphTraverser::traverse(const UINT maxComputePerStep,
+                              TraverseData &traverseData)
+{
     vector<priority_queue<Tuple>> canCompute(g_nThreads);
-    Mat2<UINT> numDependencies(numAngles, numCells);
-    UINT numCellAnglePairsToCalculate = numAngles * numCells;
-    vector<UINT> adjRankIndexToRank;
-    map<UINT,UINT> adjRankToRankIndex;
+    Mat2<UINT> numDependencies(g_nAngles, g_nCells);
+    UINT numCellAnglePairsToCalculate = g_nAngles * g_nCells;
     set<pair<UINT,UINT>> sideRecv;
     Mat2<vector<char>> sendBuffers;
     vector<vector<char>> sendBuffers1;
@@ -494,45 +538,13 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Calc num dependencies for each (cell, angle) pair
     for (UINT cell = 0; cell < g_nCells; cell++) {
-    for (UINT angle = 0; angle < numAngles; angle++) {
-        
-        numDependencies(angle, cell) = 0;
-        for (UINT face = 0; face < g_nFacePerCell; face++) {
-            
-            bool incoming = isIncoming(angle, cell, face, direction);
-            UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
-            UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
-            
-            if (doComm && incoming && adjRank != TychoMesh::BAD_RANK) {
-                numDependencies(angle, cell)++;
-            }
-            else if (!doComm && incoming && adjCell != TychoMesh::BOUNDARY_FACE) {
-                numDependencies(angle, cell)++;
-            }
-        }
-    }}
-    
-    
-    // Get adjacent ranks
-    for (UINT cell = 0; cell < g_nCells; cell++) {
-    for (UINT face = 0; face < g_nFacePerCell; face++) {
-        
-        UINT adjRank = g_tychoMesh->getAdjRank(cell, face);
-        UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
-        
-        if (adjCell == TychoMesh::BOUNDARY_FACE && 
-            adjRank != TychoMesh::BAD_RANK &&
-            adjRankToRankIndex.count(adjRank) == 0)
-        {
-            UINT rankIndex = adjRankIndexToRank.size();
-            adjRankToRankIndex.insert(make_pair(adjRank, rankIndex));
-            adjRankIndexToRank.push_back(adjRank);
-        }
+    for (UINT angle = 0; angle < g_nAngles; angle++) {
+        numDependencies(angle, cell) = c_initNumDependencies(angle, cell);
     }}
     
     
     // Set size of sendBuffers and commDark
-    UINT numAdjRanks = adjRankIndexToRank.size();
+    UINT numAdjRanks = c_adjRankIndexToRank.size();
     sendBuffers.resize(g_nThreads, numAdjRanks);
     sendBuffers1.resize(numAdjRanks);
     commDark.resize(numAdjRanks, false);
@@ -540,7 +552,7 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Initialize canCompute queue
     for (UINT cell = 0; cell < g_nCells; cell++) {
-    for (UINT angle = 0; angle < numAngles; angle++) {
+    for (UINT angle = 0; angle < g_nAngles; angle++) {
         if (numDependencies(angle, cell) == 0) {
             UINT priority = traverseData.getPriority(cell, angle);
             UINT angleGroup = angleGroupIndex(angle);
@@ -605,7 +617,7 @@ void traverseGraph(const UINT maxComputePerStep,
                             bdryType[face] = BoundaryType_OutInt;
                         }
                         
-                        if (direction == Direction_Forward) {
+                        if (c_direction == Direction_Forward) {
                             isOutgoingWrtDirection[face] = true;
                         }
                         else {
@@ -632,7 +644,7 @@ void traverseGraph(const UINT maxComputePerStep,
                             bdryType[face] = BoundaryType_InInt;
                         }
                         
-                        if (direction == Direction_Forward) {
+                        if (c_direction == Direction_Forward) {
                             isOutgoingWrtDirection[face] = false;
                         }
                         else {
@@ -664,8 +676,8 @@ void traverseGraph(const UINT maxComputePerStep,
                             }
                         }
                         
-                        else if (doComm && adjRank != TychoMesh::BAD_RANK) {
-                            UINT rankIndex = adjRankToRankIndex.at(adjRank);
+                        else if (c_doComm && adjRank != TychoMesh::BAD_RANK) {
+                            UINT rankIndex = c_adjRankToRankIndex.at(adjRank);
                             UINT side = g_tychoMesh->getSide(cell, face);
                             UINT globalSide = g_tychoMesh->getLGSide(side);
                             
@@ -685,7 +697,6 @@ void traverseGraph(const UINT maxComputePerStep,
         
         
         // Put together sendBuffers from different angleGroups
-        vector<vector<char>> sendBuffers1(numAdjRanks);
         for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
         for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
             sendBuffers1[rankIndex].insert(
@@ -697,14 +708,14 @@ void traverseGraph(const UINT maxComputePerStep,
         
         // Do communication
         commTimer.start();
-        if (doComm) {
+        if (c_doComm) {
             
             // Send/Recv
             sideRecv.clear();
             
             const bool killComm = false;
-            sendAndRecvData(sendBuffers1, adjRankIndexToRank, traverseData, 
-                            sideRecv, commDark, killComm, mpiComm);
+            sendAndRecvData(sendBuffers1, c_adjRankIndexToRank, traverseData, 
+                            sideRecv, commDark, killComm);
             
             
             // Clear send buffers for next iteration
@@ -737,10 +748,10 @@ void traverseGraph(const UINT maxComputePerStep,
     
     // Send kill comm signal to adjacent ranks
     commTimer.start();
-    if (doComm) {
+    if (c_doComm) {
         const bool killComm = true;
-        sendAndRecvData(sendBuffers1, adjRankIndexToRank, traverseData, 
-                        sideRecv, commDark, killComm, mpiComm);
+        sendAndRecvData(sendBuffers1, c_adjRankIndexToRank, traverseData, 
+                        sideRecv, commDark, killComm);
     }
     commTimer.stop();
     
@@ -749,15 +760,15 @@ void traverseGraph(const UINT maxComputePerStep,
     totalTimer.stop();
 
     double totalTime = totalTimer.wall_clock();
-    Comm::gmax(totalTime, mpiComm);
+    Comm::gmax(totalTime);
 
     double setupTime = setupTimer.wall_clock();
-    Comm::gmax(setupTime, mpiComm);
+    Comm::gmax(setupTime);
 
     double commTime = commTimer.sum_wall_clock();
-    Comm::gmax(commTime, mpiComm);
+    Comm::gmax(commTime);
     
-    if (Comm::rank(mpiComm) == 0) {
+    if (Comm::rank() == 0) {
         printf("      Traverse Timer (comm):    %fs\n", commTime);
         printf("      Traverse Timer (setup):   %fs\n", setupTime);
         printf("      Traverse Timer (total):   %fs\n", totalTime);

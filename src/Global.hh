@@ -57,6 +57,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 class Quadrature;
 class TychoMesh;
 class SweepSchedule;
+class GraphTraverser;
 
 
 // Macro to get around some warnings
@@ -105,10 +106,6 @@ EXTERN UINT g_nGroups;
 EXTERN UINT g_snOrder;
 EXTERN UINT g_iterMax;
 EXTERN double g_errMax;
-//EXTERN double g_sigmaT1;
-//EXTERN double g_sigmaS1;
-//EXTERN double g_sigmaT2;
-//EXTERN double g_sigmaS2;
 EXTERN std::vector<double> g_sigmaT;
 EXTERN std::vector<double> g_sigmaS;
 EXTERN UINT g_maxCellsPerStep;
@@ -118,6 +115,7 @@ EXTERN SweepType g_sweepType;
 EXTERN TychoMesh *g_tychoMesh;
 EXTERN SweepSchedule **g_sweepSchedule;
 EXTERN Quadrature *g_quadrature;
+EXTERN GraphTraverser *g_graphTraverserForward;
 EXTERN GaussElim g_gaussElim;
 EXTERN bool g_outputFile;
 EXTERN std::string g_outputFilename;
