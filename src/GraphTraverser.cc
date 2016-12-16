@@ -295,15 +295,22 @@ void recvData(UINT numAdjRanks,
             
             // Get number of packets written
             UINT numPacketsWritten;
-            /*MPI_Request mpiRequest;
+            MPI_Request mpiRequest;
             mpiError = MPI_Rget(&numPacketsWritten, 8, MPI_BYTE, myRank,
                                onRankOffset, 8, MPI_BYTE, mpiWin, &mpiRequest);
             Insist(mpiError == MPI_SUCCESS, "");
 
             mpiError = MPI_Wait(&mpiRequest, MPI_STATUS_IGNORE);
+            Insist(mpiError == MPI_SUCCESS, "");
+            
+            /*mpiError = MPI_Get(&numPacketsWritten, 8, MPI_BYTE, myRank,
+                               onRankOffset, 8, MPI_BYTE, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");*/
-            MPI_Win_sync(mpiWin);
-            numPacketsWritten = *((UINT*)(&mpiWinMemory[onRankOffset]));
+
+            //mpiError = MPI_Win_flush(myRank, mpiWin);
+            //Insist(mpiError == MPI_SUCCESS, "");
+            //MPI_Win_sync(mpiWin);
+            //numPacketsWritten = *((UINT*)(&mpiWinMemory[onRankOffset]));
             //MPI_Win_sync(mpiWin);
             
             
@@ -317,6 +324,7 @@ void recvData(UINT numAdjRanks,
                                    MPI_BYTE, myRank, offset, dataSizeInBytes, 
                                    MPI_BYTE, mpiWin);
                 Insist(mpiError == MPI_SUCCESS, "");
+                //memcpy(dataPackets.data(), &mpiWinMemory[offset], dataSizeInBytes);
                 
                 
                 // Unpack packets
@@ -338,6 +346,7 @@ void recvData(UINT numAdjRanks,
                 mpiError = MPI_Put(&numPacketsWritten, 8, MPI_BYTE, myRank,
                                    onRankOffset, 8, MPI_BYTE, mpiWin);
                 Insist(mpiError == MPI_SUCCESS, "");
+                //*((UINT*)(&mpiWinMemory[onRankOffset])) = 0;
             }
         }
 
@@ -651,6 +660,8 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
     Timer totalTimer;
     Timer setupTimer;
     Timer commTimer;
+    Timer sendTimer;
+    Timer recvTimer;
     
 
     // Start total timer
@@ -842,11 +853,17 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
             }
             else {
                 UINT packetSizeInBytes = 2 * sizeof(UINT) + c_dataSizeInBytes;
+
+                sendTimer.start();
                 sendData(sendBuffers1, c_adjRankIndexToRank, c_offRankOffsets, 
                          packetSizeInBytes, MAX_PACKETS, c_mpiWin);
+                sendTimer.stop();
+
+                recvTimer.start();
                 recvData(c_adjRankIndexToRank.size(), c_onRankOffsets, 
                          packetSizeInBytes, traverseData, sideRecv, c_mpiWin,
                          c_mpiWinMemory);
+                recvTimer.stop();
             }
 
             
@@ -902,8 +919,16 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
     double commTime = commTimer.sum_wall_clock();
     Comm::gmax(commTime);
     
+    double sendTime = sendTimer.sum_wall_clock();
+    Comm::gmax(sendTime);
+    
+    double recvTime = recvTimer.sum_wall_clock();
+    Comm::gmax(recvTime);
+    
     if (Comm::rank() == 0) {
         printf("      Traverse Timer (comm):    %fs\n", commTime);
+        printf("      Traverse Timer (send):    %fs\n", sendTime);
+        printf("      Traverse Timer (recv):    %fs\n", recvTime);
         printf("      Traverse Timer (setup):   %fs\n", setupTime);
         printf("      Traverse Timer (total):   %fs\n", totalTime);
     }
