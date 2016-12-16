@@ -56,7 +56,7 @@ using namespace std;
 
 
 const UINT MAX_PACKETS = 2000;
-const bool ONE_SIDED = true;
+const bool ONE_SIDED = false;
 
 
 
@@ -195,7 +195,7 @@ void sendData(const vector<vector<char>> &sendBuffers,
               const MPI_Win &mpiWin)
 {
     UINT numAdjRanks = adjRankIndexToRank.size();
-    
+    MPI_Win_lock_all(0, mpiWin);
     
     // Send data to each adjacent rank
     for (UINT index = 0; index < numAdjRanks; index++) {
@@ -214,20 +214,25 @@ void sendData(const vector<vector<char>> &sendBuffers,
 
 //printf("    %d:%lld\n", Comm::rank(), index);
         // Lock the window and write data
-        mpiError = MPI_Win_lock(MPI_LOCK_SHARED, adjRank, 0, mpiWin);
-        Insist(mpiError == MPI_SUCCESS, "");
+        //mpiError = MPI_Win_lock(MPI_LOCK_SHARED, adjRank, 0, mpiWin);
+        //Insist(mpiError == MPI_SUCCESS, "");
             
 
 //printf("    %d:%lld\n", Comm::rank(), index);
             // Get number of packets still not read by adjRank
             UINT numPacketsWritten = 0;
-            MPI_Request mpiRequest;
+            /*MPI_Request mpiRequest;
             mpiError = MPI_Rget(&numPacketsWritten, 8, MPI_BYTE, adjRank, 
                                offRankOffset, 8, MPI_BYTE, mpiWin, &mpiRequest);
             Insist(mpiError == MPI_SUCCESS, "");
 
             mpiError = MPI_Wait(&mpiRequest, MPI_STATUS_IGNORE);
+            Insist(mpiError == MPI_SUCCESS, "");*/
+            
+            mpiError = MPI_Get(&numPacketsWritten, 8, MPI_BYTE, adjRank, 
+                               offRankOffset, 8, MPI_BYTE, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
+            MPI_Win_flush_local(adjRank, mpiWin);
             
 
 //printf("    %d:%lld\n", Comm::rank(), index);
@@ -257,9 +262,10 @@ void sendData(const vector<vector<char>> &sendBuffers,
 
 //printf("    %d:%lld\n", Comm::rank(), index);
         // Unlock the window
-        mpiError = MPI_Win_unlock(adjRank, mpiWin);
-        Insist(mpiError == MPI_SUCCESS, "");
+        //mpiError = MPI_Win_unlock(adjRank, mpiWin);
+        //Insist(mpiError == MPI_SUCCESS, "");
     }
+    MPI_Win_unlock_all(mpiWin);
 }
 
 
