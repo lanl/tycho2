@@ -55,8 +55,8 @@ using namespace std;
 
 
 
-const UINT MAX_PACKETS = 200;
-const bool ONE_SIDED = false;
+const UINT MAX_PACKETS = 2000;
+const bool ONE_SIDED = true;
 
 
 
@@ -199,7 +199,7 @@ void sendData(const vector<vector<char>> &sendBuffers,
     
     // Send data to each adjacent rank
     for (UINT index = 0; index < numAdjRanks; index++) {
-        
+//printf("    %d:%lld\n", Comm::rank(), index);
         // Make sure there is data to send
         if (sendBuffers[index].size() == 0)
             continue;
@@ -212,17 +212,25 @@ void sendData(const vector<vector<char>> &sendBuffers,
         int mpiError;
 
 
+//printf("    %d:%lld\n", Comm::rank(), index);
         // Lock the window and write data
         mpiError = MPI_Win_lock(MPI_LOCK_SHARED, adjRank, 0, mpiWin);
         Insist(mpiError == MPI_SUCCESS, "");
             
 
+//printf("    %d:%lld\n", Comm::rank(), index);
             // Get number of packets still not read by adjRank
             UINT numPacketsWritten = 0;
-            mpiError = MPI_Get(&numPacketsWritten, 8, MPI_BYTE, adjRank, 
-                    offRankOffset, 8, MPI_BYTE, mpiWin);
+            MPI_Request mpiRequest;
+            mpiError = MPI_Rget(&numPacketsWritten, 8, MPI_BYTE, adjRank, 
+                               offRankOffset, 8, MPI_BYTE, mpiWin, &mpiRequest);
+            Insist(mpiError == MPI_SUCCESS, "");
+
+            mpiError = MPI_Wait(&mpiRequest, MPI_STATUS_IGNORE);
             Insist(mpiError == MPI_SUCCESS, "");
             
+
+//printf("    %d:%lld\n", Comm::rank(), index);
             // Check to see if there is room to write data
             UINT numPacketsToSend = sendBuffer.size() / packetSizeInBytes;
             if (numPacketsWritten + numPacketsToSend < maxPackets) {
@@ -230,14 +238,15 @@ void sendData(const vector<vector<char>> &sendBuffers,
                 // Write the packets to adjRank
                 UINT offset = offRankOffset + 8 + 
                               numPacketsWritten * packetSizeInBytes;
-                mpiError = MPI_Put(sendBuffer.data(), sendBuffer.size(), MPI_BYTE, 
-                        adjRank, offset, sendBuffer.size(), MPI_CHAR, mpiWin);
+                mpiError = MPI_Put(sendBuffer.data(), sendBuffer.size(), 
+                                   MPI_BYTE, adjRank, offset, 
+                                   sendBuffer.size(), MPI_BYTE, mpiWin);
                 Insist(mpiError == MPI_SUCCESS, "");
                 
                 // Update number of packets written
                 numPacketsWritten += numPacketsToSend;
                 mpiError = MPI_Put(&numPacketsWritten, 8, MPI_BYTE, adjRank, 
-                        offRankOffset, 8, MPI_BYTE, mpiWin);
+                                   offRankOffset, 8, MPI_BYTE, mpiWin);
                 Insist(mpiError == MPI_SUCCESS, "");
             }
             // SHOULD BE REMOVED AT SOME POINT
@@ -246,6 +255,7 @@ void sendData(const vector<vector<char>> &sendBuffers,
             }
 
 
+//printf("    %d:%lld\n", Comm::rank(), index);
         // Unlock the window
         mpiError = MPI_Win_unlock(adjRank, mpiWin);
         Insist(mpiError == MPI_SUCCESS, "");
@@ -264,7 +274,8 @@ void recvData(UINT numAdjRanks,
               const UINT packetSizeInBytes,
               TraverseData &traverseData, 
               set<pair<UINT,UINT>> &sideRecv,
-              const MPI_Win &mpiWin)
+              const MPI_Win &mpiWin,
+              const char *mpiWinMemory)
 {
     int myRank = Comm::rank();
     int mpiError;
@@ -279,15 +290,21 @@ void recvData(UINT numAdjRanks,
         for (UINT index = 0; index < numAdjRanks; index++) {
         
             // Useful values
-            //int adjRank = adjRankIndexToRank[index];
             UINT onRankOffset = onRankOffsets[index];
             
             
             // Get number of packets written
-            UINT numPacketsWritten = 0;
-            mpiError = MPI_Get(&numPacketsWritten, 8, MPI_BYTE, myRank,
-                               onRankOffset, 8, MPI_BYTE, mpiWin);
+            UINT numPacketsWritten;
+            /*MPI_Request mpiRequest;
+            mpiError = MPI_Rget(&numPacketsWritten, 8, MPI_BYTE, myRank,
+                               onRankOffset, 8, MPI_BYTE, mpiWin, &mpiRequest);
             Insist(mpiError == MPI_SUCCESS, "");
+
+            mpiError = MPI_Wait(&mpiRequest, MPI_STATUS_IGNORE);
+            Insist(mpiError == MPI_SUCCESS, "");*/
+            MPI_Win_sync(mpiWin);
+            numPacketsWritten = *((UINT*)(&mpiWinMemory[onRankOffset]));
+            //MPI_Win_sync(mpiWin);
             
             
             // Read packets
@@ -317,7 +334,7 @@ void recvData(UINT numAdjRanks,
 
 
                 // Reset numPacketsWritten
-                UINT numPacketsWritten = 0;
+                /*UINT*/ numPacketsWritten = 0;
                 mpiError = MPI_Put(&numPacketsWritten, 8, MPI_BYTE, myRank,
                                    onRankOffset, 8, MPI_BYTE, mpiWin);
                 Insist(mpiError == MPI_SUCCESS, "");
@@ -828,7 +845,8 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
                 sendData(sendBuffers1, c_adjRankIndexToRank, c_offRankOffsets, 
                          packetSizeInBytes, MAX_PACKETS, c_mpiWin);
                 recvData(c_adjRankIndexToRank.size(), c_onRankOffsets, 
-                         packetSizeInBytes, traverseData, sideRecv, c_mpiWin);
+                         packetSizeInBytes, traverseData, sideRecv, c_mpiWin,
+                         c_mpiWinMemory);
             }
 
             
