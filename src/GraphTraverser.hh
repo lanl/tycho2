@@ -44,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Mat.hh"
 #include <mpi.h>
 #include <vector>
+#include <map>
 
 /*
     Boundary Type for faces of a cell.
