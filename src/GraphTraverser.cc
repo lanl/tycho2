@@ -669,6 +669,15 @@ GraphTraverser::GraphTraverser(Direction direction, bool doComm,
 
     // TRY
     MPI_Win_lock_all(0, c_mpiWin);
+    
+
+    // Print out use of one-sided MPI
+    if (Comm::rank() == 0) {
+        if (ONE_SIDED)
+            printf("Using one-sided MPI.\n");
+        else
+            printf("NOT using one-sided MPI.\n");
+    }
 }
 
 
