@@ -623,7 +623,7 @@ static
 void anglePriorities(Mat2<UINT> &priorities, const UINT numAngles, 
                      const UINT interAngleP, const UINT nlevels)
 {
-    vector<UINT> highPriorities(numAngles, -1000000);
+    vector<UINT> highPriorities(numAngles, 0);
     for (UINT angle = 0; angle < numAngles; ++angle) {
     for (UINT cell = 0; cell < g_nCells; ++cell) {
         highPriorities[angle] =

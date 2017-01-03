@@ -249,7 +249,7 @@ TychoMesh::TychoMesh(const std::string &filename)
         UINT neighborCell = getAdjCell(cell, face);
         
         if(neighborCell == BOUNDARY_FACE) {
-            c_neighborVrtx(cell, face, fvrtx) = -1;
+            c_neighborVrtx(cell, face, fvrtx) = UINT64_MAX;
             continue;
         }
         

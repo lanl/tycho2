@@ -28,6 +28,8 @@ SweepType TraverseGraph
 #SweepType PBJOuter
 #SweepType Schur
 #SweepType SchurOuter
+#SweepType PBJSI
+#SweepType SchurKrylov
 
 
 # Gaussian Elimination Types: NoPivot seems to be best
