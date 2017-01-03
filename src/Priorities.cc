@@ -88,15 +88,6 @@ public:
     
     
     /*
-        getDataSize
-    */
-    virtual size_t getDataSize()
-    {
-        return sizeof(UINT);
-    }
-    
-    
-    /*
         setSideData
         
         Return b-level data given (side, angle) pair.
@@ -214,15 +205,6 @@ public:
     {
         UNUSED_VARIABLE(face);
         return (char*) (&c_priorities(cell, angle));
-    }
-    
-    
-    /*
-        getDataSize
-    */
-    virtual size_t getDataSize()
-    {
-        return sizeof(UINT);
     }
     
     
@@ -414,7 +396,7 @@ namespace Priorities
 void calcPriorities(Mat2<UINT> &priorities)
 {
     const bool doComm = false;
-    GraphTraverser graphTraverser(Direction_Backward, doComm);
+    GraphTraverser graphTraverser(Direction_Backward, doComm, sizeof(UINT));
     
     UINT numAngles = g_nAngles;
     Mat2<UINT> bLevels(g_nCells, numAngles);
