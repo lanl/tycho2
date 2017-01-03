@@ -1,24 +1,25 @@
-# Compilation settings to change for local environment
+# Settings to change for local environment
 # Copy this file to make.inc and fill in your local environment settings
-# Then, type "make" to build "sweep.x" (or "make -j" to build in parallel)
 
 
-# Assert level: 0 = asserts off, 1 = asserts on
-ASSERT_ON = 1
+# Assert level: 0 = no asserts, 1 = all asserts
+ASSERT_ON = 0
 
 
-# Use PETSc for SweeperSchur: 0 = no, 1 = yes
-# If 0, you can leave PETSC_INC and PETSC_LIB blank
-USE_PETSC = 0
-PETSC_INC = -I/Users/ckgarrett/lib/petsc-3.7.3/include
-PETSC_LIB = -L/Users/ckgarrett/lib/petsc-3.7.3/lib -lpetsc
+# PETSC libraries
+
+### Use petsc: 0 = no, 1 = yes
+USE_PETSC = 1
+
+### Cray machines need: "module load cray-petsc"
+PETSC_INC = $(PETSC_DIR)/include
+PETSC_LIB = $(PETSC_DIR)/lib/libcraypetsc_intel_real.a
 
 
 # Compile command
 # Needs (1) MPI C++ compiler wrapper
 #       (2) openmp enabled
-#       (3) c++11 standard enabled
-# Examples for OpenMPI with GCC are shown below for debug and optimized versions
+#       (3) c++11 standard enabled  (-std=c++11 for gcc)
 
-MPICC = mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic
-#MPICC = mpicxx -O3 -march=native -std=c++11 -fopenmp -Wall -Wextra -Wpedantic
+### Cray with Intel compiler
+MPICC = CC -Wall -Wextra -g -std=c++11 -O3

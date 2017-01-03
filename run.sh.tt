@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Run script for Trinitite
+# -j oe means combine standard error and out
+# -V means keep all environment variables and modules
+
+#MSUB -l walltime=10:00
+#MSUB -l nodes=1
+#MSUB -o /users/ckgarrett/git/tt-fey/tycho2/tt.out
+#MSUB -j oe
+#MSUB -V
+
+LUSTRE_DIR="/lustre/ttscratch1/ckgarrett/tychomesh"
+NUM_PARTS=32
+NUM_THREADS=1
+NUM_HYPERTHREADS=1
+IN_FILE="$LUSTRE_DIR/cube-4128.smesh"
+OUT_FILE="$LUSTRE_DIR/temp.pmesh"
+INPUT_DECK="input.deck"
+
+export OMP_NUM_THREADS=$NUM_THREADS
+export OMP_PLACES=threads
+export OMP_PROC_BIND=true
+
+
+# Partition mesh
+aprun -n 1 ./util/PartitionMetis.x $NUM_PARTS $IN_FILE $OUT_FILE
+
+# Show how threads map to cores
+# Comment this out for large runs
+aprun -n $NUM_PARTS -d $NUM_THREADS -j $NUM_HYPERTHREADS -cc depth \
+    /usr/project/packages/xthi/xthi | sort
+
+# Run program
+aprun -n $NUM_PARTS -d $NUM_THREADS -j $NUM_HYPERTHREADS -cc depth \
+    ./sweep.x $OUT_FILE $INPUT_DECK

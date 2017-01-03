@@ -1,13 +1,21 @@
 # Settings for local environment
 include make.inc
 
+
 # Add assert level to compile command
 MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_PETSC=$(USE_PETSC)
 
-# Include directories
-INC = -Isrc $(PETSC_INC) 
 
-LIBS = $(PETSC_LIB)
+# Include directories
+INC = -Isrc
+LIBS = 
+
+
+# Add PETSC info
+ifeq ($(USE_PETSC), 1)
+	INC += -I$(PETSC_INC)
+	LIBS += $(PETSC_LIB)
+endif
 
 
 

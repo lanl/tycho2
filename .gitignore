@@ -4,12 +4,12 @@
 *.log
 *.gz
 *.o
-input.deck
+*.deck
 make.inc
 *.x
 *.pmesh
 *.dSYM
-run.sh
+*.sh
 *.psi
 *.vtk
 *.visit
