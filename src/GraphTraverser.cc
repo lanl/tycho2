@@ -56,7 +56,7 @@ using namespace std;
 
 
 const UINT MAX_PACKETS = 2000;
-const bool ONE_SIDED = true;
+const bool ONE_SIDED = false;
 
 
 void mutexLock(const MPI_Win &mpiWin, int rank, UINT offset)
