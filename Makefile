@@ -2,17 +2,17 @@
 include make.inc
 
 
-# Add assert level to compile command
+# Add assert level and PETSc flag to compile command
 MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_PETSC=$(USE_PETSC)
 
 
-# Include directories
-INC = -Isrc
+# Include source directory
+INC += -Isrc
 
 
-# Add PETSC info
+# Add PETSC include directory and library command
 ifeq ($(USE_PETSC), 1)
-	INC += -I$(PETSC_INC)
+	INC += $(PETSC_INC)
 	LIBS += $(PETSC_LIB)
 endif
 
