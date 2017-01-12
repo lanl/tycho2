@@ -15,6 +15,7 @@ sigmaS2         5.0
 OutputFile      false
 OutputFilename  out.psi
 SourceIteration true
+OneSidedMPI     false
 
 DD_IterMax      100
 DD_ErrMax       1e-5

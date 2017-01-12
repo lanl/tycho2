@@ -112,6 +112,7 @@ private:
     MPI_Win c_mpiWin;
     char *c_mpiWinMemory;
     UINT c_dataSizeInBytes;
+    UINT c_maxPackets;
     std::vector<UINT> c_onRankOffsets;
     std::vector<UINT> c_offRankOffsets;
 };

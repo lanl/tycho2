@@ -124,6 +124,7 @@ EXTERN UINT g_nCells;
 EXTERN double g_ddErrMax;
 EXTERN UINT g_ddIterMax;
 EXTERN bool g_useSourceIteration;
+EXTERN bool g_useOneSidedMPI;
 
 #endif
 

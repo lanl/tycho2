@@ -8,7 +8,6 @@ MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_PETSC=$(USE_PETSC)
 
 # Include directories
 INC = -Isrc
-LIBS = 
 
 
 # Add PETSC info

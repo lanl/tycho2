@@ -120,6 +120,7 @@ void readInput(const string &inputFileName,
     kvr.getInt("DD_IterMax", ddIterMax);
     kvr.getDouble("DD_ErrMax", g_ddErrMax);
     kvr.getBool("SourceIteration", g_useSourceIteration);
+    kvr.getBool("OneSidedMPI", g_useOneSidedMPI);
        
     g_snOrder = snOrder;
     g_iterMax = iterMax;
