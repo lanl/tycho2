@@ -103,6 +103,7 @@ public:
     void traverse(const UINT maxComputePerStep, TraverseData &traverseData);
 
 private:
+    void setupOneSidedMPI();
     
     std::vector<UINT> c_adjRankIndexToRank;
     std::map<UINT,UINT> c_adjRankToRankIndex;

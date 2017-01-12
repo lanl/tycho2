@@ -189,20 +189,19 @@ void sendData(const vector<vector<char>> &sendBuffers,
               const MPI_Win &mpiWin,
               const bool firstTime)
 {
-    // Initial setup of number of packets written for each data chunk
+    // Internal state with number of packets written for each data chunk
+    // and the current data chunk to write to for each adjacent rank.
     static vector<uint32_t> numPacketsWrittenVector[2];
     static vector<uint32_t> currentDataChunkVector;
     UINT numAdjRanks = adjRankIndexToRank.size();
     if (firstTime) {
+        numPacketsWrittenVector[0].clear();
+        numPacketsWrittenVector[1].clear();
+        currentDataChunkVector.clear();
+
         numPacketsWrittenVector[0].resize(numAdjRanks);
         numPacketsWrittenVector[1].resize(numAdjRanks);
         currentDataChunkVector.resize(numAdjRanks);
-
-        for (UINT i = 0; i < numAdjRanks; i++) {
-            numPacketsWrittenVector[0][i] = 0;
-            numPacketsWrittenVector[1][i] = 0;
-            currentDataChunkVector[i] = 0;
-        }
     }
     
 
@@ -215,14 +214,11 @@ void sendData(const vector<vector<char>> &sendBuffers,
         
 
         // Useful values
+        int mpiError;
         int adjRank = adjRankIndexToRank[index];
         UINT offRankOffset = offRankOffsets[index];
         const vector<char> &sendBuffer = sendBuffers[index];
         uint32_t currentDataChunk = currentDataChunkVector[index];
-        int mpiError;
-
-
-        // Number of packets written in each data chunk
         uint32_t numPacketsWritten = 
             numPacketsWrittenVector[currentDataChunk][index];
         
@@ -238,8 +234,6 @@ void sendData(const vector<vector<char>> &sendBuffers,
             mpiError = MPI_Accumulate(&one, 1, MPI_UINT32_T, adjRank, offset, 
                                       1, MPI_UINT32_T, MPI_REPLACE, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
-            mpiError = MPI_Win_flush_local(adjRank, mpiWin);
-            Insist(mpiError == MPI_SUCCESS, "");
             
             
             // change data chunk we're working on
@@ -251,7 +245,7 @@ void sendData(const vector<vector<char>> &sendBuffers,
 
             // Spin wait for availability to write to new data chunk
             while (true) {
-                uint32_t dummy;
+                uint32_t dummy = 0;
                 uint32_t writable = 1;
                 UINT offset = offRankOffset + 4 * currentDataChunk;
                 mpiError = MPI_Fetch_and_op(&dummy, &writable, MPI_UINT32_T,
@@ -310,31 +304,23 @@ void recvData(const UINT numAdjRanks,
               const MPI_Win &mpiWin,
               const bool firstTime)
 {
-    // Initial setup of number of packets read/written
+    // Initial setup of number of internal state
     static vector<uint32_t> numPacketsReadVector[2];
     static vector<uint32_t> headerDataVector;
     static vector<uint32_t> currentDataChunkVector;
-    try {
     if (firstTime) {
+        numPacketsReadVector[0].clear();
+        numPacketsReadVector[1].clear();
+        headerDataVector.clear();
+        currentDataChunkVector.clear();
+
         numPacketsReadVector[0].resize(numAdjRanks);
         numPacketsReadVector[1].resize(numAdjRanks);
         headerDataVector.resize(4 * numAdjRanks);
         currentDataChunkVector.resize(numAdjRanks);
-
-        for (UINT i = 0; i < numAdjRanks; i++) {
-            numPacketsReadVector[0][i] = 0;
-            numPacketsReadVector[1][i] = 0;
-            currentDataChunkVector[i] = 0;
-        }
-        for (UINT i = 0; i < 4 * numAdjRanks; i++) {
-            headerDataVector[i] = 0;
-        }
     }
-    } catch(...) {
-        printf("Recv2 error\n");
-        abort();
-    }
-    try {
+    
+    
     // Useful values
     int myRank = Comm::rank();
     int mpiError;
@@ -353,7 +339,7 @@ void recvData(const UINT numAdjRanks,
     }
 
 
-    // Make sure we have the data
+    // Make sure we have the header data
     mpiError = MPI_Win_flush_local(myRank, mpiWin);
     Insist(mpiError == MPI_SUCCESS, "");
 
@@ -379,7 +365,6 @@ void recvData(const UINT numAdjRanks,
             UINT offset = onRankOffset + 16 +
                           maxPackets * packetSizeInBytes * currentDataChunk + 
                           numPacketsRead * packetSizeInBytes;
-            try {
             vector<char> dataPackets(dataSizeInBytes);
 
             mpiError = MPI_Get(dataPackets.data(), dataSizeInBytes, 
@@ -404,12 +389,8 @@ void recvData(const UINT numAdjRanks,
             }
 
 
-            // Update numPacketsWritten
+            // Update numPacketsRead
             numPacketsReadVector[currentDataChunk][index] = numPacketsWritten;
-            } catch(...) {
-                printf("Recv4 error: %lld %u %u %u\n", dataSizeInBytes, numPacketsRead, numPacketsWritten, currentDataChunk);
-                abort();
-            }
         }
     
     
@@ -421,17 +402,16 @@ void recvData(const UINT numAdjRanks,
             Insist(mpiError == MPI_SUCCESS, "");
             
             // Set numWritten to zero
-            uint32_t zero = 0;
+            uint32_t zero1 = 0;
             UINT offset = onRankOffset + 8 + 4 * currentDataChunk;
-            mpiError = MPI_Accumulate(&zero, 1, MPI_UINT32_T, myRank, offset, 
+            mpiError = MPI_Accumulate(&zero1, 1, MPI_UINT32_T, myRank, offset, 
                                       1, MPI_UINT32_T, MPI_REPLACE, mpiWin);
-            Insist(mpiError == MPI_SUCCESS, "");
-            mpiError = MPI_Win_flush_local(myRank, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
 
             // Set writable bit for this data chunk back to zero
+            uint32_t zero2 = 0;
             offset = onRankOffset + 4 * currentDataChunk;
-            mpiError = MPI_Accumulate(&zero, 1, MPI_UINT32_T, myRank, offset, 
+            mpiError = MPI_Accumulate(&zero2, 1, MPI_UINT32_T, myRank, offset, 
                                       1, MPI_UINT32_T, MPI_REPLACE, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
             mpiError = MPI_Win_flush_local(myRank, mpiWin);
@@ -441,10 +421,6 @@ void recvData(const UINT numAdjRanks,
             numPacketsReadVector[currentDataChunk][index] = 0;
             currentDataChunkVector[index] = (currentDataChunk + 1) % 2;
         }
-    }
-    } catch(...) {
-        printf("Recv3 error\n");
-        abort();
     }
 }
 
@@ -631,10 +607,6 @@ GraphTraverser::GraphTraverser(Direction direction, bool doComm,
     : c_direction(direction), c_doComm(doComm), 
       c_dataSizeInBytes(dataSizeInBytes)
 {
-    int mpiError;
-    c_maxPackets = 2000; // Change to reflect input.deck values.
-    
-    
     // Get adjacent ranks
     for (UINT cell = 0; cell < g_nCells; cell++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
@@ -674,6 +646,22 @@ GraphTraverser::GraphTraverser(Direction direction, bool doComm,
         }
     }}
 
+
+    // Setup one-sided MPI
+    if (g_useOneSidedMPI) {
+        setupOneSidedMPI();
+    }
+}
+
+
+/*
+    setupOneSidedMPI
+*/
+void GraphTraverser::setupOneSidedMPI()
+{
+    int mpiError;
+    c_maxPackets = 10 * g_maxCellsPerStep;
+    
     
     // Allocate MPI_Win
     UINT numAdjRanks = c_adjRankIndexToRank.size();
@@ -749,8 +737,10 @@ GraphTraverser::GraphTraverser(Direction direction, bool doComm,
 */
 GraphTraverser::~GraphTraverser()
 {
-    MPI_Win_unlock_all(c_mpiWin);
-    MPI_Win_free(&c_mpiWin);
+    if (g_useOneSidedMPI) {
+        MPI_Win_unlock_all(c_mpiWin);
+        MPI_Win_free(&c_mpiWin);
+    }
 }
 
 
@@ -968,24 +958,14 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
                 static bool firstTime = true;
 
                 sendTimer.start();
-                try {
                 sendData(sendBuffers1, c_adjRankIndexToRank, c_offRankOffsets, 
                          packetSizeInBytes, c_maxPackets, c_mpiWin, firstTime);
-                } catch(...) {
-                    printf("Send try error\n");
-                    abort();
-                }
                 sendTimer.stop();
 
                 recvTimer.start();
-                try {
                 recvData(c_adjRankIndexToRank.size(), c_onRankOffsets, 
                          packetSizeInBytes, traverseData, sideRecv, 
                          c_maxPackets, c_mpiWin, firstTime);
-                } catch(...) {
-                    printf("Recv try error\n");
-                    abort();
-                }
                 recvTimer.stop();
 
                 firstTime = false;
