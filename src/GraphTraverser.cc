@@ -289,6 +289,8 @@ void sendData(const vector<vector<char>> &sendBuffers,
 }
 
 
+
+
 /*
     recvData
 
@@ -424,6 +426,106 @@ void recvData(const UINT numAdjRanks,
     }
 }
 
+
+/*
+    sendData2
+
+    Implements two-sided MPI for sending data.
+*/
+static 
+void sendData2(const vector<vector<char>> &sendBuffers,
+               const vector<UINT> &adjRankIndexToRank)
+{
+    vector<MPI_Request> mpiSendRequests;
+    UINT numAdjRanks = adjRankIndexToRank.size();
+    int mpiError;
+
+
+    // Send the data
+    for (UINT index = 0; index < numAdjRanks; index++) {
+        
+        const vector<char> &sendBuffer = sendBuffers[index];
+        if (sendBuffer.size() > 0) {
+            MPI_Request request;
+            const int adjRank = adjRankIndexToRank[index];
+            const int tag = 0;
+            
+            mpiError = MPI_Isend(const_cast<char*>(sendBuffer.data()), 
+                                 sendBuffer.size(), 
+                                 MPI_BYTE, adjRank, tag, 
+                                 MPI_COMM_WORLD, &request);
+            Insist(mpiError == MPI_SUCCESS, "");
+            mpiSendRequests.push_back(request);
+        }
+    }
+    
+    
+    // Make sure all sends are done
+    if (mpiSendRequests.size() > 0) {
+        mpiError = MPI_Waitall(mpiSendRequests.size(), mpiSendRequests.data(), 
+                               MPI_STATUSES_IGNORE);
+        Insist(mpiError == MPI_SUCCESS, "");
+    }
+}
+
+
+/*
+    recvData2
+
+    Implements two-sided MPI for receiving data.
+*/
+static
+void recvData2(const vector<UINT> &adjRankIndexToRank,
+               TraverseData &traverseData,
+               const UINT packetSizeInBytes,
+               set<pair<UINT,UINT>> &sideRecv)
+{
+    UINT numAdjRanks = adjRankIndexToRank.size();
+    int mpiError;
+
+    for (UINT index = 0; index < numAdjRanks; index++) {
+        
+        const int adjRank = adjRankIndexToRank[index];
+        const int tag = 0;
+        int flag = 0;
+        MPI_Status mpiStatus;
+        int recvCount;
+
+        // Probe for new message
+        mpiError = MPI_Iprobe(adjRank, tag, MPI_COMM_WORLD, &flag, &mpiStatus);
+        Insist(mpiError == MPI_SUCCESS, "");
+        mpiError = MPI_Get_count(&mpiStatus, MPI_BYTE, &recvCount);
+        Insist(mpiError == MPI_SUCCESS, "");
+
+
+        // Recv message if there is one
+        if (flag) {
+            // Recv data
+            vector<char> dataPackets(recvCount);
+            
+            mpiError = MPI_Recv(dataPackets.data(), recvCount, 
+                                MPI_BYTE, adjRank, tag, MPI_COMM_WORLD, 
+                                MPI_STATUS_IGNORE);
+            Insist(mpiError == MPI_SUCCESS, "");
+            
+            // Unpack data
+            UINT numPackets = recvCount / packetSizeInBytes;
+            Assert(recvCount % packetSizeInBytes == 0);
+            
+            for (UINT i = 0; i < numPackets; i++) {
+                char *packet = &dataPackets[i * packetSizeInBytes];
+                UINT globalSide;
+                UINT angle;
+                char *packetData;
+                splitPacket(packet, globalSide, angle, &packetData);
+                
+                UINT localSide = g_tychoMesh->getGLSide(globalSide);
+                traverseData.setSideData(localSide, angle, packetData);
+                sideRecv.insert(make_pair(localSide,angle));
+            }
+        }
+    }
+}
 
 
 /*
@@ -960,12 +1062,15 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
                 sendTimer.start();
                 sendData(sendBuffers1, c_adjRankIndexToRank, c_offRankOffsets, 
                          packetSizeInBytes, c_maxPackets, c_mpiWin, firstTime);
+                //sendData2(sendBuffers1, c_adjRankIndexToRank);
                 sendTimer.stop();
 
                 recvTimer.start();
                 recvData(c_adjRankIndexToRank.size(), c_onRankOffsets, 
                          packetSizeInBytes, traverseData, sideRecv, 
                          c_maxPackets, c_mpiWin, firstTime);
+                //recvData2(c_adjRankIndexToRank, traverseData, 
+                //          packetSizeInBytes, sideRecv);
                 recvTimer.stop();
 
                 firstTime = false;
