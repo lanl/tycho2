@@ -310,16 +310,19 @@ void recvData(const UINT numAdjRanks,
     static vector<uint32_t> numPacketsReadVector[2];
     static vector<uint32_t> headerDataVector;
     static vector<uint32_t> currentDataChunkVector;
+    static vector<MPI_Request> mpiRequests;
     if (firstTime) {
         numPacketsReadVector[0].clear();
         numPacketsReadVector[1].clear();
         headerDataVector.clear();
         currentDataChunkVector.clear();
+        mpiRequests.clear();
 
         numPacketsReadVector[0].resize(numAdjRanks);
         numPacketsReadVector[1].resize(numAdjRanks);
         headerDataVector.resize(4 * numAdjRanks);
         currentDataChunkVector.resize(numAdjRanks);
+        mpiRequests.resize(numAdjRanks, MPI_REQUEST_NULL);
     }
     
     
@@ -331,23 +334,27 @@ void recvData(const UINT numAdjRanks,
     // Get header data for each adjacent rank
     for (UINT index = 0; index < numAdjRanks; index++) {
 
-        UINT onRankOffset = onRankOffsets[index];
-        uint32_t dummy[4];
-        mpiError = MPI_Get_accumulate(dummy, 4, MPI_UINT32_T, 
-                                      &headerDataVector[4*index], 4, 
-                                      MPI_UINT32_T, myRank, onRankOffset, 4, 
-                                      MPI_UINT32_T, MPI_NO_OP, mpiWin);
+        // See if we need to look for new header data
+        if (mpiRequests[index] == MPI_REQUEST_NULL) {
+            UINT onRankOffset = onRankOffsets[index];
+            uint32_t dummy[4];
+            mpiError = MPI_Rget_accumulate(dummy, 4, MPI_UINT32_T, 
+                                          &headerDataVector[4*index], 4, 
+                                          MPI_UINT32_T, myRank, onRankOffset, 4, 
+                                          MPI_UINT32_T, MPI_NO_OP, mpiWin,
+                                          &mpiRequests[index]);
+            Insist(mpiError == MPI_SUCCESS, "");
+            continue;
+        }
+        
+
+        // Check for accumulate done
+        int flag = 0;
+        mpiError = MPI_Test(&mpiRequests[index], &flag, MPI_STATUS_IGNORE);
         Insist(mpiError == MPI_SUCCESS, "");
-    }
+        if (!flag)
+            continue;
 
-
-    // Make sure we have the header data
-    mpiError = MPI_Win_flush_local(myRank, mpiWin);
-    Insist(mpiError == MPI_SUCCESS, "");
-
-
-    // Recv data from each adjacent rank
-    for (UINT index = 0; index < numAdjRanks; index++) {
     
         // Useful values
         UINT onRankOffset = onRankOffsets[index];
@@ -1049,28 +1056,34 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
             
             // Send/Recv
             sideRecv.clear();
+            UINT packetSizeInBytes = 2 * sizeof(UINT) + c_dataSizeInBytes;
             
             if (!g_useOneSidedMPI) {
-                const bool killComm = false;
-                sendAndRecvData(sendBuffers1, c_adjRankIndexToRank, traverseData, 
-                                c_dataSizeInBytes, sideRecv, commDark, killComm);
+                //const bool killComm = false;
+                //sendAndRecvData(sendBuffers1, c_adjRankIndexToRank, traverseData, 
+                //                c_dataSizeInBytes, sideRecv, commDark, killComm);
+                
+                sendTimer.start();
+                sendData2(sendBuffers1, c_adjRankIndexToRank);
+                sendTimer.stop();
+
+                recvTimer.start();
+                recvData2(c_adjRankIndexToRank, traverseData, 
+                          packetSizeInBytes, sideRecv);
+                recvTimer.stop();
             }
             else {
-                UINT packetSizeInBytes = 2 * sizeof(UINT) + c_dataSizeInBytes;
                 static bool firstTime = true;
 
                 sendTimer.start();
                 sendData(sendBuffers1, c_adjRankIndexToRank, c_offRankOffsets, 
                          packetSizeInBytes, c_maxPackets, c_mpiWin, firstTime);
-                //sendData2(sendBuffers1, c_adjRankIndexToRank);
                 sendTimer.stop();
 
                 recvTimer.start();
                 recvData(c_adjRankIndexToRank.size(), c_onRankOffsets, 
                          packetSizeInBytes, traverseData, sideRecv, 
                          c_maxPackets, c_mpiWin, firstTime);
-                //recvData2(c_adjRankIndexToRank, traverseData, 
-                //          packetSizeInBytes, sideRecv);
                 recvTimer.stop();
 
                 firstTime = false;
@@ -1106,7 +1119,7 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
     
     
     // Send kill comm signal to adjacent ranks
-    if (!g_useOneSidedMPI) {
+    /*if (!g_useOneSidedMPI) {
         commTimer.start();
         if (c_doComm) {
             const bool killComm = true;
@@ -1114,7 +1127,7 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
                             c_dataSizeInBytes, sideRecv, commDark, killComm);
         }
         commTimer.stop();
-    }
+    }*/
 
     
     // Print times
