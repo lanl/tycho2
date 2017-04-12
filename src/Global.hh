@@ -77,6 +77,13 @@ static const UINT g_nFacePerCell = 4;
 
 
 // Enum types
+enum MPIType
+{
+    MPIType_TychoTwoSided,
+    MPIType_CapsaicinTwoSided,
+    MPIType_OneSided
+};
+
 enum SweepType
 {
     SweepType_OriginalTycho1,
@@ -124,7 +131,7 @@ EXTERN UINT g_nCells;
 EXTERN double g_ddErrMax;
 EXTERN UINT g_ddIterMax;
 EXTERN bool g_useSourceIteration;
-EXTERN bool g_useOneSidedMPI;
+EXTERN MPIType g_mpiType;
 
 #endif
 

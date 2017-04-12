@@ -176,18 +176,18 @@ UINT angleGroupIndex(UINT angle)
 
 
 /*
-    sendData
+    sendData1Sided
 
     Implements one-sided MPI for sending data.
 */
 static 
-void sendData(const vector<vector<char>> &sendBuffers,
-              const vector<UINT> &adjRankIndexToRank,
-              const vector<UINT> &offRankOffsets,
-              const UINT packetSizeInBytes,
-              const UINT maxPackets,
-              const MPI_Win &mpiWin,
-              const bool firstTime)
+void sendData1Sided(const vector<vector<char>> &sendBuffers,
+                    const vector<UINT> &adjRankIndexToRank,
+                    const vector<UINT> &offRankOffsets,
+                    const UINT packetSizeInBytes,
+                    const UINT maxPackets,
+                    const MPI_Win &mpiWin,
+                    const bool firstTime)
 {
     // Internal state with number of packets written for each data chunk
     // and the current data chunk to write to for each adjacent rank.
@@ -289,22 +289,19 @@ void sendData(const vector<vector<char>> &sendBuffers,
 }
 
 
-
-
 /*
-    recvData
+    recvData1Sided
 
     Implements one-sided MPI for receiving data.
 */
 static
-void recvData(const UINT numAdjRanks,
-              const vector<UINT> &onRankOffsets,
-              const UINT packetSizeInBytes,
-              TraverseData &traverseData, 
-              set<pair<UINT,UINT>> &sideRecv,
-              const UINT maxPackets,
-              const MPI_Win &mpiWin,
-              const bool firstTime)
+void recvData1Sided(const UINT numAdjRanks,
+                    const vector<UINT> &onRankOffsets,
+                    const UINT packetSizeInBytes,
+                    vector<char> &dataPackets,
+                    const UINT maxPackets,
+                    const MPI_Win &mpiWin,
+                    const bool firstTime)
 {
     // Initial setup of number of internal state
     static vector<uint32_t> numPacketsReadVector[2];
@@ -338,22 +335,28 @@ void recvData(const UINT numAdjRanks,
         if (mpiRequests[index] == MPI_REQUEST_NULL) {
             UINT onRankOffset = onRankOffsets[index];
             uint32_t dummy[4];
-            mpiError = MPI_Rget_accumulate(dummy, 4, MPI_UINT32_T, 
+            /*mpiError = MPI_Rget_accumulate(dummy, 4, MPI_UINT32_T, 
                                           &headerDataVector[4*index], 4, 
                                           MPI_UINT32_T, myRank, onRankOffset, 4, 
                                           MPI_UINT32_T, MPI_NO_OP, mpiWin,
-                                          &mpiRequests[index]);
+                                          &mpiRequests[index]);*/
+            mpiError = MPI_Get_accumulate(dummy, 4, MPI_UINT32_T, 
+                                          &headerDataVector[4*index], 4, 
+                                          MPI_UINT32_T, myRank, onRankOffset, 4, 
+                                          MPI_UINT32_T, MPI_NO_OP, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
-            continue;
+            //continue;
         }
         
 
         // Check for accumulate done
-        int flag = 0;
-        mpiError = MPI_Test(&mpiRequests[index], &flag, MPI_STATUS_IGNORE);
-        Insist(mpiError == MPI_SUCCESS, "");
-        if (!flag)
-            continue;
+        //int flag = 0;
+        //mpiError = MPI_Test(&mpiRequests[index], &flag, MPI_STATUS_IGNORE);
+        //Insist(mpiError == MPI_SUCCESS, "");
+        //if (!flag)
+        //    continue;
+        //MPI_Wait(&mpiRequests[index], MPI_STATUS_IGNORE);
+        MPI_Win_flush_local(myRank, mpiWin);
 
     
         // Useful values
@@ -374,28 +377,15 @@ void recvData(const UINT numAdjRanks,
             UINT offset = onRankOffset + 16 +
                           maxPackets * packetSizeInBytes * currentDataChunk + 
                           numPacketsRead * packetSizeInBytes;
-            vector<char> dataPackets(dataSizeInBytes);
+            UINT originalSize = dataPackets.size();
 
-            mpiError = MPI_Get(dataPackets.data(), dataSizeInBytes, 
+            dataPackets.resize(originalSize + dataSizeInBytes);
+            mpiError = MPI_Get(&dataPackets[originalSize], dataSizeInBytes, 
                                MPI_BYTE, myRank, offset, dataSizeInBytes, 
                                MPI_BYTE, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
             mpiError = MPI_Win_flush_local(myRank, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
-            
-            
-            // Unpack packets
-            for (UINT i = 0; i < numPacketsToRecv; i++) {
-                char *packet = &dataPackets[i * packetSizeInBytes];
-                UINT globalSide;
-                UINT angle;
-                char *packetData;
-                splitPacket(packet, globalSide, angle, &packetData);
-                
-                UINT localSide = g_tychoMesh->getGLSide(globalSide);
-                traverseData.setSideData(localSide, angle, packetData);
-                sideRecv.insert(make_pair(localSide,angle));
-            }
 
 
             // Update numPacketsRead
@@ -435,13 +425,13 @@ void recvData(const UINT numAdjRanks,
 
 
 /*
-    sendData2
+    sendData2Sided
 
     Implements two-sided MPI for sending data.
 */
 static 
-void sendData2(const vector<vector<char>> &sendBuffers,
-               const vector<UINT> &adjRankIndexToRank)
+void sendData2Sided(const vector<vector<char>> &sendBuffers,
+                    const vector<UINT> &adjRankIndexToRank)
 {
     vector<MPI_Request> mpiSendRequests;
     UINT numAdjRanks = adjRankIndexToRank.size();
@@ -477,15 +467,13 @@ void sendData2(const vector<vector<char>> &sendBuffers,
 
 
 /*
-    recvData2
+    recvData2Sided
 
     Implements two-sided MPI for receiving data.
 */
 static
-void recvData2(const vector<UINT> &adjRankIndexToRank,
-               TraverseData &traverseData,
-               const UINT packetSizeInBytes,
-               set<pair<UINT,UINT>> &sideRecv)
+void recvData2Sided(const vector<UINT> &adjRankIndexToRank,
+                    vector<char> &dataPackets)
 {
     UINT numAdjRanks = adjRankIndexToRank.size();
     int mpiError;
@@ -507,29 +495,13 @@ void recvData2(const vector<UINT> &adjRankIndexToRank,
 
         // Recv message if there is one
         if (flag) {
-            // Recv data
-            vector<char> dataPackets(recvCount);
+            UINT originalSize = dataPackets.size();
+            dataPackets.resize(originalSize + recvCount);
             
-            mpiError = MPI_Recv(dataPackets.data(), recvCount, 
+            mpiError = MPI_Recv(&dataPackets[originalSize], recvCount, 
                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD, 
                                 MPI_STATUS_IGNORE);
             Insist(mpiError == MPI_SUCCESS, "");
-            
-            // Unpack data
-            UINT numPackets = recvCount / packetSizeInBytes;
-            Assert(recvCount % packetSizeInBytes == 0);
-            
-            for (UINT i = 0; i < numPackets; i++) {
-                char *packet = &dataPackets[i * packetSizeInBytes];
-                UINT globalSide;
-                UINT angle;
-                char *packetData;
-                splitPacket(packet, globalSide, angle, &packetData);
-                
-                UINT localSide = g_tychoMesh->getGLSide(globalSide);
-                traverseData.setSideData(localSide, angle, packetData);
-                sideRecv.insert(make_pair(localSide,angle));
-            }
         }
     }
 }
@@ -563,9 +535,7 @@ void recvData2(const vector<UINT> &adjRankIndexToRank,
 static
 void sendAndRecvData(const vector<vector<char>> &sendBuffers, 
                      const vector<UINT> &adjRankIndexToRank, 
-                     TraverseData &traverseData, 
-                     const UINT dataSizeInBytes, 
-                     set<pair<UINT,UINT>> &sideRecv,
+                     vector<char> &dataPackets,
                      vector<bool> &commDark, const bool killComm)
 {
     // Check input
@@ -662,28 +632,13 @@ void sendAndRecvData(const vector<vector<char>> &sendBuffers,
             
             int adjRank = adjRankIndexToRank[index];
             int tag1 = 1;
-            vector<char> dataPackets(recvSizes[index]);
+            UINT originalSize = dataPackets.size();
+            dataPackets.resize(originalSize + recvSizes[index]);
             
-            mpiError = MPI_Recv(dataPackets.data(), recvSizes[index], 
+            mpiError = MPI_Recv(&dataPackets[originalSize], recvSizes[index], 
                                 MPI_BYTE, adjRank, tag1, MPI_COMM_WORLD, 
                                 MPI_STATUS_IGNORE);
             Insist(mpiError == MPI_SUCCESS, "");
-            
-            UINT packetSize = 2 * sizeof(UINT) + dataSizeInBytes;
-            UINT numPackets = recvSizes[index] / packetSize;
-            Assert(recvSizes[index] % packetSize == 0);
-            
-            for (UINT i = 0; i < numPackets; i++) {
-                char *packet = &dataPackets[i * packetSize];
-                UINT globalSide;
-                UINT angle;
-                char *packetData;
-                splitPacket(packet, globalSide, angle, &packetData);
-                
-                UINT localSide = g_tychoMesh->getGLSide(globalSide);
-                traverseData.setSideData(localSide, angle, packetData);
-                sideRecv.insert(make_pair(localSide,angle));
-            }
         }
         
         
@@ -757,7 +712,7 @@ GraphTraverser::GraphTraverser(Direction direction, bool doComm,
 
 
     // Setup one-sided MPI
-    if (g_useOneSidedMPI) {
+    if (g_mpiType == MPIType_OneSided) {
         setupOneSidedMPI();
     }
 }
@@ -829,15 +784,6 @@ void GraphTraverser::setupOneSidedMPI()
     memset(c_mpiWinMemory, 0, windowSizeInBytes);
     MPI_Win_sync(c_mpiWin);
     Comm::barrier();
-    
-
-    // Print out use of one-sided MPI
-    if (Comm::rank() == 0) {
-        if (g_useOneSidedMPI)
-            printf("Using one-sided MPI.\n");
-        else
-            printf("NOT using one-sided MPI.\n");
-    }
 }
 
 
@@ -846,7 +792,7 @@ void GraphTraverser::setupOneSidedMPI()
 */
 GraphTraverser::~GraphTraverser()
 {
-    if (g_useOneSidedMPI) {
+    if (g_mpiType == MPIType_OneSided) {
         MPI_Win_unlock_all(c_mpiWin);
         MPI_Win_free(&c_mpiWin);
     }
@@ -864,7 +810,6 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
     vector<priority_queue<Tuple>> canCompute(g_nThreads);
     Mat2<UINT> numDependencies(g_nAngles, g_nCells);
     UINT numCellAnglePairsToCalculate = g_nAngles * g_nCells;
-    set<pair<UINT,UINT>> sideRecv;
     Mat2<vector<char>> sendBuffers;
     vector<vector<char>> sendBuffers1;
     vector<bool> commDark;
@@ -1055,38 +1000,42 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
         if (c_doComm) {
             
             // Send/Recv
-            sideRecv.clear();
             UINT packetSizeInBytes = 2 * sizeof(UINT) + c_dataSizeInBytes;
+            vector<char> dataPackets;
             
-            if (!g_useOneSidedMPI) {
-                //const bool killComm = false;
-                //sendAndRecvData(sendBuffers1, c_adjRankIndexToRank, traverseData, 
-                //                c_dataSizeInBytes, sideRecv, commDark, killComm);
-                
+            if (g_mpiType == MPIType_TychoTwoSided) {
+                const bool killComm = false;
+                sendAndRecvData(sendBuffers1, c_adjRankIndexToRank, dataPackets, 
+                                commDark, killComm);
+            }
+            else if (g_mpiType == MPIType_CapsaicinTwoSided) {
                 sendTimer.start();
-                sendData2(sendBuffers1, c_adjRankIndexToRank);
+                sendData2Sided(sendBuffers1, c_adjRankIndexToRank);
                 sendTimer.stop();
 
                 recvTimer.start();
-                recvData2(c_adjRankIndexToRank, traverseData, 
-                          packetSizeInBytes, sideRecv);
+                recvData2Sided(c_adjRankIndexToRank, dataPackets);
                 recvTimer.stop();
             }
-            else {
+            else if (g_mpiType == MPIType_OneSided) {
                 static bool firstTime = true;
 
-                sendTimer.start();
-                sendData(sendBuffers1, c_adjRankIndexToRank, c_offRankOffsets, 
-                         packetSizeInBytes, c_maxPackets, c_mpiWin, firstTime);
-                sendTimer.stop();
-
                 recvTimer.start();
-                recvData(c_adjRankIndexToRank.size(), c_onRankOffsets, 
-                         packetSizeInBytes, traverseData, sideRecv, 
-                         c_maxPackets, c_mpiWin, firstTime);
+                recvData1Sided(c_adjRankIndexToRank.size(), c_onRankOffsets, 
+                               packetSizeInBytes, dataPackets, 
+                               c_maxPackets, c_mpiWin, firstTime);
                 recvTimer.stop();
 
+                sendTimer.start();
+                sendData1Sided(sendBuffers1, c_adjRankIndexToRank, 
+                               c_offRankOffsets, packetSizeInBytes, 
+                               c_maxPackets, c_mpiWin, firstTime);
+                sendTimer.stop();
+
                 firstTime = false;
+            }
+            else {
+                Insist(false, "MPI type not recognized.");
             }
 
             
@@ -1101,11 +1050,21 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
             }
             
             
-            // Update dependency for parents using received side data
-            for (auto sideAngle : sideRecv) {
-                UINT side = sideAngle.first;
-                UINT angle = sideAngle.second;
-                UINT cell = g_tychoMesh->getSideCell(side);
+            // Unpack packets
+            UINT numPackets = dataPackets.size() / packetSizeInBytes;
+            Assert(dataPackets.size() % packetSizeInBytes == 0);
+
+            for (UINT i = 0; i < numPackets; i++) {
+                char *packet = &dataPackets[i * packetSizeInBytes];
+                UINT globalSide;
+                UINT angle;
+                char *packetData;
+                splitPacket(packet, globalSide, angle, &packetData);
+                
+                UINT localSide = g_tychoMesh->getGLSide(globalSide);
+                traverseData.setSideData(localSide, angle, packetData);
+
+                UINT cell = g_tychoMesh->getSideCell(localSide);
                 numDependencies(angle, cell)--;
                 if (numDependencies(angle, cell) == 0) {
                     UINT priority = traverseData.getPriority(cell, angle);
@@ -1119,15 +1078,16 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
     
     
     // Send kill comm signal to adjacent ranks
-    /*if (!g_useOneSidedMPI) {
+    if (g_mpiType == MPIType_TychoTwoSided) {
         commTimer.start();
         if (c_doComm) {
+            vector<char> dataPackets;
             const bool killComm = true;
-            sendAndRecvData(sendBuffers1, c_adjRankIndexToRank, traverseData, 
-                            c_dataSizeInBytes, sideRecv, commDark, killComm);
+            sendAndRecvData(sendBuffers1, c_adjRankIndexToRank,
+                            dataPackets, commDark, killComm);
         }
         commTimer.stop();
-    }*/
+    }
 
     
     // Print times

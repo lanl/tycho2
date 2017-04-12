@@ -1,0 +1,30 @@
+# Makefile setting for Cray
+# To use Petsc: 'module load cray-petsc'
+# To use one-sided MPI: 'export MPICH_RMA_OVER_DMAPP=1'
+
+
+# Top level directory path #####################################################
+TOP_DIR = /users/ckgarrett/git/tycho2
+
+
+# Assert level: 0 = no asserts, 1 = all asserts ################################
+ASSERT_ON = 0
+
+
+# PETSC library ################################################################
+USE_PETSC = 1   # 0 = no, 1 = yes
+PETSC_INC = -I/usr/projects/capsaicin/devs/ckgarrett/lib/petsc-3.7.5/build-toss3/include
+PETSC_LIB = /usr/projects/capsaicin/devs/ckgarrett/lib/petsc-3.7.5/build-toss3/lib/libpetsc.so
+
+
+
+# Extra libraries ##############################################################
+INC = 
+LIBS = 
+
+
+# Compile command ##############################################################
+# Needs (1) MPI C++ compiler wrapper
+#       (2) openmp enabled
+#       (3) c++11 standard enabled  (-std=c++11 for gcc, intel)
+MPICC = mpicxx -Wall -Wextra -g -std=c++11 -O3 -fopenmp

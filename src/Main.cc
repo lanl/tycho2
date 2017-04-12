@@ -120,7 +120,6 @@ void readInput(const string &inputFileName,
     kvr.getInt("DD_IterMax", ddIterMax);
     kvr.getDouble("DD_ErrMax", g_ddErrMax);
     kvr.getBool("SourceIteration", g_useSourceIteration);
-    kvr.getBool("OneSidedMPI", g_useOneSidedMPI);
        
     g_snOrder = snOrder;
     g_iterMax = iterMax;
@@ -131,6 +130,17 @@ void readInput(const string &inputFileName,
     g_ddIterMax = ddIterMax;
     
     
+    string mpiType;
+    kvr.getString("MPIType", mpiType);
+    if (mpiType == "TychoTwoSided")
+        g_mpiType = MPIType_TychoTwoSided;
+    else if (mpiType == "CapsaicinTwoSided")
+        g_mpiType = MPIType_CapsaicinTwoSided;
+    else if (mpiType == "OneSided")
+        g_mpiType = MPIType_OneSided;
+    else
+        Insist(false, "MPI type not recognized.");
+
     
     string sweepType;
     kvr.getString("SweepType", sweepType);

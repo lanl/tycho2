@@ -1,0 +1,29 @@
+# Makefile setting for Cray
+# To use Petsc: 'module load cray-petsc'
+# To use one-sided MPI: 'export MPICH_RMA_OVER_DMAPP=1'
+
+
+# Top level directory path #####################################################
+TOP_DIR = /users/ckgarrett/git/tycho2
+
+
+# Assert level: 0 = no asserts, 1 = all asserts ################################
+ASSERT_ON = 0
+
+
+# PETSC library ################################################################
+USE_PETSC = 1   # 0 = no, 1 = yes
+PETSC_INC = -I$(PETSC_DIR)/include
+PETSC_LIB = $(PETSC_DIR)/lib/libcraypetsc_intel_real.a
+
+
+# Extra libraries ##############################################################
+INC = 
+LIBS = -Wl,--whole-archive,-ldmapp,--no-whole-archive
+
+
+# Compile command ##############################################################
+# Needs (1) MPI C++ compiler wrapper
+#       (2) openmp enabled
+#       (3) c++11 standard enabled  (-std=c++11 for gcc, intel)
+MPICC = CC -Wall -Wextra -g -std=c++11 -O3 -qopenmp
