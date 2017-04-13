@@ -94,6 +94,8 @@ protected:
     TraverseData() { }
 };
 
+
+
 class GraphTraverser
 {
 public:
@@ -103,19 +105,79 @@ public:
     void traverse(const UINT maxComputePerStep, TraverseData &traverseData);
 
 private:
+
+    class OneSidedImpl
+    {
+    public:
+        OneSidedImpl(UINT numAdjRanks,
+                     std::vector<UINT> offRankOffsets,
+                     std::vector<UINT> onRankOffsets,
+                     UINT packetSizeInBytes,
+                     UINT maxPackets,
+                     MPI_Win mpiWin);
+
+        
+        // One-Sided MPI variables used in GraphTraverser
+        UINT c_packetSizeInBytes;
+        UINT c_maxPackets;
+        MPI_Win c_mpiWin;
+        
+        
+        // Send specific functions
+        uint32_t send_getNumPacketsWritten(int adjRankIndex);
+        void send_setNumPacketsWritten(int adjRankIndex, uint32_t numPackets);
+        void send_switchDataChunk(int adjRankIndex);
+        UINT send_getLockOffset(uint32_t adjRankIndex);
+        UINT send_getNumWrittenOffset(uint32_t adjRankIndex);
+        UINT send_getDataOffset(uint32_t adjRankIndex, uint32_t packetIndex);
+        
+        // Recv specific functions
+        uint32_t recv_getNumPacketsRead(int adjRankIndex);
+        void recv_setNumPacketsRead(int adjRankIndex, uint32_t numPackets);
+        void recv_switchDataChunk(int adjRankIndex);
+        UINT recv_getHeaderOffset(uint32_t adjRankIndex);
+        UINT recv_getLockOffset(uint32_t adjRankIndex);
+        UINT recv_getNumWrittenOffset(uint32_t adjRankIndex);
+        UINT recv_getDataOffset(uint32_t adjRankIndex, uint32_t packetIndex);
+        uint32_t* recv_getHeader(uint32_t adjRankIndex);
+        uint32_t recv_getLock(uint32_t adjRankIndex);
+        uint32_t recv_getNumWritten(uint32_t adjRankIndex);
+
+
+    private:
+        // Send state variables
+        std::vector<uint32_t> c_send_numPacketsWrittenVector[2];
+        std::vector<uint32_t> c_send_currentDataChunkVector;
+        
+        // Recv state variables
+        std::vector<uint32_t> c_recv_numPacketsReadVector[2];
+        std::vector<uint32_t> c_recv_headerDataVector;
+        std::vector<uint32_t> c_recv_currentDataChunkVector;
+
+        // Other variables
+        std::vector<UINT> c_offRankOffsets;
+        std::vector<UINT> c_onRankOffsets;
+    };
+
+
     void setupOneSidedMPI();
+    void sendData2Sided(const std::vector<std::vector<char>> &sendBuffers) const;
+    void recvData2Sided(std::vector<char> &dataPackets) const;
+    void sendAndRecvData(const std::vector<std::vector<char>> &sendBuffers,
+                         std::vector<char> &dataPackets,
+                         std::vector<bool> &commDark,
+                         const bool killComm) const;
+    void sendData1Sided(const std::vector<std::vector<char>> &sendBuffers) const;
+    void recvData1Sided(std::vector<char> &dataPackets) const;
     
     std::vector<UINT> c_adjRankIndexToRank;
     std::map<UINT,UINT> c_adjRankToRankIndex;
     Mat2<UINT> c_initNumDependencies;
     Direction c_direction;
     bool c_doComm;
-    MPI_Win c_mpiWin;
-    char *c_mpiWinMemory;
     UINT c_dataSizeInBytes;
-    UINT c_maxPackets;
-    std::vector<UINT> c_onRankOffsets;
-    std::vector<UINT> c_offRankOffsets;
+
+    OneSidedImpl *c_oneSidedImpl;
 };
 
 #endif
