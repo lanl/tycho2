@@ -206,6 +206,7 @@ int main(int argc, char *argv[])
     // Startup Petsc
     #if USE_PETSC
     PetscInitialize(&argc, &argv, (char*)0, NULL);
+    PetscPopSignalHandler();
     #endif
 
 

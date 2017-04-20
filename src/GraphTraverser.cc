@@ -176,115 +176,239 @@ UINT angleGroupIndex(UINT angle)
 }
 
 
-GraphTraverser::OneSidedImpl::OneSidedImpl(UINT numAdjRanks,
-                           std::vector<UINT> offRankOffsets,
-                           std::vector<UINT> onRankOffsets,
-                           UINT packetSizeInBytes,
-                           UINT maxPackets,
-                           MPI_Win mpiWin) : 
-        c_offRankOffsets(offRankOffsets),
-        c_onRankOffsets(onRankOffsets),
-        c_packetSizeInBytes(packetSizeInBytes),
-        c_maxPackets(maxPackets),
-        c_mpiWin(mpiWin)
+/*
+    OneSidedImpl implementation
+*/
+GraphTraverser::OneSidedImpl::
+OneSidedImpl(UINT numAdjRanks,
+             std::vector<UINT> offRankLockOffsets,
+             std::vector<UINT> offRankHeaderOffsets,
+             std::vector<UINT> offRankDataOffsets,
+             std::vector<UINT> onRankLockOffsets,
+             std::vector<UINT> onRankHeaderOffsets,
+             std::vector<UINT> onRankDataOffsets,
+             UINT dataSizePerChunk,
+             UINT maxMessages,
+             MPI_Win mpiWin,
+             char *mpiWinMemory) : 
+        c_offRankLockOffsets(offRankLockOffsets),
+        c_offRankHeaderOffsets(offRankHeaderOffsets),
+        c_offRankDataOffsets(offRankDataOffsets),
+        c_onRankLockOffsets(onRankLockOffsets),
+        c_onRankHeaderOffsets(onRankHeaderOffsets),
+        c_onRankDataOffsets(onRankDataOffsets),
+        c_dataSizePerChunk(dataSizePerChunk),
+        c_maxMessages(maxMessages),
+        c_mpiWin(mpiWin),
+        c_mpiWinMemory(mpiWinMemory)
 {
-    c_send_numPacketsWrittenVector[0].resize(numAdjRanks);
-    c_send_numPacketsWrittenVector[1].resize(numAdjRanks);
+    c_send_numWrittenVector[0].resize(numAdjRanks);
+    c_send_numWrittenVector[1].resize(numAdjRanks);
+    c_send_numMessagesSentVector[0].resize(numAdjRanks);
+    c_send_numMessagesSentVector[1].resize(numAdjRanks);
     c_send_currentDataChunkVector.resize(numAdjRanks);
 
-    c_recv_numPacketsReadVector[0].resize(numAdjRanks);
-    c_recv_numPacketsReadVector[1].resize(numAdjRanks);
-    c_recv_headerDataVector.resize(4 * numAdjRanks);
+    c_recv_numReadVector[0].resize(numAdjRanks);
+    c_recv_numReadVector[1].resize(numAdjRanks);
+    c_recv_lockDataVector.resize(2 * numAdjRanks);
+    c_recv_headerDataVector.resize(4 * c_maxMessages * numAdjRanks);
     c_recv_currentDataChunkVector.resize(numAdjRanks);
 }
 
 
-// Send specific functions
-uint32_t GraphTraverser::OneSidedImpl::send_getNumPacketsWritten(int adjRankIndex)
+/*
+    Send specific functions
+*/
+uint32_t GraphTraverser::OneSidedImpl::
+send_getNumWritten(int adjRankIndex)
 {
     uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
-    return c_send_numPacketsWrittenVector[dataChunk][adjRankIndex];
+    return c_send_numWrittenVector[dataChunk][adjRankIndex];
 }
-void GraphTraverser::OneSidedImpl::send_setNumPacketsWritten(int adjRankIndex, uint32_t numPackets)
+
+void GraphTraverser::OneSidedImpl::
+send_setNumWritten(int adjRankIndex, uint32_t numBytesWritten)
 {
     uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
-    c_send_numPacketsWrittenVector[dataChunk][adjRankIndex] = numPackets;
+    c_send_numWrittenVector[dataChunk][adjRankIndex] = numBytesWritten;
 }
-void GraphTraverser::OneSidedImpl::send_switchDataChunk(int adjRankIndex)
+
+uint32_t GraphTraverser::OneSidedImpl::
+send_getNumMessagesSent(int adjRankIndex)
+{
+    uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
+    return c_send_numMessagesSentVector[dataChunk][adjRankIndex];
+}
+
+void GraphTraverser::OneSidedImpl::
+send_setNumMessagesSent(int adjRankIndex, uint32_t numMessages)
+{
+    uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
+    c_send_numMessagesSentVector[dataChunk][adjRankIndex] = numMessages;
+}
+
+void GraphTraverser::OneSidedImpl::
+send_switchDataChunk(int adjRankIndex)
 {
     uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
     dataChunk = (dataChunk + 1) % 2;
     c_send_currentDataChunkVector[adjRankIndex] = dataChunk;
 }
-UINT GraphTraverser::OneSidedImpl::send_getLockOffset(uint32_t adjRankIndex)
+
+UINT GraphTraverser::OneSidedImpl::
+send_getLockOffset(int adjRankIndex)
 {
     uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
-    return c_offRankOffsets[adjRankIndex] + 4 * dataChunk;
-}
-UINT GraphTraverser::OneSidedImpl::send_getNumWrittenOffset(uint32_t adjRankIndex)
-{
-    uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
-    return c_offRankOffsets[adjRankIndex] + 8 + 4 * dataChunk;
-}
-UINT GraphTraverser::OneSidedImpl::send_getDataOffset(uint32_t adjRankIndex, uint32_t packetIndex)
-{
-    uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
-    return c_offRankOffsets[adjRankIndex] + 16 + 
-           c_maxPackets * c_packetSizeInBytes * dataChunk +
-           packetIndex * c_packetSizeInBytes;
+    return c_offRankLockOffsets[adjRankIndex] + 
+           sizeof(uint32_t) * dataChunk;
 }
 
-// Recv specific functions
-uint32_t GraphTraverser::OneSidedImpl::recv_getNumPacketsRead(int adjRankIndex)
+UINT GraphTraverser::OneSidedImpl::
+send_getNumWrittenOffset(int adjRankIndex)
+{
+    uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
+    uint32_t numMessagesSent = 
+        c_send_numMessagesSentVector[dataChunk][adjRankIndex];
+
+    return c_offRankHeaderOffsets[adjRankIndex] + 
+           sizeof(uint32_t) * 2 * c_maxMessages * dataChunk + 
+           sizeof(uint32_t) * numMessagesSent;
+}
+
+UINT GraphTraverser::OneSidedImpl::
+send_getIsWrittenOffset(int adjRankIndex)
+{
+    uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
+    uint32_t numMessagesSent = 
+        c_send_numMessagesSentVector[dataChunk][adjRankIndex];
+
+    return c_offRankHeaderOffsets[adjRankIndex] + 
+           sizeof(uint32_t) * 2 * c_maxMessages * dataChunk + 
+           sizeof(uint32_t) * (c_maxMessages + numMessagesSent);
+}
+
+UINT GraphTraverser::OneSidedImpl::
+send_getDataOffset(int adjRankIndex, uint32_t bytesOffset)
+{
+    uint32_t dataChunk = c_send_currentDataChunkVector[adjRankIndex];
+    return c_offRankDataOffsets[adjRankIndex] + 
+           c_dataSizePerChunk * dataChunk + bytesOffset;
+}
+
+
+/*
+    Recv specific functions
+*/
+uint32_t GraphTraverser::OneSidedImpl::
+recv_getNumRead(int adjRankIndex)
 {
     uint32_t dataChunk = c_recv_currentDataChunkVector[adjRankIndex];
-    return c_recv_numPacketsReadVector[dataChunk][adjRankIndex];
+    return c_recv_numReadVector[dataChunk][adjRankIndex];
 }
-void GraphTraverser::OneSidedImpl::recv_setNumPacketsRead(int adjRankIndex, uint32_t numPackets)
+
+void GraphTraverser::OneSidedImpl::
+recv_setNumRead(int adjRankIndex, uint32_t numBytesRead)
 {
     uint32_t dataChunk = c_recv_currentDataChunkVector[adjRankIndex];
-    c_recv_numPacketsReadVector[dataChunk][adjRankIndex] = numPackets;
+    c_recv_numReadVector[dataChunk][adjRankIndex] = numBytesRead;
 }
-void GraphTraverser::OneSidedImpl::recv_switchDataChunk(int adjRankIndex)
+
+void GraphTraverser::OneSidedImpl::
+recv_switchDataChunk(int adjRankIndex)
 {
     uint32_t dataChunk = c_recv_currentDataChunkVector[adjRankIndex];
     dataChunk = (dataChunk + 1) % 2;
     c_recv_currentDataChunkVector[adjRankIndex] = dataChunk;
 }
-UINT GraphTraverser::OneSidedImpl::recv_getHeaderOffset(uint32_t adjRankIndex)
+
+UINT GraphTraverser::OneSidedImpl::
+recv_getBaseLockOffset()
 {
-    return c_onRankOffsets[adjRankIndex];
+    return c_onRankLockOffsets[0];
 }
-UINT GraphTraverser::OneSidedImpl::recv_getLockOffset(uint32_t adjRankIndex)
+
+UINT GraphTraverser::OneSidedImpl::
+recv_getBaseHeaderOffset()
+{
+    return c_onRankHeaderOffsets[0];
+}
+
+int GraphTraverser::OneSidedImpl::
+recv_getLockCount()
+{
+    return c_recv_lockDataVector.size();
+}
+
+int GraphTraverser::OneSidedImpl::
+recv_getHeaderCount()
+{
+    return c_recv_headerDataVector.size();
+}
+
+uint32_t* GraphTraverser::OneSidedImpl::
+recv_getLockPointer()
+{
+    return c_recv_lockDataVector.data();
+}
+
+uint32_t* GraphTraverser::OneSidedImpl::
+recv_getHeaderPointer()
+{
+    return c_recv_headerDataVector.data();
+}
+
+char* GraphTraverser::OneSidedImpl::
+recv_getWinMemory()
+{
+    return c_mpiWinMemory;
+}
+
+UINT GraphTraverser::OneSidedImpl::
+recv_getLockOffset(int adjRankIndex)
 {
     uint32_t dataChunk = c_recv_currentDataChunkVector[adjRankIndex];
-    return c_onRankOffsets[adjRankIndex] + 4 * dataChunk;
+    return c_onRankLockOffsets[adjRankIndex] + 
+           sizeof(uint32_t) * dataChunk;
 }
-UINT GraphTraverser::OneSidedImpl::recv_getNumWrittenOffset(uint32_t adjRankIndex)
+
+UINT GraphTraverser::OneSidedImpl::
+recv_getHeaderOffset(int adjRankIndex)
 {
     uint32_t dataChunk = c_recv_currentDataChunkVector[adjRankIndex];
-    return c_onRankOffsets[adjRankIndex] + 8 + 4 * dataChunk;
+    return c_onRankHeaderOffsets[adjRankIndex] +
+           sizeof(uint32_t) * 2 * c_maxMessages * dataChunk;
 }
-UINT GraphTraverser::OneSidedImpl::recv_getDataOffset(uint32_t adjRankIndex, uint32_t packetIndex)
+
+UINT GraphTraverser::OneSidedImpl::
+recv_getDataOffset(int adjRankIndex, uint32_t bytesOffset)
 {
     uint32_t dataChunk = c_recv_currentDataChunkVector[adjRankIndex];
-    return c_onRankOffsets[adjRankIndex] + 16 + 
-           c_maxPackets * c_packetSizeInBytes * dataChunk +
-           packetIndex * c_packetSizeInBytes;
+    return c_onRankDataOffsets[adjRankIndex] + 
+           c_dataSizePerChunk * dataChunk + bytesOffset;
 }
-uint32_t* GraphTraverser::OneSidedImpl::recv_getHeader(uint32_t adjRankIndex)
-{
-    return &c_recv_headerDataVector[4 * adjRankIndex];
-}
-uint32_t GraphTraverser::OneSidedImpl::recv_getLock(uint32_t adjRankIndex)
+
+uint32_t GraphTraverser::OneSidedImpl::
+recv_getLock(int adjRankIndex)
 {
     uint32_t dataChunk = c_recv_currentDataChunkVector[adjRankIndex];
-    return c_recv_headerDataVector[4 * adjRankIndex + dataChunk];
+    return c_recv_lockDataVector[2 * adjRankIndex + dataChunk];
 }
-uint32_t GraphTraverser::OneSidedImpl::recv_getNumWritten(uint32_t adjRankIndex)
+
+uint32_t GraphTraverser::OneSidedImpl::
+recv_getNumWritten(int adjRankIndex)
 {
     uint32_t dataChunk = c_recv_currentDataChunkVector[adjRankIndex];
-    return c_recv_headerDataVector[4 * adjRankIndex + 2 + dataChunk];
+    int index = 4 * c_maxMessages * adjRankIndex + 
+                2 * c_maxMessages * dataChunk;
+
+    uint32_t numWritten = 0;
+    for (UINT i = 0; i < c_maxMessages; i++) {
+        if (c_recv_headerDataVector[index + i + c_maxMessages] != 0)
+            numWritten = c_recv_headerDataVector[index + i];
+        else
+            break;
+    }
+    return numWritten;
 }
 
 
@@ -293,11 +417,12 @@ uint32_t GraphTraverser::OneSidedImpl::recv_getNumWritten(uint32_t adjRankIndex)
 
     Implements one-sided MPI for sending data.
 */
-void GraphTraverser::sendData1Sided(const vector<vector<char>> &sendBuffers) const
+void GraphTraverser::
+sendData1Sided(const vector<vector<char>> &sendBuffers) const
 {
     // Send data to each adjacent rank
-    UINT numAdjRanks = c_adjRankIndexToRank.size();
-    for (UINT index = 0; index < numAdjRanks; index++) {
+    int numAdjRanks = c_adjRankIndexToRank.size();
+    for (int index = 0; index < numAdjRanks; index++) {
         
         // Make sure there is data to send
         if (sendBuffers[index].size() == 0)
@@ -307,18 +432,18 @@ void GraphTraverser::sendData1Sided(const vector<vector<char>> &sendBuffers) con
         // Useful values
         int mpiError;
         UINT offset;
-        MPI_Win mpiWin = c_oneSidedImpl->c_mpiWin;
+        MPI_Win mpiWin = c_oneSidedImpl->getWin();
         int adjRank = c_adjRankIndexToRank[index];
         const vector<char> &sendBuffer = sendBuffers[index];
-        uint32_t numPacketsWritten = 
-            c_oneSidedImpl->send_getNumPacketsWritten(index);
-        UINT packetSizeInBytes = c_oneSidedImpl->c_packetSizeInBytes;
+        uint32_t numBytesWritten = 
+            c_oneSidedImpl->send_getNumWritten(index);
+        uint32_t numMessagesSent = 
+            c_oneSidedImpl->send_getNumMessagesSent(index);
         
         
         // Check to see if there is NOT room to write data in current data chunk
-        UINT numPacketsToSend = sendBuffer.size() / packetSizeInBytes;
-        UINT maxPackets = c_oneSidedImpl->c_maxPackets;
-        if (numPacketsWritten + numPacketsToSend > maxPackets) {
+        UINT maxMessages = c_oneSidedImpl->getMaxMessages();
+        if (numMessagesSent >= maxMessages) {
             
             // Flag indicating we can't write to this data chunk anymore
             // Must be removed by recvData
@@ -330,46 +455,67 @@ void GraphTraverser::sendData1Sided(const vector<vector<char>> &sendBuffers) con
             
             
             // change data chunk we're working on
-            numPacketsWritten = 0;
-            c_oneSidedImpl->send_setNumPacketsWritten(index, numPacketsWritten);
+            numBytesWritten = 0;
+            numMessagesSent = 0;
+            c_oneSidedImpl->send_setNumWritten(index, numBytesWritten);
+            c_oneSidedImpl->send_setNumMessagesSent(index, numMessagesSent);
             c_oneSidedImpl->send_switchDataChunk(index);
 
 
             // Spin wait for availability to write to new data chunk
             while (true) {
-                uint32_t writable = 1;
+                uint32_t locked = 1;
                 offset = c_oneSidedImpl->send_getLockOffset(index);
-                mpiError = MPI_Fetch_and_op(NULL, &writable, MPI_UINT32_T,
+                mpiError = MPI_Fetch_and_op(NULL, &locked, MPI_UINT32_T,
                                             adjRank, offset, MPI_NO_OP, mpiWin);
                 Insist(mpiError == MPI_SUCCESS, "");
                 
                 mpiError = MPI_Win_flush_local(adjRank, mpiWin);
                 Insist(mpiError == MPI_SUCCESS, "");
 
-                if (writable == 0)
+                if (locked == 0)
                     break;
             }
         }
 
 
         // Write the data
-        offset = c_oneSidedImpl->send_getDataOffset(index, numPacketsWritten);
+        offset = c_oneSidedImpl->send_getDataOffset(index, numBytesWritten);
         mpiError = MPI_Put(sendBuffer.data(), sendBuffer.size(), 
                            MPI_BYTE, adjRank, offset, 
                            sendBuffer.size(), MPI_BYTE, mpiWin);
         Insist(mpiError == MPI_SUCCESS, "");
-        mpiError = MPI_Win_flush(adjRank, mpiWin);
-        Insist(mpiError == MPI_SUCCESS, "");
         
 
-        // Update number of packets written
-        numPacketsWritten += numPacketsToSend;
+        // Update number of bytes written
+        numBytesWritten += sendBuffer.size();
         offset = c_oneSidedImpl->send_getNumWrittenOffset(index);
-        mpiError = MPI_Accumulate(&numPacketsWritten, 1, MPI_UINT32_T, adjRank, 
-                                  offset, 1, MPI_UINT32_T, MPI_REPLACE, mpiWin);
+        mpiError = MPI_Put(&numBytesWritten, 1, MPI_UINT32_T, adjRank, 
+                           offset, 1, MPI_UINT32_T, mpiWin);
+        //mpiError = MPI_Accumulate(&numBytesWritten, 1, MPI_UINT32_T, adjRank, offset, 
+        //                          1, MPI_UINT32_T, MPI_REPLACE, mpiWin);
         Insist(mpiError == MPI_SUCCESS, "");
-        c_oneSidedImpl->send_setNumPacketsWritten(index, numPacketsWritten);
 
+        
+        // Flush window to know the puts above are done on both ends
+        mpiError = MPI_Win_flush(adjRank, mpiWin);
+        Insist(mpiError == MPI_SUCCESS, "");
+
+        
+        // Set isWritten bit
+        uint32_t one = 1;
+        offset = c_oneSidedImpl->send_getIsWrittenOffset(index);
+        mpiError = MPI_Put(&one, 1, MPI_UINT32_T, adjRank,
+                           offset, 1, MPI_UINT32_T, mpiWin);
+        //mpiError = MPI_Accumulate(&one, 1, MPI_UINT32_T, adjRank, offset, 
+        //                          1, MPI_UINT32_T, MPI_REPLACE, mpiWin);
+        Insist(mpiError == MPI_SUCCESS, "");
+
+        
+        // Update internal state
+        numMessagesSent++;
+        c_oneSidedImpl->send_setNumWritten(index, numBytesWritten);
+        c_oneSidedImpl->send_setNumMessagesSent(index, numMessagesSent);
 
         // Flush window for local variables
         mpiError = MPI_Win_flush_local(adjRank, mpiWin);
@@ -386,83 +532,116 @@ void GraphTraverser::sendData1Sided(const vector<vector<char>> &sendBuffers) con
 void GraphTraverser::recvData1Sided(vector<char> &dataPackets) const
 {
     // Useful values
-    MPI_Win mpiWin = c_oneSidedImpl->c_mpiWin;
-    UINT numAdjRanks = c_adjRankIndexToRank.size();
-    UINT packetSizeInBytes = c_oneSidedImpl->c_packetSizeInBytes;
+    MPI_Win mpiWin = c_oneSidedImpl->getWin();
+    int numAdjRanks = c_adjRankIndexToRank.size();
     int myRank = Comm::rank();
     int mpiError;
     UINT offset;
+    int count;
 
 
-    // Get header data for each adjacent rank
-    for (UINT index = 0; index < numAdjRanks; index++) {
-        offset = c_oneSidedImpl->recv_getHeaderOffset(index);
-        mpiError = MPI_Get_accumulate(NULL, 4, MPI_UINT32_T, 
-                                      c_oneSidedImpl->recv_getHeader(index), 4, 
-                                      MPI_UINT32_T, myRank, offset, 4, 
-                                      MPI_UINT32_T, MPI_NO_OP, mpiWin);
-        Insist(mpiError == MPI_SUCCESS, "");
-    }
+    // Get lock data for all adjacent ranks
+    offset = c_oneSidedImpl->recv_getBaseLockOffset();
+    count = c_oneSidedImpl->recv_getLockCount();
+    mpiError = MPI_Get_accumulate(NULL, count, MPI_UINT32_T, 
+                                  c_oneSidedImpl->recv_getLockPointer(), count, 
+                                  MPI_UINT32_T, myRank, offset, count, 
+                                  MPI_UINT32_T, MPI_NO_OP, mpiWin);
+    Insist(mpiError == MPI_SUCCESS, "");
+    
+
+    // Get header data for all adjacent ranks
+    offset = c_oneSidedImpl->recv_getBaseHeaderOffset();
+    count = c_oneSidedImpl->recv_getHeaderCount();
+    MPI_Win_sync(mpiWin);
+    memcpy(c_oneSidedImpl->recv_getHeaderPointer(), 
+           c_oneSidedImpl->recv_getWinMemory() + offset,
+           count * sizeof(uint32_t));
+    //mpiError = MPI_Get(c_oneSidedImpl->recv_getHeaderPointer(), count,
+    //                   MPI_UINT32_T, myRank, offset, count, 
+    //                   MPI_UINT32_T, mpiWin);
+    //mpiError = MPI_Get_accumulate(NULL, count, MPI_UINT32_T, 
+    //                              c_oneSidedImpl->recv_getHeaderPointer(), count, 
+    //                              MPI_UINT32_T, myRank, offset, count, 
+    //                              MPI_UINT32_T, MPI_NO_OP, mpiWin);
+    //Insist(mpiError == MPI_SUCCESS, "");
+    
+    
+    // Flush local
     mpiError = MPI_Win_flush_local(myRank, mpiWin);
     Insist(mpiError == MPI_SUCCESS, "");
-
+    
     
     // Get the data
-    for (UINT index = 0; index < numAdjRanks; index++) {
+    for (int index = 0; index < numAdjRanks; index++) {
     
         // Useful values
-        uint32_t numPacketsRead = c_oneSidedImpl->recv_getNumPacketsRead(index);
-        uint32_t numPacketsWritten = c_oneSidedImpl->recv_getNumWritten(index);
+        uint32_t numBytesRead = c_oneSidedImpl->recv_getNumRead(index);
+        uint32_t numBytesWritten = c_oneSidedImpl->recv_getNumWritten(index);
 
         
-        // Read packets
-        UINT numPacketsToRecv = numPacketsWritten - numPacketsRead;
-        if (numPacketsToRecv > 0) {
+        // Read data
+        uint32_t numBytesToRecv = numBytesWritten - numBytesRead;
+        if (numBytesToRecv > 0) {
             
-            // Get data packets
-            UINT dataSizeInBytes = numPacketsToRecv * packetSizeInBytes;
-            offset = c_oneSidedImpl->recv_getDataOffset(index, numPacketsRead);
+            // Get data
+            offset = c_oneSidedImpl->recv_getDataOffset(index, numBytesRead);
             UINT originalSize = dataPackets.size();
 
-            dataPackets.resize(originalSize + dataSizeInBytes);
-            mpiError = MPI_Get(&dataPackets[originalSize], dataSizeInBytes, 
-                               MPI_BYTE, myRank, offset, dataSizeInBytes, 
-                               MPI_BYTE, mpiWin);
-            Insist(mpiError == MPI_SUCCESS, "");
+            dataPackets.resize(originalSize + numBytesToRecv);
+            MPI_Win_sync(mpiWin);
+            memcpy(&dataPackets[originalSize], 
+                   c_oneSidedImpl->recv_getWinMemory() + offset,
+                   numBytesToRecv);
+            //mpiError = MPI_Get(&dataPackets[originalSize], numBytesToRecv, 
+            //                   MPI_BYTE, myRank, offset, numBytesToRecv, 
+            //                   MPI_BYTE, mpiWin);
+            //Insist(mpiError == MPI_SUCCESS, "");
             mpiError = MPI_Win_flush_local(myRank, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
 
 
-            // Update numPacketsRead
-            c_oneSidedImpl->recv_setNumPacketsRead(index, numPacketsWritten);
+            // Update numRead
+            c_oneSidedImpl->recv_setNumRead(index, numBytesWritten);
         }
     
     
         // Check to see if we need to move to other data chunk
         if (c_oneSidedImpl->recv_getLock(index) == 1) {
             
-            // Make sure all reads are completely done
-            mpiError = MPI_Win_flush(myRank, mpiWin);
+            // Put zeros in header
+            vector<uint32_t> zeros(2 * c_oneSidedImpl->getMaxMessages());
+            offset = c_oneSidedImpl->recv_getHeaderOffset(index);
+            memset(c_oneSidedImpl->recv_getWinMemory() + offset, 0, 
+                   zeros.size() * sizeof(uint32_t));
+            MPI_Win_sync(mpiWin);
+            //mpiError = MPI_Put(zeros.data(), zeros.size(), MPI_UINT32_T, myRank,
+            //                   offset, zeros.size(), MPI_UINT32_T, mpiWin);
+            //mpiError = MPI_Accumulate(zeros.data(), zeros.size(), MPI_UINT32_T, 
+            //                          myRank, offset, zeros.size(), 
+            //                          MPI_UINT32_T, MPI_REPLACE, mpiWin);
+            //Insist(mpiError == MPI_SUCCESS, "");
+
+
+            // Make sure all writes are completely done
+            //mpiError = MPI_Win_flush(myRank, mpiWin);
+            //Insist(mpiError == MPI_SUCCESS, "");
+
+            
+            // Set locked to zero
+            uint32_t zero = 0;
+            offset = c_oneSidedImpl->recv_getLockOffset(index);
+            mpiError = MPI_Accumulate(&zero, 1, MPI_UINT32_T, 
+                                      myRank, offset, 1, 
+                                      MPI_UINT32_T, MPI_REPLACE, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
             
-            // Set numWritten to zero
-            uint32_t zero1 = 0;
-            offset = c_oneSidedImpl->recv_getNumWrittenOffset(index);
-            mpiError = MPI_Accumulate(&zero1, 1, MPI_UINT32_T, myRank, offset, 
-                                      1, MPI_UINT32_T, MPI_REPLACE, mpiWin);
-            Insist(mpiError == MPI_SUCCESS, "");
-
-            // Set writable bit for this data chunk back to zero
-            uint32_t zero2 = 0;
-            offset = c_oneSidedImpl->recv_getLockOffset(index);
-            mpiError = MPI_Accumulate(&zero2, 1, MPI_UINT32_T, myRank, offset, 
-                                      1, MPI_UINT32_T, MPI_REPLACE, mpiWin);
-            Insist(mpiError == MPI_SUCCESS, "");
             mpiError = MPI_Win_flush_local(myRank, mpiWin);
             Insist(mpiError == MPI_SUCCESS, "");
             
+
             // Update internal state
-            c_oneSidedImpl->recv_setNumPacketsRead(index, 0);
+            c_oneSidedImpl->recv_setNumRead(index, 0);
             c_oneSidedImpl->recv_switchDataChunk(index);
         }
     }
@@ -761,11 +940,17 @@ GraphTraverser::GraphTraverser(Direction direction, bool doComm,
 
 /*
     setupOneSidedMPI
+
+    Memory is laid out as:
+    (lock1,lock2) * numAdjRanks
+    (numWritten1,numWritten2,...,numWrittenN,writable1,writable2,...,writableN) * numAdjRanks
+    (data) * numAdjRanks
 */
 void GraphTraverser::setupOneSidedMPI()
 {
     int mpiError;
-    UINT maxPackets = 10 * g_maxCellsPerStep;
+    UINT maxMessages = 10;
+    UINT maxPackets = maxMessages * g_maxCellsPerStep;
     
     
     // Allocate MPI_Win
@@ -773,50 +958,79 @@ void GraphTraverser::setupOneSidedMPI()
     MPI_Win mpiWin;
     UINT numAdjRanks = c_adjRankIndexToRank.size();
     UINT packetSize = 2 * sizeof(UINT) + c_dataSizeInBytes;
-    UINT windowSizeInBytes = 
-        (16 + 2 * maxPackets * packetSize) * numAdjRanks;
+    UINT lockSize = sizeof(uint32_t) * 2 * numAdjRanks;
+    UINT headerSize = sizeof(uint32_t) * 4 * maxMessages * numAdjRanks;
+    UINT dataSize = 2 * maxPackets * packetSize * numAdjRanks;
+    UINT windowSizeInBytes = lockSize + headerSize + dataSize;
+
     MPI_Info mpiInfo;
     MPI_Info_create(&mpiInfo);
     MPI_Info_set(mpiInfo, "accumulate_ops", "same_op_no_op");
+    //MPI_Info_set(mpiInfo, "accumulate_ordering", "none");
     MPI_Win_allocate(windowSizeInBytes, 1, mpiInfo, 
                      MPI_COMM_WORLD, &mpiWinMemory, &mpiWin);
     MPI_Info_free(&mpiInfo);
 
 
     // Setup onRankOffsets
-    vector<UINT> onRankOffsets(numAdjRanks);
+    vector<UINT> onRankLockOffsets(numAdjRanks);
+    vector<UINT> onRankHeaderOffsets(numAdjRanks);
+    vector<UINT> onRankDataOffsets(numAdjRanks);
     for (UINT i = 0; i < numAdjRanks; i++) {
-        onRankOffsets[i] = i * (16 + 2 * maxPackets * packetSize);
+        onRankLockOffsets[i] = i * 2 * sizeof(uint32_t);
+        onRankHeaderOffsets[i] = lockSize +
+                                 i * 4 * maxMessages * sizeof(uint32_t);
+        onRankDataOffsets[i] = lockSize + headerSize + 
+                               i * 2 * maxPackets * packetSize;
     }
 
 
     // Setup offRankOffsets
-    vector<UINT> offRankOffsets(numAdjRanks);
-    vector<MPI_Request> mpiSendRequests(numAdjRanks);
-    vector<MPI_Request> mpiRecvRequests(numAdjRanks);
+    vector<UINT> offRankLockOffsets(numAdjRanks);
+    vector<UINT> offRankHeaderOffsets(numAdjRanks);
+    vector<UINT> offRankDataOffsets(numAdjRanks);
+    vector<MPI_Request> mpiRequests(6 * numAdjRanks);
     for (UINT i = 0; i < numAdjRanks; i++) {
         UINT adjRank = c_adjRankIndexToRank[i];
-        int tag = 0;
+        int tagLock = 0;
+        int tagHeader = 1;
+        int tagData = 2;
         
-        // Send index
-        mpiError = MPI_Isend(&onRankOffsets[i], 1, MPI_UINT64_T, adjRank, 
-                             tag, MPI_COMM_WORLD, &mpiSendRequests[i]);
+        // Send lock offset
+        mpiError = MPI_Isend(&onRankLockOffsets[i], 1, MPI_UINT64_T, adjRank, 
+                             tagLock, MPI_COMM_WORLD, &mpiRequests[6*i+0]);
         Insist(mpiError == MPI_SUCCESS, "");
 
-        // Recv index
-        mpiError = MPI_Irecv(&offRankOffsets[i], 1, MPI_UINT64_T, adjRank, 
-                             tag, MPI_COMM_WORLD, &mpiRecvRequests[i]);
+        // Send header offset
+        mpiError = MPI_Isend(&onRankHeaderOffsets[i], 1, MPI_UINT64_T, adjRank, 
+                             tagHeader, MPI_COMM_WORLD, &mpiRequests[6*i+1]);
+        Insist(mpiError == MPI_SUCCESS, "");
+
+        // Send data offset
+        mpiError = MPI_Isend(&onRankDataOffsets[i], 1, MPI_UINT64_T, adjRank, 
+                             tagData, MPI_COMM_WORLD, &mpiRequests[6*i+2]);
+        Insist(mpiError == MPI_SUCCESS, "");
+
+        // Recv lock offset
+        mpiError = MPI_Irecv(&offRankLockOffsets[i], 1, MPI_UINT64_T, adjRank, 
+                             tagLock, MPI_COMM_WORLD, &mpiRequests[6*i+3]);
+        Insist(mpiError == MPI_SUCCESS, "");
+        
+        // Recv header offset
+        mpiError = MPI_Irecv(&offRankHeaderOffsets[i], 1, MPI_UINT64_T, adjRank, 
+                             tagHeader, MPI_COMM_WORLD, &mpiRequests[6*i+4]);
+        Insist(mpiError == MPI_SUCCESS, "");
+        
+        // Recv data offset
+        mpiError = MPI_Irecv(&offRankDataOffsets[i], 1, MPI_UINT64_T, adjRank, 
+                             tagData, MPI_COMM_WORLD, &mpiRequests[6*i+5]);
         Insist(mpiError == MPI_SUCCESS, "");
     }
     
 
     // Wait for messages to send/recv
     if (numAdjRanks > 0) {
-        mpiError = MPI_Waitall(mpiSendRequests.size(), mpiSendRequests.data(), 
-                               MPI_STATUSES_IGNORE);
-        Insist(mpiError == MPI_SUCCESS, "");
-        
-        mpiError = MPI_Waitall(mpiRecvRequests.size(), mpiRecvRequests.data(), 
+        mpiError = MPI_Waitall(mpiRequests.size(), mpiRequests.data(), 
                                MPI_STATUSES_IGNORE);
         Insist(mpiError == MPI_SUCCESS, "");
     }
@@ -828,8 +1042,17 @@ void GraphTraverser::setupOneSidedMPI()
     MPI_Win_sync(mpiWin);
     Comm::barrier();
 
-    c_oneSidedImpl = new OneSidedImpl(numAdjRanks, offRankOffsets, onRankOffsets,
-            packetSize, maxPackets, mpiWin);
+    c_oneSidedImpl = new OneSidedImpl(numAdjRanks, 
+                                      offRankLockOffsets, 
+                                      offRankHeaderOffsets, 
+                                      offRankDataOffsets,
+                                      onRankLockOffsets, 
+                                      onRankHeaderOffsets, 
+                                      onRankDataOffsets,
+                                      dataSize / 2 / numAdjRanks,
+                                      maxMessages, 
+                                      mpiWin,
+                                      mpiWinMemory);
 }
 
 
@@ -839,8 +1062,9 @@ void GraphTraverser::setupOneSidedMPI()
 GraphTraverser::~GraphTraverser()
 {
     if (g_mpiType == MPIType_OneSided) {
-        MPI_Win_unlock_all(c_oneSidedImpl->c_mpiWin);
-        MPI_Win_free(&c_oneSidedImpl->c_mpiWin);
+        MPI_Win mpiWin = c_oneSidedImpl->getWin();
+        MPI_Win_unlock_all(mpiWin);
+        MPI_Win_free(&mpiWin);
     }
 }
 
