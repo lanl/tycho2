@@ -156,38 +156,16 @@ GraphTraverserKernel::GraphTraverserKernel()
 */
 void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
 {
-    vector<priority_queue<Tuple>> canCompute(g_nThreads);
-    Mat2<UINT> numDependencies(g_nAngles, g_nCells);
     Timer totalTimer;
     Timer setupTimer;
-    
 
     // Start total timer
     totalTimer.start();
     setupTimer.start();
-    
-    
-    // Calc num dependencies for each (cell, angle) pair
-    for (UINT cell = 0; cell < g_nCells; cell++) {
-    for (UINT angle = 0; angle < g_nAngles; angle++) {
-        numDependencies(angle, cell) = c_initNumDependencies(angle, cell);
-    }}
-    
-    
-    // Initialize canCompute queue
-    for (UINT cell = 0; cell < g_nCells; cell++) {
-    for (UINT angle = 0; angle < g_nAngles; angle++) {
-        if (numDependencies(angle, cell) == 0) {
-            UINT priority = traverseData.getPriority(cell, angle);
-            UINT angleGroup = angleGroupIndex(angle);
-            canCompute[angleGroup].push(Tuple(cell, angle, priority));
-        }
-    }}
-
 
     // End setup timer
     setupTimer.stop();
-    
+
     using space = Kokkos::DefaultExecutionSpace;
     auto nitems = int(g_nCells * g_nAngles);
     Kokkos::View<int*> counts("counts", nitems);
@@ -230,44 +208,7 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
       traverseDataPtr->update(cell, angle);
     };
     Kokkos::parallel_for(policy, lambda);
-    
-#if 0
-    // Traverse the graph
-    #pragma omp parallel
-    {
-        UINT angleGroup = omp_get_thread_num();
-        while (canCompute[angleGroup].size() > 0)
-        {
-            // Get cell/angle pair to compute
-            Tuple cellAnglePair = canCompute[angleGroup].top();
-            canCompute[angleGroup].pop();
-            UINT cell = cellAnglePair.getCell();
-            UINT angle = cellAnglePair.getAngle();
 
-
-
-            // Update dependency for children
-            for (UINT face = 0; face < g_nFacePerCell; face++) {
-                
-                if (g_tychoMesh->isOutgoing(angle, cell, face)) {
-
-                    UINT adjCell = g_tychoMesh->getAdjCell(cell, face);
-                    
-                    if (adjCell != TychoMesh::BOUNDARY_FACE) {
-                        numDependencies(angle, adjCell)--;
-                        if (numDependencies(angle, adjCell) == 0) {
-                            UINT priority = 
-                                traverseData.getPriority(adjCell, angle);
-                            Tuple tuple(adjCell, angle, priority);
-                            canCompute[angleGroup].push(tuple);
-                        }
-                    }
-                }
-            }
-        }
-    }
-#endif
-    
     // Print times
     totalTimer.stop();
 
