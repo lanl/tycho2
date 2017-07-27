@@ -47,7 +47,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 #include <Kokkos_Core.hpp>
-#include <iostream>
 #include <cassert>
 
 GraphTraverserKernel *g_graphTraverserKernel;
@@ -191,9 +190,6 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
     
     using space = Kokkos::DefaultExecutionSpace;
     auto nitems = int(g_nCells * g_nAngles);
-    std::cout << "g_nCells " << g_nCells << '\n';
-    std::cout << "g_nAngles " << g_nAngles << '\n';
-    std::cout << "nitems " << nitems << '\n';
     Kokkos::View<int*> counts("counts", nitems);
     Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
       int cell = item % g_nCells;
@@ -206,19 +202,8 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
         counts(item) += 1;
       }
     });
-    for (int i = 0; i < counts.size(); ++i) {
-      std::cout << "counts[" << i << "] = " << counts(i) << '\n';
-    }
     Kokkos::View<int*> row_map;
     Kokkos::Experimental::get_crs_row_map_from_counts(row_map, counts);
-    for (int i = 0; i < row_map.size(); ++i) {
-      int item = i;
-      int cell = item % g_nCells;
-      int angle = item / g_nCells;
-      std::cout << "row_map[";
-      std::cout << item << " (" << cell << "," << angle << ") ";
-      std::cout << "] = " << row_map(i) << '\n';
-    }
     auto nedges = row_map(row_map.size() - 1);
     Kokkos::View<int*> entries("entries", nedges);
     Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
@@ -231,27 +216,22 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
         auto adjCell = g_tychoMesh->getAdjCell(cell, face);
         if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
         entries(row_map(item) + j) = adjCell + g_nCells * angle;
-      //std::cout << "cell " << cell << " angle " << angle << " before " << "cell " << adjCell << " angle " << angle << '\n';
         ++j;
       }
       assert(j + row_map(item) == row_map(item + 1));
     });
-    for (int i = 0; i < entries.size(); ++i) {
-      int item = entries(i);
-      std::cout << "entries[" << i << "] = " << item;
-      int cell = item % g_nCells;
-      int angle = item / g_nCells;
-      std::cout << " (" << cell << "," << angle << ")\n";
-    }
     auto graph = Kokkos::Experimental::Crs<int,space,void,int>(entries, row_map);
     auto policy = Kokkos::Experimental::WorkGraphPolicy<space,int>(graph);
+    auto* traverseDataPtr = &traverseData;
     auto lambda = KOKKOS_LAMBDA(int item) {
       int cell = item % g_nCells;
       int angle = item / g_nCells;
-      std::cout << "cell " << cell << " angle " << angle << '\n';
+      // Update data for this cell-angle pair
+      traverseDataPtr->update(cell, angle);
     };
     Kokkos::parallel_for(policy, lambda);
     
+#if 0
     // Traverse the graph
     #pragma omp parallel
     {
@@ -263,12 +243,9 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
             canCompute[angleGroup].pop();
             UINT cell = cellAnglePair.getCell();
             UINT angle = cellAnglePair.getAngle();
-            
-            
-            // Update data for this cell-angle pair
-            traverseData.update(cell, angle);
-            
-            
+
+
+
             // Update dependency for children
             for (UINT face = 0; face < g_nFacePerCell; face++) {
                 
@@ -289,7 +266,7 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
             }
         }
     }
-    
+#endif
     
     // Print times
     totalTimer.stop();
