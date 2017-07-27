@@ -16,3 +16,5 @@ set(KERNEL_SOURCES
 add_executable(kernel.x ${KERNEL_SOURCES})
 target_include_directories(kernel.x PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 target_link_libraries(kernel.x PUBLIC "${PETSC_LIBRARY}")
+target_include_directories(kernel.x PUBLIC "${KokkosCore_INCLUDE_DIRS}")
+target_link_libraries(kernel.x PUBLIC kokkoscore)

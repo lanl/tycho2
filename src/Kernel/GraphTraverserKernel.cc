@@ -46,6 +46,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <queue>
 #include <omp.h>
 
+#include <Kokkos_Core.hpp>
+#include <iostream>
 
 GraphTraverserKernel *g_graphTraverserKernel;
 
@@ -186,6 +188,43 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
     // End setup timer
     setupTimer.stop();
     
+    using space = Kokkos::DefaultExecutionSpace;
+    auto nitems = int(g_nCells * g_nAngles);
+    Kokkos::View<int*> counts("counts", nitems);
+    Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
+      int cell = item % g_nCells;
+      int angle = item / g_nCells;
+      for (int face = 0; face < g_nFacePerCell; ++face) {
+        bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
+        if (!is_out) continue;
+        auto adjCell = g_tychoMesh->getAdjCell(cell, face);
+        if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
+        counts(item) += 1;
+      }
+    });
+    Kokkos::View<int*> row_map;
+    Kokkos::Experimental::get_crs_row_map_from_counts(row_map, counts);
+    auto nedges = row_map(row_map.size() - 1);
+    Kokkos::View<int*> entries("entries", nedges);
+    Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
+      int cell = item % g_nCells;
+      int angle = item / g_nCells;
+      int j = 0;
+      for (int face = 0; face < g_nFacePerCell; ++face) {
+        bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
+        if (!is_out) continue;
+        auto adjCell = g_tychoMesh->getAdjCell(cell, face);
+        if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
+        ++j;
+        entries(row_map(item) + j) = adjCell + g_nCells * angle;
+      }
+    });
+    auto graph = Kokkos::Experimental::Crs<int,space,void,int>(row_map, entries);
+    auto policy = Kokkos::Experimental::WorkGraphPolicy<space,int>(graph);
+    auto lambda = KOKKOS_LAMBDA(int i) {
+      std::cout << i << '\n';
+    };
+    Kokkos::parallel_for(policy, lambda);
     
     // Traverse the graph
     #pragma omp parallel

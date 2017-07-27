@@ -46,6 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SweeperKernel.hh"
 #include "GraphTraverserKernel.hh"
 #include <omp.h>
+#include <Kokkos_Core.hpp>
 
 
 using namespace std;
@@ -97,6 +98,7 @@ int main(int argc, char *argv[])
     Insist (mpiResult == MPI_SUCCESS, "MPI_Init failed.");
     Insist (required <= provided, "");
 
+    Kokkos::initialize(argc, argv);
 
     // Input data.
     if (argc < 2) {
@@ -174,6 +176,7 @@ int main(int argc, char *argv[])
         printf("Total time: %.2f\n", clockTime);
     }
     
+    Kokkos::finalize();
     
     MPI_Finalize();
     return 0;

@@ -132,6 +132,7 @@ public:
     {
         double c[4][3];
     };
+
     
 private:
     void readTychoMesh(const std::string &filename);
@@ -143,7 +144,9 @@ private:
     UINT c_nNodes;
     Mat2<double> c_nodeCoords;      // (node, dim) -> coord
     Mat2<UINT> c_cellNodes;         // (cell, vrtx) -> node
+public:
     Mat2<UINT> c_adjCell;           // (cell, face) -> cell
+private:
     Mat2<UINT> c_adjFace;           // (cell, face) -> face
     Mat1<UINT> c_sideCell;          // side -> cell
     Mat2<UINT> c_side;              // (cell, face) -> side

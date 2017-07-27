@@ -6,7 +6,7 @@ option(ASSERT_ON "Turn on asserts" ON)
 option(USE_PETSC "Use PETSc" OFF)
 option(USE_KOKKOS "Use Kokkos" ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -std=c++11")
 
 set(SOURCES
   src/Assert.cc
@@ -63,6 +63,14 @@ endif()
 option(BUILD_UTILS "Build utility programs" ON)
 if (BUILD_UTILS)
   add_subdirectory(util)
+endif()
+
+message("USE_KOKKOS ${USE_KOKKOS}")
+if (USE_KOKKOS)
+  set(KOKKOS_PREFIX "" CACHE PATH "Kokkos install directory")
+  find_package(KokkosCore REQUIRED PATHS ${KOKKOS_PREFIX} NO_DEFAULT_PATH)
+  message("KokkosCore_CONFIG ${KokkosCore_CONFIG}")
+  message("KokkosCore_INCLUDE_DIRS ${KokkosCore_INCLUDE_DIRS}")
 endif()
 
 add_subdirectory(src/Kernel)
