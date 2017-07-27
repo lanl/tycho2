@@ -59,7 +59,7 @@ static
 void setInput(double &sigmaT1, double &sigmaS1,
               double &sigmaT2, double &sigmaS2)
 {
-    g_snOrder = 2;
+    g_snOrder = 8;
     g_iterMax = 10;
     g_errMax = 1e-4;
     g_maxCellsPerStep = 100;
