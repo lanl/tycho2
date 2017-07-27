@@ -4,6 +4,7 @@ project(Tycho2 VERSION 0.1 LANGUAGES CXX)
 
 option(ASSERT_ON "Turn on asserts" ON)
 option(USE_PETSC "Use PETSc" OFF)
+option(USE_KOKKOS "Use Kokkos" ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 
@@ -63,3 +64,5 @@ option(BUILD_UTILS "Build utility programs" ON)
 if (BUILD_UTILS)
   add_subdirectory(util)
 endif()
+
+add_subdirectory(src/Kernel)
