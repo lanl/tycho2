@@ -163,9 +163,6 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
     totalTimer.start();
     setupTimer.start();
 
-    // End setup timer
-    setupTimer.stop();
-
     using space = Kokkos::DefaultExecutionSpace;
     auto nitems = int(g_nCells * g_nAngles);
     Kokkos::View<int*> counts("counts", nitems);
@@ -198,8 +195,13 @@ void GraphTraverserKernel::traverse(TraverseDataKernel &traverseData)
       }
       assert(j + row_map(item) == row_map(item + 1));
     });
+
     auto graph = Kokkos::Experimental::Crs<int,space,void,int>(entries, row_map);
     auto policy = Kokkos::Experimental::WorkGraphPolicy<space,int>(graph);
+
+    // End setup timer
+    setupTimer.stop();
+
     auto* traverseDataPtr = &traverseData;
     auto lambda = KOKKOS_LAMBDA(int item) {
       int cell = item % g_nCells;
