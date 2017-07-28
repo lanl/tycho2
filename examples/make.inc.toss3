@@ -1,10 +1,4 @@
-# Makefile setting for Cray
-# To use Petsc: 'module load cray-petsc'
-# To use one-sided MPI: 'export MPICH_RMA_OVER_DMAPP=1'
-
-
-# Top level directory path #####################################################
-TOP_DIR = /users/ckgarrett/git/tycho2
+# Makefile setting for Toss 3 machines at LANL
 
 
 # Assert level: 0 = no asserts, 1 = all asserts ################################
