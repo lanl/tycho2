@@ -136,8 +136,6 @@ void readInput(const string &inputFileName,
         g_mpiType = MPIType_TychoTwoSided;
     else if (mpiType == "CapsaicinTwoSided")
         g_mpiType = MPIType_CapsaicinTwoSided;
-    else if (mpiType == "OneSided")
-        g_mpiType = MPIType_OneSided;
     else
         Insist(false, "MPI type not recognized.");
 
