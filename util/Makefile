@@ -13,17 +13,22 @@ SRC_MESH2 = ../src/SerialMesh.cc \
             ../src/Comm.cc \
             ../src/Assert.cc
 
-INC = -I../src \
-      -I$(MOAB_DIR)/include \
-      -I$(METIS_DIR)/include
+INC = -I../src #\
+      #-I$(MOAB_DIR)/include \
+      #-I$(METIS_DIR)/include
 
+#LIB_MOAB = $(MOAB_DIR)/lib/libMOAB.a \
+#       $(MOAB_DIR)/lib/libiMesh.a \
+#       $(CGNS_DIR)/lib/libcgns.a \
+#       $(HDF5_DIR)/lib/libhdf5.a \
+#       -ldl -lz 
 LIB_MOAB = $(MOAB_DIR)/lib/libMOAB.a \
        $(MOAB_DIR)/lib/libiMesh.a \
        $(CGNS_DIR)/lib/libcgns.a \
        $(HDF5_DIR)/lib/libhdf5.a \
        -ldl -lz 
 
-LIB_METIS = $(METIS_DIR)/lib/libmetis.so
+LIB_METIS = -lmetis
 
 
 ##### Applications #####
