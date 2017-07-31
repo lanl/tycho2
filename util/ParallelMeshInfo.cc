@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstdio>
 #include <cassert>
+#include <cstring>
 #include <mpi.h>
 #include "Comm.hh"
 #include "ParallelMesh.hh"
