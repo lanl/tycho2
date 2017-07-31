@@ -442,6 +442,10 @@ GraphTraverser::GraphTraverser(Direction direction, bool doComm,
     for (UINT angle = 0; angle < g_nAngles; angle++) {
         
         c_initNumDependencies(angle, cell) = 0;
+        
+        if (g_sweepType == SweepType_Chaotic)
+            continue;
+
         for (UINT face = 0; face < g_nFacePerCell; face++) {
             
             bool incoming = isIncoming(angle, cell, face, c_direction);
@@ -508,6 +512,7 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
             canCompute[angleGroup].push(Tuple(cell, angle, priority));
         }
     }}
+    //printf("%d %d\n", numCellAnglePairsToCalculate, canCompute[0].size());
 
 
     // End setup timer
@@ -516,7 +521,7 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
     
     // Traverse the graph
     while (numCellAnglePairsToCalculate > 0) {
-        
+        //printf("   %d\n", numCellAnglePairsToCalculate);
         // Do local traversal
         #pragma omp parallel
         {
@@ -525,6 +530,7 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
             while (canCompute[angleGroup].size() > 0 && 
                    stepsTaken < maxComputePerStep)
             {
+        //printf("   %d\n", canCompute[0].size());
                 // Get cell/angle pair to compute
                 Tuple cellAnglePair = canCompute[angleGroup].top();
                 canCompute[angleGroup].pop();
