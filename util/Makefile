@@ -23,7 +23,7 @@ LIB_MOAB = $(MOAB_DIR)/lib/libMOAB.a \
        $(HDF5_DIR)/lib/libhdf5.a \
        -ldl -lz 
 
-LIB_METIS = $(METIS_DIR)/lib/libmetis.a
+LIB_METIS = $(METIS_DIR)/lib/libmetis.so
 
 
 ##### Applications #####

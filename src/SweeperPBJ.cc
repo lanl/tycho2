@@ -265,7 +265,7 @@ void SweeperPBJSI::solve()
         Comm::gsum(normL1);
 
         if (Comm::rank() == 0) {
-            printf("Relative error: %e\n", errL1 / normL1);
+            printf("Iteration %d   Relative error: %e\n", iter, errL1 / normL1);
         }
 
         if (errL1 / normL1 < g_ddErrMax)

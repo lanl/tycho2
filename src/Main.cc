@@ -52,6 +52,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SweeperAbstract.hh"
 #include "Sweeper.hh"
 #include "SweeperTraverse.hh"
+#include "SweeperChaotic.hh"
 #include "SweeperPBJ.hh"
 #include "SweeperSchur.hh"
 #include <signal.h>
@@ -148,6 +149,8 @@ void readInput(const string &inputFileName,
         g_sweepType = SweepType_OriginalTycho2;
     else if (sweepType == "TraverseGraph")
         g_sweepType = SweepType_TraverseGraph;
+    else if (sweepType == "Chaotic")
+        g_sweepType = SweepType_Chaotic;
     else if (sweepType == "PBJ")
         g_sweepType = SweepType_PBJ;
     else if (sweepType == "PBJOuter")
@@ -278,6 +281,12 @@ int main(int argc, char *argv[])
                 new GraphTraverser(Direction_Forward, true, 
                                    SweepData::getDataSizeInBytes());
             sweeper = new SweeperTraverse();
+            break;
+        case SweepType_Chaotic:
+            g_graphTraverserForward = 
+                new GraphTraverser(Direction_Forward, true, 
+                                   SweepData::getDataSizeInBytes());
+            sweeper = new SweeperChaotic();
             break;
         case SweepType_Schur:
             g_graphTraverserForward = 

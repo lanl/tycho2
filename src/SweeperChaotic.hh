@@ -37,101 +37,25 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef __GLOBAL_HH__
-#define __GLOBAL_HH__
+#ifndef __SWEEPER_CHAOTIC_HH__
+#define __SWEEPER_CHAOTIC_HH__
 
-#include <string>
-#include <cinttypes>
-#include <vector>
-
-
-// Hack so I don't have to redefine extern variables in Global.cc
-#ifdef NO_EXTERN
-#define EXTERN
-#else
-#define EXTERN extern
-#endif
+#include "Mat.hh"
+#include "PsiData.hh"
+#include "Global.hh"
+#include "SweeperAbstract.hh"
 
 
-// Forward declaration of classes needed for global pointers below
-class Quadrature;
-class TychoMesh;
-class SweepSchedule;
-class GraphTraverser;
-
-
-// Macro to get around some warnings
-#define UNUSED_VARIABLE(x) (void)(x)
-
-
-// Shorter version of uint64_t
-// Also allows changing the UINT type
-typedef uint64_t UINT;
-
-
-// Global constants
-static const UINT g_ndim = 3;
-static const UINT g_nVrtxPerCell = 4;
-static const UINT g_nVrtxPerFace = 3;
-static const UINT g_nFacePerCell = 4;
-
-
-// Enum types
-enum MPIType
+class SweeperChaotic : public SweeperAbstract
 {
-    MPIType_TychoTwoSided,
-    MPIType_CapsaicinTwoSided,
+public:
+    SweeperChaotic();
+    void sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound);
+    void solve();
+
+private:
+    Mat2<UINT> c_priorities;
+    PsiBoundData c_psiBound;
 };
-
-enum SweepType
-{
-    SweepType_OriginalTycho1,
-    SweepType_OriginalTycho2,
-    SweepType_TraverseGraph,
-    SweepType_Chaotic,
-    SweepType_PBJ,
-    SweepType_PBJOuter,
-    SweepType_Schur,
-    SweepType_SchurOuter,
-    SweepType_PBJSI,
-    SweepType_SchurKrylov
-};
-
-enum GaussElim
-{
-    GaussElim_Original,
-    GaussElim_NoPivot,
-    GaussElim_CramerGlu,
-    GaussElim_CramerIntel
-};
-
-
-// Global variables
-EXTERN UINT g_nAngleGroups;
-EXTERN UINT g_nThreads;
-EXTERN UINT g_nGroups;
-EXTERN UINT g_snOrder;
-EXTERN UINT g_iterMax;
-EXTERN double g_errMax;
-EXTERN std::vector<double> g_sigmaT;
-EXTERN std::vector<double> g_sigmaS;
-EXTERN UINT g_maxCellsPerStep;
-EXTERN UINT g_intraAngleP;
-EXTERN UINT g_interAngleP;
-EXTERN SweepType g_sweepType;
-EXTERN TychoMesh *g_tychoMesh;
-EXTERN SweepSchedule **g_sweepSchedule;
-EXTERN Quadrature *g_quadrature;
-EXTERN GraphTraverser *g_graphTraverserForward;
-EXTERN GaussElim g_gaussElim;
-EXTERN bool g_outputFile;
-EXTERN std::string g_outputFilename;
-EXTERN UINT g_nAngles;
-EXTERN UINT g_nCells;
-EXTERN double g_ddErrMax;
-EXTERN UINT g_ddIterMax;
-EXTERN bool g_useSourceIteration;
-EXTERN MPIType g_mpiType;
 
 #endif
-
