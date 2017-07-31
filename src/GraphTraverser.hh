@@ -100,7 +100,6 @@ class GraphTraverser
 {
 public:
     GraphTraverser(Direction direction, bool doComm, UINT dataSizeInBytes);
-    ~GraphTraverser();
 
     void traverse(const UINT maxComputePerStep, TraverseData &traverseData);
 
