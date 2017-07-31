@@ -81,7 +81,6 @@ enum MPIType
 {
     MPIType_TychoTwoSided,
     MPIType_CapsaicinTwoSided,
-    MPIType_OneSided
 };
 
 enum SweepType

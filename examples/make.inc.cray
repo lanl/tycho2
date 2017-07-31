@@ -3,10 +3,6 @@
 # To use one-sided MPI: 'export MPICH_RMA_OVER_DMAPP=1'
 
 
-# Top level directory path #####################################################
-TOP_DIR = /users/ckgarrett/git/tycho2
-
-
 # Assert level: 0 = no asserts, 1 = all asserts ################################
 ASSERT_ON = 0
 
