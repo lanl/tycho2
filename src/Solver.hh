@@ -40,15 +40,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __SOURCE_ITERATION_HH__
 #define __SOURCE_ITERATION_HH__
 
-
 #include "SweeperAbstract.hh"
 #include "Global.hh"
 
-namespace SourceIteration
+namespace Solver
 {
 
-UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source);
-UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source);
+UINT solver(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source);
 
 } // End namespace
 

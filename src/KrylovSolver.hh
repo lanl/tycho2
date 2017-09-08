@@ -50,14 +50,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class KrylovSolver
 {
-public:
+  public:
+    
     typedef void (*Function)(const double*, double*, void*);
 
-
-    KrylovSolver(UINT localVecSize, double rtol, UINT iterMax,
+    KrylovSolver(UINT localVecSize, double rtol, UINT iterMax, UINT nRestart,
                  Function lhsOperator);
     ~KrylovSolver();
-
 
     void solve();
     double* getB();
@@ -68,27 +67,20 @@ public:
     double getResidualNorm();
     void setData(void *data);
     void setInitialGuessNonzero();
-
-
+    
     struct Data
     {
         void *data;
         Function lhsOperator;
     };
-
-private:
+    
+  private:
     
     KSP c_ksp;
     Mat c_mat;
     Vec c_x, c_b;
     Data c_krylovData;
 };
-
-
-
-
-
-
 
 /*
     If not using PETSc.
@@ -98,9 +90,9 @@ private:
 
 class KrylovSolver
 {
-public:
-    typedef void (*Function)(const double*, double*, void*);
+  public:
 
+    typedef void (*Function)(const double*, double*, void*);
 
     KrylovSolver(UINT localVecSize, double rtol, UINT iterMax,
                  Function lhsOperator)
@@ -113,7 +105,6 @@ public:
     }
     ~KrylovSolver() {}
 
-
     void solve()                    { }
     double* getB()                  { return NULL; }
     void releaseB()                 {}
@@ -124,17 +115,17 @@ public:
     void setData(void *data)        { UNUSED_VARIABLE(data); }
     void setInitialGuessNonzero()   {}
 
+    PetscErrorCode mon(KSP ksp, PetscInt n, PetscReal r, void*);
 
     struct Data
     {
         void *data;
         Function lhsOperator;
     };
-
-private:
+    
+  private:
     
 };
-
 
 
 #endif

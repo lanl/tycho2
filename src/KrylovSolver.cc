@@ -40,7 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "KrylovSolver.hh"
 #include "Comm.hh"
 
-
 static
 PetscErrorCode lhsPetsc(Mat mat, Vec x, Vec b)
 {
@@ -75,8 +74,19 @@ PetscErrorCode lhsPetsc(Mat mat, Vec x, Vec b)
     return 0;
 }
 
+static PetscViewer pv;
+static PetscViewerFormat pf;
+static PetscViewerAndFormat *pvf;
 
-KrylovSolver::KrylovSolver(UINT localVecSize, double rtol, UINT iterMax, 
+static PetscErrorCode mon(KSP ksp, PetscInt n, PetscReal r, void *)
+{
+    KSPMonitorDefault(ksp, n, r, pvf);
+
+    return 0;
+}
+   
+
+KrylovSolver::KrylovSolver(UINT localVecSize, double rtol, UINT iterMax, UINT nRestart, 
                            Function lhsOperator)
 {
     // Create the vectors
@@ -87,22 +97,31 @@ KrylovSolver::KrylovSolver(UINT localVecSize, double rtol, UINT iterMax,
     VecSetType(c_x, VECMPI);
     VecDuplicate(c_x, &c_b);
     
-
     // Create matrix shell and define it as the operator
     MatCreateShell(MPI_COMM_WORLD, localVecSize, localVecSize, 
                    globalVecSize, globalVecSize, (void*)(NULL), &c_mat);
     MatShellSetOperation(c_mat, MATOP_MULT, (void(*)(void))lhsPetsc);
     
 
-    // Create ksp and set tolerances
+    // Create ksp and set tolerances and restart if specified
     KSPCreate(MPI_COMM_WORLD, &c_ksp);
     KSPSetOperators(c_ksp, c_mat, c_mat);
     KSPSetTolerances(c_ksp, rtol, PETSC_DEFAULT, PETSC_DEFAULT, iterMax);
     KSPSetType(c_ksp, KSPGMRES);
 
+    PetscViewerASCIIGetStdout(MPI_COMM_WORLD, &pv);
+    pf = PETSC_VIEWER_DEFAULT;
+    PetscViewerAndFormatCreate(pv, pf, &pvf);
+
+    KSPMonitorSet(c_ksp, mon, NULL, NULL);
+
+    if (nRestart != 0)
+        KSPGMRESSetRestart(c_ksp, nRestart);
 
     // Set data
     c_krylovData.lhsOperator = lhsOperator;
+
+    // Create a means by which to print convergence progress of the solver 
 }
 
 

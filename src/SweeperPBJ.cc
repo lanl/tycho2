@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include "Comm.hh"
 #include "CommSides.hh"
-#include "SourceIteration.hh"
+#include "Solver.hh"
 #include <math.h>
 
 using namespace std;
@@ -75,13 +75,9 @@ void SweeperPBJOuter::solve()
         
         // Sweep
         UINT its;
-        if (g_useSourceIteration)
-            its = SourceIteration::fixedPoint(*this, c_psi, c_source);
-        else
-            its = SourceIteration::krylov(*this, c_psi, c_source);
+        its = Solver::solver(*this, c_psi, c_source);
         sourceIts.push_back(its);
         
-
         // Check tolerance and set psi0 = psi1
         double errL1 = 0.0;
         double normL1 = 0.0;
@@ -151,10 +147,7 @@ void SweeperPBJ::solve()
     Problem::getSource(c_source);
     c_psi.setToValue(0.0);
 
-    if (g_useSourceIteration)
-        SourceIteration::fixedPoint(*this, c_psi, c_source);
-    else
-        SourceIteration::krylov(*this, c_psi, c_source);
+    Solver::solver(*this, c_psi, c_source);
 
     if (Comm::rank() == 0) {
         printf("Num source iters: %" PRIu64 "\n", c_iters);

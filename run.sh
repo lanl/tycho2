@@ -2,8 +2,8 @@
 # running the sweeper on it.
 
 
-NUM_PARTS=20
-IN_FILE="./util/cube-67249.smesh"
+NUM_PARTS=24
+IN_FILE="./util/cube-4128.smesh"
 OUT_FILE="temp.pmesh"
 INPUT_DECK="input.deck"
 export OMP_NUM_THREADS=1

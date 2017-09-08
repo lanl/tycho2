@@ -38,7 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "SweeperTraverse.hh"
-#include "SourceIteration.hh"
+#include "Solver.hh"
 #include "Problem.hh"
 #include "SweepData.hh"
 #include "Global.hh"
@@ -67,10 +67,7 @@ void SweeperTraverse::solve()
     Problem::getSource(c_source);
     c_psi.setToValue(0.0);
 
-    if (g_useSourceIteration)
-        SourceIteration::fixedPoint(*this, c_psi, c_source);
-    else
-        SourceIteration::krylov(*this, c_psi, c_source);
+    Solver::solver(*this, c_psi, c_source);
 }
 
 

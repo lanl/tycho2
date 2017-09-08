@@ -105,6 +105,18 @@ enum GaussElim
     GaussElim_CramerIntel
 };
 
+enum TychoNormType
+{
+    TychoNormType_L1,
+    TychoNormType_L2
+};
+
+enum SolverType
+{
+    SolverType_FixedPoint,
+    SolverType_Krylov,
+    SolverType_NKA
+};
 
 // Global variables
 EXTERN UINT g_nAngleGroups;
@@ -112,7 +124,9 @@ EXTERN UINT g_nThreads;
 EXTERN UINT g_nGroups;
 EXTERN UINT g_snOrder;
 EXTERN UINT g_iterMax;
+EXTERN UINT g_nRestart;
 EXTERN double g_errMax;
+EXTERN TychoNormType g_normType;
 EXTERN std::vector<double> g_sigmaT;
 EXTERN std::vector<double> g_sigmaS;
 EXTERN UINT g_maxCellsPerStep;
@@ -130,7 +144,7 @@ EXTERN UINT g_nAngles;
 EXTERN UINT g_nCells;
 EXTERN double g_ddErrMax;
 EXTERN UINT g_ddIterMax;
-EXTERN bool g_useSourceIteration;
+EXTERN SolverType g_solverType;
 EXTERN MPIType g_mpiType;
 
 #endif

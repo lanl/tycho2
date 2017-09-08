@@ -72,7 +72,7 @@ double diffBetweenGroups(const PsiData &psi)
                 maxDiff = fabs(psi0 - psi1);
         }
     }}}
-    
+
     maxDiff = maxDiff / maxEntry;
     Comm::gmax(maxDiff);
     return maxDiff;
@@ -95,7 +95,6 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
             psi(group, vertex, angle, cell) * g_quadrature->getWt(angle);
     }}}}
 }
-
 
 /*
     phiToPsi
@@ -156,6 +155,27 @@ void operatorS(const PhiData &phi1, PhiData &phi2)
         phi2(group,vertex,cell) = g_sigmaS[cell] / (4.0 * M_PI) * 
                                   phi1(group,vertex,cell);
     }}}
+}
+
+/*
+    writePhi (cell average)
+*/
+void writePhi(const PsiData &psi) 
+{
+    PhiData phi;
+    psiToPhi(phi, psi);
+    
+    #pragma omp parallel for
+    for (UINT group = 0; group < g_nGroups; ++group) {
+        std::cout << " Group " << group << std::endl;
+        for (UINT cell = 0; cell < g_nCells; ++cell) {
+            double phi_avg = 0.0;
+            for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+                phi_avg += phi(group,vertex,cell);
+            }
+            std::cout << "     " << g_tychoMesh->getLGCell(cell) << " " << 0.25*phi_avg << std::endl;
+        }
+    }
 }
 
 

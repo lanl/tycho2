@@ -39,7 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TychoMesh.hh"
 #include "Problem.hh"
-#include "SourceIteration.hh"
+#include "Solver.hh"
 #include "Util.hh"
 #include "Quadrature.hh"
 #include "Comm.hh"
@@ -100,13 +100,13 @@ void readInput(const string &inputFileName,
     
     
     // Reader only reads int and not UINT type
-    int snOrder, iterMax, maxCellsPerStep, intraAngleP, interAngleP, nGroups;
+    int snOrder, iterMax, nRestart, maxCellsPerStep, intraAngleP, interAngleP, nGroups;
     int ddIterMax;
-    
     
     // Get data
     kvr.getInt("snOrder", snOrder);
     kvr.getInt("iterMax", iterMax);
+    kvr.getInt("nRestart", nRestart);
     kvr.getDouble("errMax", g_errMax);
     kvr.getInt("maxCellsPerStep", maxCellsPerStep);
     kvr.getInt("intraAngleP", intraAngleP);
@@ -120,17 +120,27 @@ void readInput(const string &inputFileName,
     kvr.getString("OutputFilename", g_outputFilename);
     kvr.getInt("DD_IterMax", ddIterMax);
     kvr.getDouble("DD_ErrMax", g_ddErrMax);
-    kvr.getBool("SourceIteration", g_useSourceIteration);
        
     g_snOrder = snOrder;
     g_iterMax = iterMax;
+    g_nRestart = nRestart;
     g_maxCellsPerStep = maxCellsPerStep;
     g_intraAngleP = intraAngleP;
     g_interAngleP = interAngleP;
     g_nGroups = nGroups;
     g_ddIterMax = ddIterMax;
     
-    
+    string solverType;
+    kvr.getString("SolverType", solverType);
+    if (solverType == "FixedPoint")
+        g_solverType = SolverType_FixedPoint;
+    else if (solverType == "Krylov")
+        g_solverType = SolverType_Krylov;
+    else if (solverType == "NKA")
+        g_solverType = SolverType_NKA;
+    else
+        Insist(false, "MPI type not recognized.");
+
     string mpiType;
     kvr.getString("MPIType", mpiType);
     if (mpiType == "TychoTwoSided")
@@ -139,7 +149,6 @@ void readInput(const string &inputFileName,
         g_mpiType = MPIType_CapsaicinTwoSided;
     else
         Insist(false, "MPI type not recognized.");
-
     
     string sweepType;
     kvr.getString("SweepType", sweepType);
@@ -166,7 +175,6 @@ void readInput(const string &inputFileName,
     else
         Insist(false, "Sweep type not recognized.");
 
-
     string gaussElimMethod;
     kvr.getString("GaussElim", gaussElimMethod);
     if(gaussElimMethod == "Original")
@@ -177,7 +185,17 @@ void readInput(const string &inputFileName,
         g_gaussElim = GaussElim_CramerGlu;
     else if (gaussElimMethod == "CramerIntel")
         g_gaussElim = GaussElim_CramerIntel;
+    else
+        Insist(false, "GaussElim not recognized.");
 
+    string normType;
+    kvr.getString("NormType", normType);
+    if (normType == "L1")
+        g_normType = TychoNormType_L1;
+    else if (normType == "L2")
+        g_normType = TychoNormType_L2;
+    else
+        Insist(false, "NormType not recognized.");
 }
 
 
@@ -262,12 +280,10 @@ int main(int argc, char *argv[])
         printf("Create Tycho Mesh Done: %fs\n", meshTimer.wall_clock());
     }
 
-
     // Create cross sections for each cell
     Problem::createCrossSections(g_sigmaT, g_sigmaS, sigmaT1, sigmaS1, 
                                  sigmaT2, sigmaS2);
-    
-    
+
     // Setup sweeper
     SweeperAbstract *sweeper = NULL;
     switch (g_sweepType) {
@@ -343,8 +359,7 @@ int main(int argc, char *argv[])
     if(Comm::rank() == 0) {
         printf("Total time: %.2f\n", clockTime);
     }
-    
-    
+
     // Print tests 
     double psiError = Problem::hatL2Error(sweeper->getPsi());
     double diffGroups = Util::diffBetweenGroups(sweeper->getPsi());
@@ -353,11 +368,11 @@ int main(int argc, char *argv[])
         printf("Diff between groups: %e\n", diffGroups);
     }
 
-
     // Output psi to file
     if(g_outputFile)
         sweeper->writePsiToFile(g_outputFilename);
 
+    //Util::writePhi(sweeper->getPsi());
     
     // End program
     #if USE_PETSC

@@ -1,14 +1,12 @@
 # Settings for local environment
 include make.inc
 
-
 # Add assert level and PETSc flag to compile command
 MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_PETSC=$(USE_PETSC)
-
+MPICXX += -DASSERT_ON=$(ASSERT_ON) -DUSE_PETSC=$(USE_PETSC)
 
 # Include source directory
 INC += -Isrc
-
 
 # Add PETSC include directory and library command
 ifeq ($(strip $(USE_PETSC)), 1)
@@ -16,29 +14,37 @@ ifeq ($(strip $(USE_PETSC)), 1)
 	LIBS += $(PETSC_LIB)
 endif
 
-
-
 # List of sources, header files, and object files
 SOURCE = $(wildcard src/*.cc)
-HEADERS = $(wildcard src/*.hh)
-OBJECTS = $(patsubst src%.cc, build%.o, $(SOURCE))
+OBJS = $(patsubst src%, build%, $(SOURCE)) 
+OBJECTS = $(OBJS:%.cc=%.o)
 
+CSOURCE = $(wildcard src/*.c)
+COBJS = $(patsubst src%, build%, $(CSOURCE)) 
+OBJECTS += $(COBJS:%.c=%.o)
+
+HEADERS = $(wildcard src/*.hh)
+HEADERS += $(wildcard src/*.h)
 
 # Link object files
-sweep.x: $(OBJECTS)
+sweep.x: $(OBJECTS) 
 	@echo Linking $@
-	$(MPICC) $(OBJECTS) -o sweep.x ${LIBS}
+	$(MPICXX) $(OBJECTS) -o sweep.x ${LIBS}
 
-
-# Make object files
-build/%.o: src/%.cc $(HEADERS) make.inc
+build/%.o: src/%.c $(HEADERS)
 	@echo Making $@
 	$(MPICC) $(INC) -c $< -o $@
 
+# Make object files
+build/%.o: src/%.cc $(HEADERS)
+	@echo Making $@
+	$(MPICXX) $(INC) -c $< -o $@
 
 # Delete object files
 .PHONY: clean
 clean:
 	@echo Delete object files
-	rm build/*.o *.x
+	rm -f build/*.o *.x
+
+print-%  : ; @echo $* = $($*)
 

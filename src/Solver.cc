@@ -37,7 +37,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "SourceIteration.hh"
+#include "Solver.hh"
 #include "Global.hh"
 #include "PsiData.hh"
 #include "Comm.hh"
@@ -46,6 +46,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "KrylovSolver.hh"
 #include <math.h>
 
+extern "C" {
+
+#include "nonlinear_krylov_accelerator.h"
+
+static double DP(int n, double *x, double *y)
+{
+    double sum = 0.0;
+    for (int i = 0; i < n; ++i)
+    {
+        sum += x[i] * y[i];
+    }
+    Comm::gsum(sum);
+    return sum;
+}
+}
 
 namespace
 {
@@ -88,7 +103,7 @@ void lhsOperator(const double *x, double *b, void *voidData)
 
 
     // Get raw array from Petsc
-    PhiData phi(b);
+    PhiData phi(&b[0]);
     
 
     // S operator
@@ -113,15 +128,8 @@ void lhsOperator(const double *x, double *b, void *voidData)
     }
 }
 
-} // End anonymous namespace
-
-
-// Global functions
-namespace SourceIteration
-{
-
 /*
-    Fixed point iteration (typically called source iteration)
+    Fixed-point iteration (Richardson or source iteration)
     L Psi^{n+1} = MS \Phi^n + Q
 */
 UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
@@ -134,11 +142,11 @@ UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
     
     // Get phi
     Util::psiToPhi(phiNew, psi);
-    
-    
+
     // Source iteration
     UINT iter = 0;
     double error = 1.0;
+    double error_old = 1.0;
     Timer totalTimer;
     totalTimer.start();
     while (iter < g_iterMax && error > g_errMax)
@@ -162,31 +170,62 @@ UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
         // Sweep
         sweeper.sweep(psi, totalSource);
         
-        
-        // Calculate L_1 relative error for phi
-        Util::psiToPhi(phiNew, psi);
-        error = 0.0;
-        for (UINT i = 0; i < phiNew.size(); i++) {
-            error += fabs(phiNew[i] - phiOld[i]);
-            norm += fabs(phiNew[i]);
+        switch (g_normType)
+        {
+            case TychoNormType_L2:
+            {
+                // Calculate L_2 error for phi
+                Util::psiToPhi(phiNew, psi);
+
+                error = 0.0;
+                UINT n = phiNew.size();
+                for (UINT i = 0; i < n; i++) {
+                    error += (phiNew[i] - phiOld[i])*(phiNew[i] - phiOld[i]);
+                    norm += phiNew[i]*phiNew[i];
+                }
+
+                Comm::gsum(error);
+                Comm::gsum(norm);
+
+                error = sqrt(error/norm);
+
+                break;
+            }
+            case TychoNormType_L1:
+            default:
+            {
+                // Calculate L_1 relative error for phi
+                Util::psiToPhi(phiNew, psi);
+
+                error = 0.0;
+                UINT n = phiNew.size();
+                for (UINT i = 0; i < n; i++) {
+                    error += fabs(phiNew[i] - phiOld[i]);
+                    norm += fabs(phiNew[i]);
+                }
+
+                Comm::gsum(error);
+                Comm::gsum(norm);
+
+                error = error / norm;
+            }
         }
-        Comm::gsum(error);
-        Comm::gsum(norm);
-        error = error / norm;
-        
 
         // Print iteration stats
         timer.stop();
         wallClockTime = timer.wall_clock();
         Comm::gmax(wallClockTime);
         if(Comm::rank() == 0) {
-            printf("   iteration: %" PRIu64 "   error: %e   time: %f\n", 
-                   iter, error, wallClockTime);
+            printf("   iteration: %" PRIu64 "   error: %e   spr: %e   time: %f\n", 
+                   iter, error, error/error_old, wallClockTime);
         }
         
 
         // Increment iteration
         ++iter;
+
+        // Save old error
+        error_old = error;
     }
     
     
@@ -201,15 +240,125 @@ UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
                clockTime / iter);
     }
 
+    // Return number of iterations
+    return iter;
+}
+
+/*
+    Nonlinear Krylov Acceleration of fixed-point iteration
+    Solve F(x) = 0,
+    where x = phi and F(x) = (I - DL^{-1}MS)x - Q
+*/
+UINT fixedPointNKA(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
+{
+    // Data for problem
+    PsiData totalSource;
+    PhiData phiNew;
+    PhiData phiOld;
+    
+    // Get phi
+    Util::psiToPhi(phiNew, psi);
+
+    NKA nka = nka_create(phiNew.size(), g_nRestart, 0.001, DP);
+    
+    // Source iteration
+    UINT iter = 0;
+    double error = 1.0;
+    double error_old = 1.0;
+    Timer totalTimer;
+    totalTimer.start();
+    while (iter < g_iterMax && error > g_errMax)
+    {
+        Timer timer;
+        double wallClockTime = 0.0;
+        double norm = 0.0;
+        timer.start();
+        
+        // phiOld = phiNew
+        for(UINT i = 0; i < phiOld.size(); i++) {
+            phiOld[i] = phiNew[i];
+        }
+        
+        // totalSource = fixedSource + phiOld
+        Util::calcTotalSource(source, phiOld, totalSource);
+
+        // Sweep
+        sweeper.sweep(psi, totalSource);
+
+        switch (g_normType)
+        {
+            case TychoNormType_L2:
+            {
+                // Calculate L_2 error for phi
+                Util::psiToPhi(phiNew, psi);
+
+                error = 0.0;
+                UINT n = phiNew.size();
+                for (UINT i = 0; i < n; i++) {
+                    error += (phiNew[i] - phiOld[i])*(phiNew[i] - phiOld[i]);
+                    norm += phiNew[i]*phiNew[i];
+                }
+
+                Comm::gsum(error);
+                Comm::gsum(norm);
+
+                error = sqrt(error/norm);
+
+                break;
+            }
+            case TychoNormType_L1:
+            default:
+            {
+                // Calculate L_1 relative error for phi
+                Util::psiToPhi(phiNew, psi);
+
+                error = 0.0;
+                UINT n = phiNew.size();
+                for (UINT i = 0; i < n; i++) {
+                    error += fabs(phiNew[i] - phiOld[i]);
+                    norm += fabs(phiNew[i]);
+                }
+
+                Comm::gsum(error);
+                Comm::gsum(norm);
+
+                error = error / norm;
+            }
+        }
+
+        // Print iteration stats
+        timer.stop();
+        wallClockTime = timer.wall_clock();
+        Comm::gmax(wallClockTime);
+        if(Comm::rank() == 0) {
+            printf("   iteration: %" PRIu64 "   error: %e   spr: %e   time: %f\n", 
+                   iter, error, error/error_old, wallClockTime);
+        }
+        
+        // Increment iteration
+        ++iter;
+
+        // Save old error
+        error_old = error;
+    }
+    
+    // Time total solve
+    totalTimer.stop();
+    double clockTime = totalTimer.wall_clock();
+    Comm::gmax(clockTime);
+    if(Comm::rank() == 0) {
+        printf("\nTotal source iteration time: %.2f\n",
+               clockTime);
+        printf("Average source iteration time: %.2f\n\n",
+               clockTime / iter);
+    }
 
     // Return number of iterations
     return iter;
 }
 
-
 /*
     Krylov solver
-
     Solves (I - DL^{-1}MS) \Phi = DL^{-1} Q.
     L could be the full sweep or a local sweep L_I.
 */
@@ -224,13 +373,11 @@ UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
     Timer totalTimer;
     totalTimer.start();
 
-
     // Create the Krylov solver
     vecSize = g_nCells * g_nVrtxPerCell * g_nGroups;
     LHSData data(psi, tempSource, sweeper);
-    KrylovSolver krylovSolver(vecSize, g_errMax, g_iterMax, lhsOperator);
+    KrylovSolver krylovSolver(vecSize, g_errMax, g_iterMax, g_nRestart, lhsOperator);
     krylovSolver.setData(&data);
-
 
     // Setup RHS (b = D L^{-1} Q)
     if (Comm::rank() == 0)
@@ -242,14 +389,12 @@ UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
     Util::psiToPhi(phiB, psi);
     krylovSolver.releaseB();
 
-
     // Solve
     if (Comm::rank() == 0)
         printf("Krylov Begin Solve\n");
     krylovSolver.solve();
     if (Comm::rank() == 0)
         printf("Krylov End Solve\n");
-
 
     // Get Psi from Phi
     // Psi = L^{-1} (MS Phi + Q)
@@ -259,14 +404,12 @@ UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
     krylovSolver.releaseX();
     sweeper.sweep(psi, tempSource);
     
-    
     // Print some stats
     its = krylovSolver.getNumIterations();
     rnorm = krylovSolver.getResidualNorm();
     if (Comm::rank() == 0) {
         printf("Krylov iterations: %u with Rnorm: %e\n", its, rnorm);
     }
-
 
     // Time total solve
     totalTimer.stop();
@@ -279,10 +422,44 @@ UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
                clockTime / its);
     }
 
-
     // Return number of iterations
     return its;
 }
-}//End namespace SourceIteration
 
+
+} // End anonymous namespace
+
+// Global functions
+namespace Solver
+{
+
+UINT solver(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
+{
+    UINT its(0);
+
+    // Solve
+    switch (g_solverType)
+    {
+        case SolverType_FixedPoint:
+        {
+            its = fixedPoint(sweeper, psi, source);
+            break;
+        }
+        case SolverType_NKA:
+        {
+            its = fixedPointNKA(sweeper, psi, source);
+            break;
+        }
+        case SolverType_Krylov:
+        {
+            its = krylov(sweeper, psi, source);
+            break;
+        }
+        default:
+            Insist(false, "WHAT?");
+    }
+
+    return its;
+}
+}//End namespace SourceIteration
 

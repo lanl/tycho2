@@ -6,13 +6,15 @@
 # Note: the c++11 standard is required so this must be in the compile
 #       command for some compilers.
 
-### compiler
-CPP = mpicxx -Wall -std=c++11
+### Cray compiler
+#CPP = CC -Wall -std=c++11
+CPP = mpicxx -Wall -Wextra -g -std=c++11 -O3 -fopenmp
 
 
-# Library directories
+# Library directories - use setup-ccs.sh
 MOAB_DIR   = 
 CGNS_DIR   = 
 HDF5_DIR   = 
 
-#LIB_METIS = -lmetis
+### Trinitite
+#METIS_DIR  = /users/ckgarrett/tt-fey/lib/metis-5.1.0

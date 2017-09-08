@@ -21,4 +21,5 @@ LIBS =
 # Needs (1) MPI C++ compiler wrapper
 #       (2) openmp enabled
 #       (3) c++11 standard enabled  (-std=c++11 for gcc, intel)
-MPICC = mpicxx -Wall -Wextra -g -std=c++11 -O3 -fopenmp
+MPICXX = mpicxx -Wall -Wextra -g -std=c++11 -O3 -fopenmp
+MPICC = mpicc -Wall -Wextra -g -O3 -fopenmp

@@ -22,10 +22,17 @@ INC = -I../src #\
 #       $(CGNS_DIR)/lib/libcgns.a \
 #       $(HDF5_DIR)/lib/libhdf5.a \
 #       -ldl -lz 
-LIB_MOAB = $(MOAB_DIR)/lib/libMOAB.a \
-       $(MOAB_DIR)/lib/libiMesh.a \
-       $(CGNS_DIR)/lib/libcgns.a \
-       $(HDF5_DIR)/lib/libhdf5.a \
+#LIB_MOAB = $(MOAB_DIR)/lib/libMOAB.a \
+#       $(MOAB_DIR)/lib/libiMesh.a \
+#       $(CGNS_DIR)/lib/libcgns.a \
+#       $(HDF5_DIR)/lib/libhdf5.a \
+#       -ldl -lz 
+#
+LIB_MOAB = -lMOAB \
+       -liMesh \
+       -lcgns \
+       -lhdf5 \
+       -llapack \
        -ldl -lz 
 
 LIB_METIS = -lmetis

@@ -39,7 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SweeperSchur.hh"
 #include "Util.hh"
 #include "Problem.hh"
-#include "SourceIteration.hh"
+#include "Solver.hh"
 #include "Global.hh"
 #include "PsiData.hh"
 #include "Comm.hh"
@@ -217,19 +217,14 @@ void Schur(const double *x, double *b, void *voidData)
 void SweeperSchur::solve()
 {
     // Setup problem
-    KrylovSolver ks(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, Schur);
+    KrylovSolver ks(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, 0, Schur);
     c_krylovSolver = &ks;
     c_iters = 0;
     Problem::getSource(c_source);
     c_psi.setToValue(0.0);
 
-
     // Solve
-    if (g_useSourceIteration)
-        SourceIteration::fixedPoint(*this, c_psi, c_source);
-    else
-        SourceIteration::krylov(*this, c_psi, c_source);
-
+    Solver::solver(*this, c_psi, c_source);
     
     // Print data
     if (Comm::rank() == 0) {
@@ -344,12 +339,8 @@ void SchurOuter(const double *x, double *b, void *voidData)
     // Perform W (L_i - MSD)^{-1} L_B
     UINT its;
     data->source->setToValue(0.0);
-    if (g_useSourceIteration)
-        its = SourceIteration::fixedPoint(*data->sweeperSchurOuter, *data->psi,
-                                          *data->source);
-    else
-        its = SourceIteration::krylov(*data->sweeperSchurOuter, *data->psi,
-                                      *data->source);
+    its = Solver::solver(*data->sweeperSchurOuter, *data->psi, *data->source);
+
     data->sourceIts->push_back(its);
     data->commSides->commSides(*data->psi, *data->psiBound);
 
@@ -383,7 +374,7 @@ void SweeperSchurOuter::solve()
     Problem::getSource(c_source);
     c_psi.setToValue(0.0);
     c_psiBound.setToValue(0.0);
-    KrylovSolver ks(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, SchurOuter);
+    KrylovSolver ks(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, 0, SchurOuter);
     c_krylovSolver = &ks;
     
     
@@ -404,10 +395,7 @@ void SweeperSchurOuter::solve()
         printf("SchurOuter: Calculate RHS\n");
     }
     
-    if (g_useSourceIteration)
-        sourceIts1 = SourceIteration::fixedPoint(*this, c_psi, c_source);
-    else
-        sourceIts1 = SourceIteration::krylov(*this, c_psi, c_source);
+    sourceIts1 = Solver::solver(*this, c_psi, c_source);
     
     c_commSides.commSides(c_psi, c_psiBound);
     b = c_krylovSolver->getB();
@@ -434,11 +422,7 @@ void SweeperSchurOuter::solve()
     c_krylovSolver->releaseX();
     
     Problem::getSource(c_source);
-    if (g_useSourceIteration)
-        sourceIts3 = SourceIteration::fixedPoint(*this, c_psi, c_source);
-    else
-        sourceIts3 = SourceIteration::krylov(*this, c_psi, c_source);
-
+    sourceIts3 = Solver::solver(*this, c_psi, c_source);
     
     // Print some stats
     its = c_krylovSolver->getNumIterations();
@@ -543,9 +527,8 @@ void SweeperSchurKrylov::solve()
     UINT vecSize = psiBoundSize + phi.size();
     const bool zeroPsiBound = false;
 
-    KrylovSolver ks(vecSize, g_ddErrMax, g_ddIterMax, SchurKrylov);
+    KrylovSolver ks(vecSize, g_ddErrMax, g_ddIterMax, 0, SchurKrylov);
     c_krylovSolver = &ks;
-
     
     // Set data for Krylov solver
     data.psiBoundSize = psiBoundSize;
@@ -555,7 +538,6 @@ void SweeperSchurKrylov::solve()
     data.source = &c_source;
     data.phi = &phi;
     c_krylovSolver->setData(&data);
-
 
     // Calculate RHS
     Problem::getSource(c_source);

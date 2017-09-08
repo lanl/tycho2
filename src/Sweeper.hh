@@ -45,13 +45,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Sweeper : public SweeperAbstract
 {
-public:
+  public:
+
     Sweeper();
     void sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound);
     void solve();
-
-private:
-
+    
+  private:
+    
 };
 
 
