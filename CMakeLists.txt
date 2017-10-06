@@ -15,20 +15,13 @@ set(SOURCES
   src/Global.cc
   src/GraphTraverser.cc
   src/KeyValueReader.cc
-  src/KrylovSolver.cc
   src/Main.cc
   src/ParallelMesh.cc
-  src/Priorities.cc
   src/Problem.cc
   src/PsiData.cc
   src/Quadrature.cc
   src/SerialMesh.cc
-  src/SourceIteration.cc
   src/Sweeper.cc
-  src/SweeperPBJ.cc
-  src/SweeperSchur.cc
-  src/SweeperTraverse.cc
-  src/SweepSchedule.cc
   src/Transport.cc
   src/TychoMesh.cc
   src/TychoMeshIO.cc
@@ -71,6 +64,6 @@ if (USE_KOKKOS)
   find_package(KokkosCore REQUIRED PATHS ${KOKKOS_PREFIX} NO_DEFAULT_PATH)
   message("KokkosCore_CONFIG ${KokkosCore_CONFIG}")
   message("KokkosCore_INCLUDE_DIRS ${KokkosCore_INCLUDE_DIRS}")
+  target_link_libraries(sweep.x PUBLIC kokkoscore)
+  target_include_directories(sweep.x PUBLIC "${KokkosCore_INCLUDE_DIRS}")
 endif()
-
-add_subdirectory(src/Kernel)
