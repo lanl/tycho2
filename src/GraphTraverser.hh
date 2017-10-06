@@ -42,148 +42,96 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Global.hh"
 #include "Mat.hh"
+#include "PsiData.hh"
+#include "Transport.hh"
 #include <mpi.h>
+#include <omp.h>
 #include <vector>
 #include <map>
 
-/*
-    Boundary Type for faces of a cell.
-    They are split into incoming and outgoing wrt sweep direction.
-    Interior means adjacent cell is on same proc.
-    Interior boundary means adj cell is on different proc.
-    Exterior boundary means it is a boundary for the whole mesh.
-*/
-enum BoundaryType
-{
-    // Outgoing
-    BoundaryType_OutIntBdry,    // Interior boundary
-    BoundaryType_OutExtBdry,    // Exterior boundary
-    BoundaryType_OutInt,        // Interior
-    
-    // Incoming
-    BoundaryType_InIntBdry,     // Interior boundary
-    BoundaryType_InExtBdry,     // Exterior boundary
-    BoundaryType_InInt          // Interior
-};
-
-
-enum Direction
-{
-    Direction_Forward,
-    Direction_Backward
-};
-
 
 /*
-    TraverseData class
+    SweepData
     
-    Abstract class defining the methods needed to traverse a graph.
+    Holds psi and other data for the sweep.
 */
-class TraverseData
+class SweepData
 {
 public:
-    virtual const char* getData(UINT cell, UINT face, UINT angle) = 0;
-    virtual void setSideData(UINT side, UINT angle, const char *data) = 0;
-    virtual UINT getPriority(UINT cell, UINT angle) = 0;
-    virtual void update(UINT cell, UINT angle, 
-                        UINT adjCellsSides[g_nFacePerCell], 
-                        BoundaryType bdryType[g_nFacePerCell]) = 0;
+    
+    SweepData(PsiData &psi, const PsiData &source, PsiBoundData &psiBound)
+    : c_psi(psi), c_psiBound(psiBound), c_source(source), 
+      c_localSource(g_nThreads), c_localPsi(g_nThreads),
+      c_localPsiBound(g_nThreads)
+    {
+        for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
+            c_localSource[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
+            c_localPsi[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
+            c_localPsiBound[angleGroup].resize(g_nVrtxPerFace, g_nFacePerCell, 
+                                               g_nGroups);
+        }
+    }
+    
 
-protected:
-    // Don't allow construction of this base class.
-    TraverseData() { }
+    /*
+        update
+        
+        Does a transport update for the given cell/angle pair.
+    */
+    void update(UINT cell, UINT angle) 
+    {
+        
+        Mat2<double> &localSource = c_localSource[omp_get_thread_num()];
+        Mat2<double> &localPsi = c_localPsi[omp_get_thread_num()];
+        Mat3<double> &localPsiBound = c_localPsiBound[omp_get_thread_num()];
+
+        
+        // Populate localSource
+        #pragma omp simd
+        for (UINT group = 0; group < g_nGroups; group++) {
+        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+            localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
+        }}
+        
+        
+        // Populate localPsiBound
+        Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound, 
+                                         localPsiBound);
+        
+        
+        // Transport solve
+        Transport::solve(cell, angle, g_sigmaT[cell],
+                         localPsiBound, localSource, localPsi);
+        
+        
+        // localPsi -> psi
+        for (UINT group = 0; group < g_nGroups; group++) {
+        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+            c_psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
+        }}
+    }
+    
+private:
+    PsiData &c_psi;
+    PsiBoundData &c_psiBound;
+    const PsiData &c_source;
+    std::vector<Mat2<double>> c_localSource;
+    std::vector<Mat2<double>> c_localPsi;
+    std::vector<Mat3<double>> c_localPsiBound;
 };
+
 
 
 
 class GraphTraverser
 {
 public:
-    GraphTraverser(Direction direction, bool doComm, UINT dataSizeInBytes);
-    ~GraphTraverser();
-
-    void traverse(const UINT maxComputePerStep, TraverseData &traverseData);
+    GraphTraverser();
+    void traverse(SweepData &traverseData);
 
 private:
 
-    class OneSidedImpl
-    {
-    public:
-        OneSidedImpl(UINT numAdjRanks,
-                     std::vector<UINT> offRankHeaderOffsets,
-                     std::vector<UINT> offRankDataOffsets,
-                     std::vector<UINT> onRankHeaderOffsets,
-                     std::vector<UINT> onRankDataOffsets,
-                     UINT dataSizePerChunk,
-                     MPI_Win mpiWin);
-
-        
-        // Send specific functions
-        uint32_t send_getNumWritten(int adjRankIndex);
-        void send_setNumWritten(int adjRankIndex, uint32_t numBytesWritten);
-        void send_switchDataChunk(int adjRankIndex);
-        UINT send_getLockOffset(int adjRankIndex);
-        UINT send_getNumWrittenOffset(int adjRankIndex);
-        UINT send_getDataOffset(int adjRankIndex, uint32_t bytesOffset);
-        
-        // Recv specific functions
-        uint32_t recv_getNumRead(int adjRankIndex);
-        void recv_setNumRead(int adjRankIndex, uint32_t numBytesRead);
-        void recv_switchDataChunk(int adjRankIndex);
-        UINT recv_getBaseHeaderOffset();
-        int recv_getHeaderCount();
-        uint32_t* recv_getHeaderPointer();
-        UINT recv_getLockOffset(int adjRankIndex);
-        UINT recv_getNumWrittenOffset(int adjRankIndex);
-        UINT recv_getDataOffset(int adjRankIndex, uint32_t bytesOffset);
-        uint32_t recv_getLock(int adjRankIndex);
-        uint32_t recv_getNumWritten(int adjRankIndex);
-
-        // Other functions
-        MPI_Win getWin()
-            { return c_mpiWin; }
-        UINT getDataSizePerChunk()
-            { return c_dataSizePerChunk; }
-        
-
-    private:
-        // Send state variables
-        std::vector<uint32_t> c_send_numWrittenVector[2];
-        std::vector<uint32_t> c_send_currentDataChunkVector;
-        std::vector<UINT> c_offRankHeaderOffsets;
-        std::vector<UINT> c_offRankDataOffsets;
-        
-        // Recv state variables
-        std::vector<uint32_t> c_recv_numReadVector[2];
-        std::vector<uint32_t> c_recv_headerDataVector;
-        std::vector<uint32_t> c_recv_currentDataChunkVector;
-        std::vector<UINT> c_onRankHeaderOffsets;
-        std::vector<UINT> c_onRankDataOffsets;
-
-        // Other variables
-        UINT c_dataSizePerChunk;
-        MPI_Win c_mpiWin;
-    };
-
-
-    void setupOneSidedMPI();
-    void sendData2Sided(const std::vector<std::vector<char>> &sendBuffers) const;
-    void recvData2Sided(std::vector<char> &dataPackets) const;
-    void sendAndRecvData(const std::vector<std::vector<char>> &sendBuffers,
-                         std::vector<char> &dataPackets,
-                         std::vector<bool> &commDark,
-                         const bool killComm) const;
-    void sendData1Sided(const std::vector<std::vector<char>> &sendBuffers) const;
-    void recvData1Sided(std::vector<char> &dataPackets) const;
-    
-    std::vector<UINT> c_adjRankIndexToRank;
-    std::map<UINT,UINT> c_adjRankToRankIndex;
     Mat2<UINT> c_initNumDependencies;
-    Direction c_direction;
-    bool c_doComm;
-    UINT c_dataSizeInBytes;
-
-    OneSidedImpl *c_oneSidedImpl;
 };
 
 #endif

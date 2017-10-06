@@ -7,7 +7,7 @@ MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_PETSC=$(USE_PETSC)
 
 
 # Include source directory
-SRC_DIR = $(TOP_DIR)/src
+SRC_DIR = src
 INC += -I$(SRC_DIR)
 
 

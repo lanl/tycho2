@@ -3,42 +3,10 @@
 
 snOrder         8
 iterMax         100
-errMax          1e-6
-maxCellsPerStep 100
-intraAngleP     3
-interAngleP     1
+errMax          1e-5
 nGroups         2
-sigmaT1         10.0
-sigmaS1         5.0
-sigmaT2         10.0
-sigmaS2         5.0
+sigmaT          10.0
+sigmaS          5.0
 OutputFile      false
 OutputFilename  out.psi
-SourceIteration true
-OneSidedMPI     false
 
-DD_IterMax      100
-DD_ErrMax       1e-5
-
-
-# Sweep Types: TraverseGraph is the flagship sweep type
-#SweepType OriginalTycho1
-#SweepType OriginalTycho2
-SweepType TraverseGraph
-#SweepType PBJ
-#SweepType PBJOuter
-#SweepType Schur
-#SweepType SchurOuter
-#SweepType PBJSI
-#SweepType SchurKrylov
-
-
-# Gaussian Elimination Types: NoPivot seems to be best
-#    Original:    Uses pivoting
-#    NoPivot:     No pivoting
-#    CramerGlu:   Use Cramer's rule to invert (algorithm from OpenGL library)
-#    CramerIntel: User Cramer's rule to invert (algorithm found from Intel blog)
-#GaussElim Original
-GaussElim NoPivot
-#GaussElim CramerGlu
-#GaussElim CramerIntel

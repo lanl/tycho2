@@ -56,12 +56,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 // Forward declaration of classes needed for global pointers below
 class Quadrature;
 class TychoMesh;
-class SweepSchedule;
 class GraphTraverser;
-
-
-// Macro to get around some warnings
-#define UNUSED_VARIABLE(x) (void)(x)
 
 
 // Shorter version of uint64_t
@@ -76,36 +71,6 @@ static const UINT g_nVrtxPerFace = 3;
 static const UINT g_nFacePerCell = 4;
 
 
-// Enum types
-enum MPIType
-{
-    MPIType_TychoTwoSided,
-    MPIType_CapsaicinTwoSided,
-    MPIType_OneSided
-};
-
-enum SweepType
-{
-    SweepType_OriginalTycho1,
-    SweepType_OriginalTycho2,
-    SweepType_TraverseGraph,
-    SweepType_PBJ,
-    SweepType_PBJOuter,
-    SweepType_Schur,
-    SweepType_SchurOuter,
-    SweepType_PBJSI,
-    SweepType_SchurKrylov
-};
-
-enum GaussElim
-{
-    GaussElim_Original,
-    GaussElim_NoPivot,
-    GaussElim_CramerGlu,
-    GaussElim_CramerIntel
-};
-
-
 // Global variables
 EXTERN UINT g_nAngleGroups;
 EXTERN UINT g_nThreads;
@@ -115,23 +80,13 @@ EXTERN UINT g_iterMax;
 EXTERN double g_errMax;
 EXTERN std::vector<double> g_sigmaT;
 EXTERN std::vector<double> g_sigmaS;
-EXTERN UINT g_maxCellsPerStep;
-EXTERN UINT g_intraAngleP;
-EXTERN UINT g_interAngleP;
-EXTERN SweepType g_sweepType;
 EXTERN TychoMesh *g_tychoMesh;
-EXTERN SweepSchedule **g_sweepSchedule;
 EXTERN Quadrature *g_quadrature;
 EXTERN GraphTraverser *g_graphTraverserForward;
-EXTERN GaussElim g_gaussElim;
 EXTERN bool g_outputFile;
 EXTERN std::string g_outputFilename;
 EXTERN UINT g_nAngles;
 EXTERN UINT g_nCells;
-EXTERN double g_ddErrMax;
-EXTERN UINT g_ddIterMax;
-EXTERN bool g_useSourceIteration;
-EXTERN MPIType g_mpiType;
 
 #endif
 

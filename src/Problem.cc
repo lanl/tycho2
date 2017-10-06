@@ -143,33 +143,4 @@ void getSource(PsiData &source)
 }
 
 
-/*
-    createCrossSections
-*/
-void createCrossSections(std::vector<double> &sigmaT, 
-                         std::vector<double> &sigmaS,
-                         double sigmaT1, double sigmaS1,
-                         double sigmaT2, double sigmaS2)
-{
-    sigmaT.resize(g_nCells);
-    sigmaS.resize(g_nCells);
-
-    for (UINT cell = 0; cell < g_nCells; cell++) {
-        
-        UINT material = g_tychoMesh->getCellMaterial(cell);
-        if (material == 1) {
-            sigmaT[cell] = sigmaT1;
-            sigmaS[cell] = sigmaS1;
-        }
-        else if (material == 2) {
-            sigmaT[cell] = sigmaT2;
-            sigmaS[cell] = sigmaS2;
-        }
-        else {
-            Insist(false, "Material index out of bounds.");
-        }
-    }
-}
-
-
 } // End namespace Problem
