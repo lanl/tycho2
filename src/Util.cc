@@ -40,9 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Util.hh"
 #include "Global.hh"
 #include "Comm.hh"
-//#include "SweepData.hh"
-#include "CommSides.hh"
-#include "GraphTraverser.hh"
 #include <math.h>
 #include <limits>
 
@@ -128,18 +125,6 @@ void calcTotalSource(const PsiData &source, const PhiData &phi,
             source(group, vertex, angle, cell) + 
             g_sigmaS[cell] / (4.0 * M_PI) *  phi(group, vertex, cell);
     }}}}
-}
-
-
-/*
-    sweepLocal
-
-    Solves L_I Psi = L_B Psi_B + Q
-*/
-void sweepLocal(PsiData &psi, const PsiData &source, PsiBoundData &psiBound)
-{
-    SweepData sweepData(psi, source, psiBound);
-    g_graphTraverserForward->traverse(sweepData);
 }
 
 

@@ -43,15 +43,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Quadrature.hh"
 #include "Comm.hh"
 #include "KeyValueReader.hh"
-#include "GraphTraverser.hh"
 #include "Global.hh"
 #include "Assert.hh"
 #include "Timer.hh"
 #include "Sweeper.hh"
-#include <signal.h>
-#include <execinfo.h>
+#include <Kokkos_Core.hpp>
 #include <omp.h>
-#include <unistd.h>
 #include <vector>
 
 
@@ -59,32 +56,15 @@ using namespace std;
 
 
 /*
-    signalHandler
-    
-    Prints a backtrace.  Used for debugging.
-*/
-static 
-void signalHandler(int sig)
-{
-    void *array[20];
-    size_t size;
-    
-    // get void*'s for all entries on the stack
-    size = backtrace(array, 20);
-    
-    // print out all the frames to stderr
-    fprintf(stderr, "Error: signal %d:\n", sig);
-    backtrace_symbols_fd(array, size, STDERR_FILENO);
-    exit(1);
-}
-
-
-/*
     readInput
 */
 static
 void readInput(const string &inputFileName, 
-               double &sigmaT, double &sigmaS)
+               double &sigmaT, 
+               double &sigmaS,
+               bool &outputFile,
+               string &outputFilename,
+               UINT &snOrder)
 {
     // Read data
     CKG_Utils::KeyValueReader kvr;
@@ -92,20 +72,20 @@ void readInput(const string &inputFileName,
     
     
     // Reader only reads int and not UINT type
-    int snOrder, iterMax, nGroups;
+    int isnOrder, iterMax, nGroups;
     
     
     // Get data
-    kvr.getInt("snOrder", snOrder);
+    kvr.getInt("snOrder", isnOrder);
     kvr.getInt("iterMax", iterMax);
     kvr.getInt("nGroups", nGroups);
     kvr.getDouble("sigmaT", sigmaT);
     kvr.getDouble("sigmaS", sigmaS);
-    kvr.getBool("OutputFile", g_outputFile);
-    kvr.getString("OutputFilename", g_outputFilename);
+    kvr.getBool("OutputFile", outputFile);
+    kvr.getString("OutputFilename", outputFilename);
     kvr.getDouble("errMax", g_errMax);
        
-    g_snOrder = snOrder;
+    snOrder = isnOrder;
     g_iterMax = iterMax;
     g_nGroups = nGroups;
 
@@ -122,12 +102,10 @@ void readInput(const string &inputFileName,
 int main(int argc, char *argv[])
 {
     double sigmaT, sigmaS;
+    bool outputFile;
+    string outputFilename;
+    UINT snOrder;
 
-    
-    // For Debugging (prints a backtrace)
-    signal(SIGSEGV, signalHandler);
-    signal(SIGABRT, signalHandler);
-    
     
     // Init MPI
     int required = MPI_THREAD_SINGLE;
@@ -135,6 +113,8 @@ int main(int argc, char *argv[])
     int mpiResult = MPI_Init_thread(&argc, &argv, required, &provided);
     Insist (mpiResult == MPI_SUCCESS, "MPI_Init failed.");
     Insist (required <= provided, "");
+    
+    Kokkos::initialize(argc, argv);
 
 
     // Input data.
@@ -145,7 +125,7 @@ int main(int argc, char *argv[])
         MPI_Finalize();
         return 0;
     }
-    readInput(argv[2], sigmaT, sigmaS);
+    readInput(argv[2], sigmaT, sigmaS, outputFile, outputFilename, snOrder);
     
 
     // Print initial stuff
@@ -157,19 +137,18 @@ int main(int argc, char *argv[])
     
     // Get number of angle groups
     // This is the same as the number of OpenMP threads
-    g_nAngleGroups = 1;
+    g_nThreads = 1;
     #pragma omp parallel
     {
         if(omp_get_thread_num() == 0)
-            g_nAngleGroups = omp_get_num_threads();
+            g_nThreads = omp_get_num_threads();
     }
-    g_nThreads = g_nAngleGroups;
     if (Comm::rank() == 0)
-        printf("Num angle groups: %" PRIu64 "\n", g_nAngleGroups);
+        printf("Num threads: %" PRIu64 "\n", g_nThreads);
             
     
     // Create quadrature
-    g_quadrature = new Quadrature(g_snOrder);
+    g_quadrature = new Quadrature(snOrder);
     
     
     // Create Tycho mesh
@@ -192,15 +171,10 @@ int main(int argc, char *argv[])
     g_sigmaS.resize(g_nCells, sigmaS);
     
     
-    // Setup sweeper
-    PsiData psi;
-    //Sweeper sweeper;
-    g_graphTraverserForward = new GraphTraverser();
-
-    
     // Solve
     Timer timer;
     timer.start();
+    PsiData psi;
     Sweeper::solve(psi);
     timer.stop();
     
@@ -223,10 +197,11 @@ int main(int argc, char *argv[])
 
 
     // Output psi to file
-    if(g_outputFile)
-        psi.writeToFile(g_outputFilename);
+    if(outputFile)
+        psi.writeToFile(outputFilename);
 
-    
+
+    Kokkos::finalize();
     MPI_Finalize();
     return 0;
 }

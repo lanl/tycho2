@@ -40,7 +40,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __GLOBAL_HH__
 #define __GLOBAL_HH__
 
-#include <string>
 #include <cinttypes>
 #include <vector>
 
@@ -56,7 +55,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 // Forward declaration of classes needed for global pointers below
 class Quadrature;
 class TychoMesh;
-class GraphTraverser;
 
 
 // Shorter version of uint64_t
@@ -72,19 +70,14 @@ static const UINT g_nFacePerCell = 4;
 
 
 // Global variables
-EXTERN UINT g_nAngleGroups;
 EXTERN UINT g_nThreads;
 EXTERN UINT g_nGroups;
-EXTERN UINT g_snOrder;
 EXTERN UINT g_iterMax;
 EXTERN double g_errMax;
 EXTERN std::vector<double> g_sigmaT;
 EXTERN std::vector<double> g_sigmaS;
 EXTERN TychoMesh *g_tychoMesh;
 EXTERN Quadrature *g_quadrature;
-EXTERN GraphTraverser *g_graphTraverserForward;
-EXTERN bool g_outputFile;
-EXTERN std::string g_outputFilename;
 EXTERN UINT g_nAngles;
 EXTERN UINT g_nCells;
 

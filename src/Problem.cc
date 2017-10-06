@@ -46,12 +46,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 // cubeSize assumes using cube meshes in util folder
 static const double cubeSize = 100.0;
 
+namespace Problem
+{
 
 /*
-    hatSource
+    getSource
 */
-static
-void hatSource(PsiData &source)
+void getSource(PsiData &source)
 {
     for(UINT cell = 0; cell < g_nCells; cell++) {
     for(UINT angle = 0; angle < g_nAngles; angle++) {
@@ -81,9 +82,6 @@ void hatSource(PsiData &source)
     }}}
 }
 
-
-namespace Problem
-{
 
 /*
     hatL2Error
@@ -131,15 +129,6 @@ double hatL2Error(const PsiData &psi)
     Comm::gsum(diff);
     
     return sqrt(diff / norm);
-}
-
-
-/*
-    getProblemSource
-*/
-void getSource(PsiData &source)
-{
-    hatSource(source);
 }
 
 

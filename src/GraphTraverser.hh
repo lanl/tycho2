@@ -40,98 +40,27 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __GRAPH_TRAVERSER_HH__
 #define __GRAPH_TRAVERSER_HH__
 
-#include "Global.hh"
 #include "Mat.hh"
 #include "PsiData.hh"
-#include "Transport.hh"
-#include <mpi.h>
-#include <omp.h>
 #include <vector>
-#include <map>
 
 
-/*
-    SweepData
-    
-    Holds psi and other data for the sweep.
-*/
-class SweepData
+class GraphTraverser
 {
 public:
-    
-    SweepData(PsiData &psi, const PsiData &source, PsiBoundData &psiBound)
-    : c_psi(psi), c_psiBound(psiBound), c_source(source), 
-      c_localSource(g_nThreads), c_localPsi(g_nThreads),
-      c_localPsiBound(g_nThreads)
-    {
-        for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-            c_localSource[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
-            c_localPsi[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
-            c_localPsiBound[angleGroup].resize(g_nVrtxPerFace, g_nFacePerCell, 
-                                               g_nGroups);
-        }
-    }
-    
+    GraphTraverser(PsiData &psi, const PsiData &source, PsiBoundData &psiBound);
+    void traverse();
 
-    /*
-        update
-        
-        Does a transport update for the given cell/angle pair.
-    */
-    void update(UINT cell, UINT angle) 
-    {
-        
-        Mat2<double> &localSource = c_localSource[omp_get_thread_num()];
-        Mat2<double> &localPsi = c_localPsi[omp_get_thread_num()];
-        Mat3<double> &localPsiBound = c_localPsiBound[omp_get_thread_num()];
-
-        
-        // Populate localSource
-        #pragma omp simd
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
-        }}
-        
-        
-        // Populate localPsiBound
-        Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound, 
-                                         localPsiBound);
-        
-        
-        // Transport solve
-        Transport::solve(cell, angle, g_sigmaT[cell],
-                         localPsiBound, localSource, localPsi);
-        
-        
-        // localPsi -> psi
-        for (UINT group = 0; group < g_nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            c_psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
-        }}
-    }
-    
 private:
+    void update(UINT cell, UINT angle);
+
+    Mat2<UINT> c_initNumDependencies;
     PsiData &c_psi;
     PsiBoundData &c_psiBound;
     const PsiData &c_source;
     std::vector<Mat2<double>> c_localSource;
     std::vector<Mat2<double>> c_localPsi;
     std::vector<Mat3<double>> c_localPsiBound;
-};
-
-
-
-
-class GraphTraverser
-{
-public:
-    GraphTraverser();
-    void traverse(SweepData &traverseData);
-
-private:
-
-    Mat2<UINT> c_initNumDependencies;
 };
 
 #endif

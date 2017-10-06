@@ -43,13 +43,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TychoMesh.hh"
 #include "Comm.hh"
 #include "Timer.hh"
+#include "Transport.hh"
 #include <vector>
-#include <set>
 #include <queue>
-#include <utility>
 #include <omp.h>
-#include <limits.h>
-#include <string.h>
+#include <Kokkos_Core.hpp>
 
 using namespace std;
 
@@ -107,10 +105,28 @@ UINT angleGroupIndex(UINT angle)
 /*
     GraphTraverser
 */
-GraphTraverser::GraphTraverser()
+GraphTraverser::GraphTraverser(
+        PsiData &psi, 
+        const PsiData &source, 
+        PsiBoundData &psiBound)
+: c_initNumDependencies(g_nAngles, g_nCells),
+  c_psi(psi), 
+  c_psiBound(psiBound), 
+  c_source(source), 
+  c_localSource(g_nThreads), 
+  c_localPsi(g_nThreads),
+  c_localPsiBound(g_nThreads)
 {
+    // Initialize size of local data
+    for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
+        c_localSource[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
+        c_localPsi[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
+        c_localPsiBound[angleGroup].resize(g_nVrtxPerFace, g_nFacePerCell, 
+                                           g_nGroups);
+    }
+
+
     // Calc num dependencies for each (cell, angle) pair
-    c_initNumDependencies.resize(g_nAngles, g_nCells);
     for (UINT cell = 0; cell < g_nCells; cell++) {
     for (UINT angle = 0; angle < g_nAngles; angle++) {
         
@@ -129,19 +145,141 @@ GraphTraverser::GraphTraverser()
 
 
 /*
+    update
+    
+    Does a transport update for the given cell/angle pair.
+*/
+void GraphTraverser::update(UINT cell, UINT angle) 
+{
+    Mat2<double> &localSource = c_localSource[omp_get_thread_num()];
+    Mat2<double> &localPsi = c_localPsi[omp_get_thread_num()];
+    Mat3<double> &localPsiBound = c_localPsiBound[omp_get_thread_num()];
+
+    
+    // Populate localSource
+    #pragma omp simd
+    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+        localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
+    }}
+    
+    
+    // Populate localPsiBound
+    Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound, 
+                                     localPsiBound);
+    
+    
+    // Transport solve
+    Transport::solve(cell, angle, g_sigmaT[cell],
+                     localPsiBound, localSource, localPsi);
+    
+    
+    // localPsi -> psi
+    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+        c_psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
+    }}
+}
+
+
+/*
     traverse
     
     Traverses g_tychoMesh.
 */
-void GraphTraverser::traverse(SweepData &traverseData)
+#define USE_KOKKOS
+#ifdef USE_KOKKOS
+void GraphTraverser::traverse()
+{
+    Timer totalTimer;
+    Timer setupTimer;
+    
+
+    // Start total timer
+    totalTimer.start();
+    setupTimer.start();
+    
+
+    // Get dependencies
+    using space = Kokkos::DefaultExecutionSpace;
+    auto nitems = int(g_nCells * g_nAngles);
+    Kokkos::View<int*> counts("counts", nitems);
+    Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
+        int cell = item % g_nCells;
+        int angle = item / g_nCells;
+        for (int face = 0; face < g_nFacePerCell; ++face) {
+            bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
+            if (!is_out) continue;
+            auto adjCell = g_tychoMesh->getAdjCell(cell, face);
+            if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
+            counts(item) += 1;
+        }
+    });
+
+    
+    // Get the row_map
+    Kokkos::View<int*> row_map;
+    Kokkos::Experimental::get_crs_row_map_from_counts(row_map, counts);
+    auto nedges = row_map(row_map.size() - 1);
+    Kokkos::View<int*> entries("entries", nedges);
+    Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
+        int cell = item % g_nCells;
+        int angle = item / g_nCells;
+        int j = 0;
+        for (int face = 0; face < g_nFacePerCell; ++face) {
+            bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
+            if (!is_out) continue;
+            auto adjCell = g_tychoMesh->getAdjCell(cell, face);
+            if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
+            entries(row_map(item) + j) = adjCell + g_nCells * angle;
+            ++j;
+        }
+        Assert(j + row_map(item) == row_map(item + 1));
+    });
+
+
+    // Get the policy
+    auto graph = Kokkos::Experimental::Crs<int,space,void,int>(entries, row_map);
+    auto policy = Kokkos::Experimental::WorkGraphPolicy<space,int>(graph);
+
+    
+    // End setup timer
+    setupTimer.stop();
+
+
+    // Traverse DAG
+    auto lambda = KOKKOS_LAMBDA(int item) {
+        int cell = item % g_nCells;
+        int angle = item / g_nCells;
+      
+        // Update data for this cell-angle pair
+        update(cell, angle);
+    };
+    Kokkos::parallel_for(policy, lambda);
+    
+    
+    // Print times
+    totalTimer.stop();
+
+    double totalTime = totalTimer.wall_clock();
+    Comm::gmax(totalTime);
+
+    double setupTime = setupTimer.wall_clock();
+    Comm::gmax(setupTime);
+
+    if (Comm::rank() == 0) {
+        printf("      Traverse Timer (setup):   %fs\n", setupTime);
+        printf("      Traverse Timer (total):   %fs\n", totalTime);
+    }
+}
+
+#else
+void GraphTraverser::traverse()
 {
     vector<queue<CellAnglePair>> canCompute(g_nThreads);
     Mat2<UINT> numDependencies(g_nAngles, g_nCells);
     Timer totalTimer;
     Timer setupTimer;
-    Timer commTimer;
-    Timer sendTimer;
-    Timer recvTimer;
     
 
     // Start total timer
@@ -185,7 +323,7 @@ void GraphTraverser::traverse(SweepData &traverseData)
             
             
             // Update data for this cell-angle pair
-            traverseData.update(cell, angle);
+            update(cell, angle);
             
             
             // Update dependency for children
@@ -217,23 +355,11 @@ void GraphTraverser::traverse(SweepData &traverseData)
     double setupTime = setupTimer.wall_clock();
     Comm::gmax(setupTime);
 
-    double commTime = commTimer.sum_wall_clock();
-    Comm::gmax(commTime);
-    
-    double sendTime = sendTimer.sum_wall_clock();
-    Comm::gmax(sendTime);
-    
-    double recvTime = recvTimer.sum_wall_clock();
-    Comm::gmax(recvTime);
-    
     if (Comm::rank() == 0) {
-        printf("      Traverse Timer (comm):    %fs\n", commTime);
-        printf("      Traverse Timer (send):    %fs\n", sendTime);
-        printf("      Traverse Timer (recv):    %fs\n", recvTime);
         printf("      Traverse Timer (setup):   %fs\n", setupTime);
         printf("      Traverse Timer (total):   %fs\n", totalTime);
     }
 }
-
+#endif
 
 

@@ -51,7 +51,6 @@ void psiToPhi(PhiData &phi, const PsiData &psi);
 void phiToPsi(const PhiData &phi, PsiData &psi);
 void calcTotalSource(const PsiData &source, const PhiData &phi, 
                      PsiData &totalSource);
-void sweepLocal(PsiData &psi, const PsiData &source, PsiBoundData &psiBound);
 
 } // End namespace
 

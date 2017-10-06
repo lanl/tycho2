@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include "Comm.hh"
 #include "CommSides.hh"
+#include "GraphTraverser.hh"
 #include <math.h>
 
 using namespace std;
@@ -52,13 +53,14 @@ using namespace std;
 */
 void Sweeper::solve(PsiData &psi)
 {
-    PhiData phi0;
-    PhiData phi1;
-    PsiData totalSource;
-    PsiBoundData psiBound0;
+    PhiData phi0, phi1;
+    PsiData source, totalSource;
     CommSides commSides;
     PsiBoundData psiBound;
-    PsiData source;
+
+
+    // Setup GraphTraverser
+    GraphTraverser graphTraverser(psi, totalSource, psiBound);
     
     
     // Initialize source and psi
@@ -69,11 +71,11 @@ void Sweeper::solve(PsiData &psi)
 
     
     // Source iterate till converged
-    UINT iter = 1;
-    while (iter < g_iterMax) {
+    UINT iter;
+    for (iter = 1; iter < g_iterMax; iter++) {
         
         Util::calcTotalSource(source, phi0, totalSource);
-        Util::sweepLocal(psi, totalSource, psiBound);
+        graphTraverser.traverse();
         Util::psiToPhi(phi1, psi);
         commSides.commSides(psi, psiBound);
         
@@ -96,10 +98,6 @@ void Sweeper::solve(PsiData &psi)
 
         if (errL1 / normL1 < g_errMax)
             break;
-        
-        
-        // Increment iter
-        iter++;
     }
     
     
