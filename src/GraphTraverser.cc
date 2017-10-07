@@ -239,7 +239,7 @@ void GraphTraverser::traverse()
 
 
     // Get the policy
-    auto graph = Kokkos::Crs<int,space,void,int>(entries, row_map);
+    auto graph = Kokkos::Crs<int,space,void,int>(row_map, entries);
     auto policy = Kokkos::WorkGraphPolicy<space,int>(graph);
 
     
