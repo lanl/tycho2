@@ -219,7 +219,7 @@ void GraphTraverser::traverse()
     
     // Get the row_map
     Kokkos::View<int*> row_map;
-    Kokkos::Experimental::get_crs_row_map_from_counts(row_map, counts);
+    Kokkos::get_crs_row_map_from_counts(row_map, counts);
     auto nedges = row_map(row_map.size() - 1);
     Kokkos::View<int*> entries("entries", nedges);
     Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
@@ -239,8 +239,8 @@ void GraphTraverser::traverse()
 
 
     // Get the policy
-    auto graph = Kokkos::Experimental::Crs<int,space,void,int>(entries, row_map);
-    auto policy = Kokkos::Experimental::WorkGraphPolicy<space,int>(graph);
+    auto graph = Kokkos::Crs<int,space,void,int>(entries, row_map);
+    auto policy = Kokkos::WorkGraphPolicy<space,int>(graph);
 
     
     // End setup timer
