@@ -90,6 +90,8 @@ void readInput(const string &inputFileName,
     g_iterMax = iterMax;
     g_nGroups = nGroups;
 
+    Insist(g_nGroups <= g_nMaxGroups, "Too many groups.");
+
     if (Comm::rank() == 0)
         kvr.print();
 }

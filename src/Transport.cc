@@ -56,14 +56,14 @@ using namespace std;
 */
 static
 void calcSource(const double volume, 
-                     const Mat2<double> &localSource,
-                     double cellSource[4],
-                     const UINT group) 
+                const double (&localSource)[g_nVrtxPerCell][g_nMaxGroups],
+                double cellSource[4],
+                const UINT group) 
 {
-    double q0 = localSource(0, group);
-    double q1 = localSource(1, group);
-    double q2 = localSource(2, group);
-    double q3 = localSource(3, group);
+    double q0 = localSource[0][group];
+    double q1 = localSource[1][group];
+    double q2 = localSource[2][group];
+    double q3 = localSource[3][group];
     
     cellSource[0] = volume / 20.0 * (2.0 * q0 + q1 + q2 + q3);
     cellSource[1] = volume / 20.0 * (q0 + 2.0 * q1 + q2 + q3);
@@ -172,11 +172,12 @@ void calcOutgoingFlux(const double area[g_nFacePerCell],
     calcIncomingFlux
 */
 static
-void calcIncomingFlux(const UINT cell, 
-                      const double area[g_nFacePerCell],
-                      const Mat3<double> &localPsiBound,
-                      double cellSource[g_nVrtxPerCell],
-                      const UINT group)
+void calcIncomingFlux(
+    const UINT cell, 
+    const double area[g_nFacePerCell],
+    const double (&localPsiBound)[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
+    double cellSource[g_nVrtxPerCell],
+    const UINT group)
 {
     UINT faceVertex0, faceVertex1, faceVertex2, faceVertex3;
     double psiNeighbor0, psiNeighbor1, psiNeighbor2, psiNeighbor3;
@@ -186,9 +187,9 @@ void calcIncomingFlux(const UINT cell,
         faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 2);
         faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 3);
         
-        psiNeighbor1 = localPsiBound(faceVertex1, 0, group);
-        psiNeighbor2 = localPsiBound(faceVertex2, 0, group);
-        psiNeighbor3 = localPsiBound(faceVertex3, 0, group);
+        psiNeighbor1 = localPsiBound[faceVertex1][0][group];
+        psiNeighbor2 = localPsiBound[faceVertex2][0][group];
+        psiNeighbor3 = localPsiBound[faceVertex3][0][group];
         
         cellSource[1] -= 2.0 * area[0] / 12.0 * psiNeighbor1;
         cellSource[1] -= 1.0 * area[0] / 12.0 * psiNeighbor2;
@@ -208,9 +209,9 @@ void calcIncomingFlux(const UINT cell,
         faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 1, 2);
         faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 1, 3);
         
-        psiNeighbor0 = localPsiBound(faceVertex0, 1, group);
-        psiNeighbor2 = localPsiBound(faceVertex2, 1, group);
-        psiNeighbor3 = localPsiBound(faceVertex3, 1, group);
+        psiNeighbor0 = localPsiBound[faceVertex0][1][group];
+        psiNeighbor2 = localPsiBound[faceVertex2][1][group];
+        psiNeighbor3 = localPsiBound[faceVertex3][1][group];
         
         cellSource[0] -= 2.0 * area[1] / 12.0 * psiNeighbor0;
         cellSource[0] -= 1.0 * area[1] / 12.0 * psiNeighbor2;
@@ -230,9 +231,9 @@ void calcIncomingFlux(const UINT cell,
         faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 2, 1);
         faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 2, 3);
         
-        psiNeighbor0 = localPsiBound(faceVertex0, 2, group);
-        psiNeighbor1 = localPsiBound(faceVertex1, 2, group);
-        psiNeighbor3 = localPsiBound(faceVertex3, 2, group);
+        psiNeighbor0 = localPsiBound[faceVertex0][2][group];
+        psiNeighbor1 = localPsiBound[faceVertex1][2][group];
+        psiNeighbor3 = localPsiBound[faceVertex3][2][group];
         
         cellSource[0] -= 2.0 * area[2] / 12.0 * psiNeighbor0;
         cellSource[0] -= 1.0 * area[2] / 12.0 * psiNeighbor1;
@@ -252,9 +253,9 @@ void calcIncomingFlux(const UINT cell,
         faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 3, 1);
         faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 3, 2);
         
-        psiNeighbor0 = localPsiBound(faceVertex0, 3, group);
-        psiNeighbor1 = localPsiBound(faceVertex1, 3, group);
-        psiNeighbor2 = localPsiBound(faceVertex2, 3, group);
+        psiNeighbor0 = localPsiBound[faceVertex0][3][group];
+        psiNeighbor1 = localPsiBound[faceVertex1][3][group];
+        psiNeighbor2 = localPsiBound[faceVertex2][3][group];
         
         cellSource[0] -= 2.0 * area[3] / 12.0 * psiNeighbor0;
         cellSource[0] -= 1.0 * area[3] / 12.0 * psiNeighbor1;
@@ -356,9 +357,13 @@ namespace Transport
 /*
     solve
 */
-void solve(const UINT cell, const UINT angle, const double sigmaTotal,
-           const Mat3<double> &localPsiBound, const Mat2<double> &localSource,
-           Mat2<double> &localPsi)
+void solve(
+    const UINT cell, 
+    const UINT angle, 
+    const double sigmaTotal,
+    const double (&localPsiBound)[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
+    const double (&localSource)[g_nVrtxPerCell][g_nMaxGroups],
+    double (&localPsi)[g_nVrtxPerCell][g_nMaxGroups])
 {
     double volume, area[g_nFacePerCell];
 
@@ -400,7 +405,7 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
         
         // put local solution onto global solution
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
-            localPsi(vertex, group) = solution[vertex];
+            localPsi[vertex][group] = solution[vertex];
     }
 }
 
@@ -409,14 +414,18 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
     
     Put data from neighboring cells into localPsiBound(fvrtx, face, group).
 */
-void populateLocalPsiBound(const UINT angle, const UINT cell, 
-                           const PsiData &__restrict psi, 
-                           const PsiBoundData & __restrict psiBound,
-                           Mat3<double> &__restrict localPsiBound)
+void populateLocalPsiBound(
+    const UINT angle, 
+    const UINT cell, 
+    const PsiData &__restrict psi, 
+    const PsiBoundData & __restrict psiBound,
+    double (&localPsiBound)[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups])
 {
-    // Default to 0.0
-    for (UINT i = 0; i < localPsiBound.size(); i++)
-        localPsiBound[i] = 0.0;
+    for (UINT i = 0; i < g_nVrtxPerFace; i++) {
+    for (UINT j = 0; j < g_nFacePerCell; j++) {
+    for (UINT k = 0; k < g_nGroups; k++) {
+        localPsiBound[i][j][k] = 0.0;
+    }}}
     
     // Populate if incoming flux
     #pragma omp simd
@@ -430,7 +439,7 @@ void populateLocalPsiBound(const UINT angle, const UINT cell,
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
                     UINT neighborVrtx = 
                         g_tychoMesh->getNeighborVrtx(cell, face, fvrtx);
-                    localPsiBound(fvrtx, face, group) = 
+                    localPsiBound[fvrtx][face][group] = 
                         psi(group, neighborVrtx, angle, neighborCell);
                 }
             }
@@ -439,7 +448,7 @@ void populateLocalPsiBound(const UINT angle, const UINT cell,
             else if (g_tychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
                     UINT side = g_tychoMesh->getSide(cell, face);
-                    localPsiBound(fvrtx, face, group) = 
+                    localPsiBound[fvrtx][face][group] = 
                         psiBound(group, fvrtx, angle, side);
                 }
             }

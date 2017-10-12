@@ -58,9 +58,6 @@ private:
     PsiData &c_psi;
     PsiBoundData &c_psiBound;
     const PsiData &c_source;
-    std::vector<Mat2<double>> c_localSource;
-    std::vector<Mat2<double>> c_localPsi;
-    std::vector<Mat3<double>> c_localPsiBound;
 };
 
 #endif

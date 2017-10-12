@@ -112,20 +112,8 @@ GraphTraverser::GraphTraverser(
 : c_initNumDependencies(g_nAngles, g_nCells),
   c_psi(psi), 
   c_psiBound(psiBound), 
-  c_source(source), 
-  c_localSource(g_nThreads), 
-  c_localPsi(g_nThreads),
-  c_localPsiBound(g_nThreads)
+  c_source(source)
 {
-    // Initialize size of local data
-    for (UINT angleGroup = 0; angleGroup < g_nThreads; angleGroup++) {
-        c_localSource[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
-        c_localPsi[angleGroup].resize(g_nVrtxPerCell, g_nGroups);
-        c_localPsiBound[angleGroup].resize(g_nVrtxPerFace, g_nFacePerCell, 
-                                           g_nGroups);
-    }
-
-
     // Calc num dependencies for each (cell, angle) pair
     for (UINT cell = 0; cell < g_nCells; cell++) {
     for (UINT angle = 0; angle < g_nAngles; angle++) {
@@ -151,16 +139,16 @@ GraphTraverser::GraphTraverser(
 */
 void GraphTraverser::update(UINT cell, UINT angle) 
 {
-    Mat2<double> &localSource = c_localSource[omp_get_thread_num()];
-    Mat2<double> &localPsi = c_localPsi[omp_get_thread_num()];
-    Mat3<double> &localPsiBound = c_localPsiBound[omp_get_thread_num()];
+    double localSource[g_nVrtxPerCell][g_nMaxGroups];
+    double localPsi[g_nVrtxPerCell][g_nMaxGroups];
+    double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups];
 
     
     // Populate localSource
     #pragma omp simd
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        localSource(vrtx, group) = c_source(group, vrtx, angle, cell);
+        localSource[vrtx][group] = c_source(group, vrtx, angle, cell);
     }}
     
     
@@ -177,7 +165,7 @@ void GraphTraverser::update(UINT cell, UINT angle)
     // localPsi -> psi
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        c_psi(group, vrtx, angle, cell) = localPsi(vrtx, group);
+        c_psi(group, vrtx, angle, cell) = localPsi[vrtx][group];
     }}
 }
 
@@ -211,7 +199,7 @@ void GraphTraverser::traverse()
         Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
             int cell = item % g_nCells;
             int angle = item / g_nCells;
-            for (int face = 0; face < g_nFacePerCell; ++face) {
+            for (UINT face = 0; face < g_nFacePerCell; ++face) {
                 bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
                 if (!is_out) continue;
                 auto adjCell = g_tychoMesh->getAdjCell(cell, face);
@@ -230,7 +218,7 @@ void GraphTraverser::traverse()
             int cell = item % g_nCells;
             int angle = item / g_nCells;
             int j = 0;
-            for (int face = 0; face < g_nFacePerCell; ++face) {
+            for (UINT face = 0; face < g_nFacePerCell; ++face) {
                 bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
                 if (!is_out) continue;
                 auto adjCell = g_tychoMesh->getAdjCell(cell, face);

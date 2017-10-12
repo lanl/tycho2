@@ -67,6 +67,7 @@ static const UINT g_ndim = 3;
 static const UINT g_nVrtxPerCell = 4;
 static const UINT g_nVrtxPerFace = 3;
 static const UINT g_nFacePerCell = 4;
+static const UINT g_nMaxGroups = 128;
 
 
 // Global variables
