@@ -15,7 +15,7 @@ LIBS = $(KOKKOS_DIR)/lib/libkokkos.a
 # List of sources, header files, and object files
 SOURCE = $(wildcard src/*.cc)
 HEADERS = $(wildcard src/*.hh)
-OBJECTS = $(patsubst src/%.cc, %.o, $(SOURCE))
+OBJECTS = $(patsubst src/%.cc, build/%.o, $(SOURCE))
 
 
 # Link object files
@@ -25,7 +25,7 @@ sweep.x: $(OBJECTS)
 
 
 # Make object files
-%.o: src/%.cc $(HEADERS) make.inc
+build/%.o: src/%.cc $(HEADERS) make.inc
 	@echo Making $@
 	$(MPICC) $(INC) -c $< -o $@
 
@@ -34,5 +34,5 @@ sweep.x: $(OBJECTS)
 .PHONY: clean
 clean:
 	@echo Delete object files
-	rm *.o *.x
+	rm build/*.o sweep.x
 

@@ -15,6 +15,10 @@ if len(sys.argv) < 3:
     sys.exit(1)
 
 
+# Print header
+print "Diff: ", sys.argv[1], sys.argv[2]
+
+
 # Get the vectors from file
 v1 = numpy.fromfile(sys.argv[1])
 v2 = numpy.fromfile(sys.argv[2])

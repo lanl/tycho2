@@ -84,6 +84,7 @@ void readInput(const string &inputFileName,
     kvr.getBool("OutputFile", outputFile);
     kvr.getString("OutputFilename", outputFilename);
     kvr.getDouble("errMax", g_errMax);
+    kvr.getBool("useKokkos", g_useKokkos);
        
     snOrder = isnOrder;
     g_iterMax = iterMax;
