@@ -82,7 +82,11 @@ double diffBetweenGroups(const PsiData &psi)
 */
 void psiToPhi(PhiData &phi, const PsiData &psi) 
 {
-    phi.setToValue(0.0);
+    for (UINT c = 0; c < g_nCells; c++) {
+    for (UINT v = 0; v < g_nVrtxPerCell; v++) {
+    for (UINT g = 0; g < g_nGroups; g++) {
+        phi(g,v,c) = 0.0;
+    }}}
     
     #pragma omp parallel for
     for (UINT cell = 0; cell < g_nCells; ++cell) {

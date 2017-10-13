@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "PsiData.hh"
 #include "Comm.hh"
+#include "Mat.hh"
 #include <string.h>
 
 
@@ -59,7 +60,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     CellData Format:
     double[]: psi(:, :, :, global cell index)
 */
-void PsiData::writeToFile(const std::string &filename)
+/*void PsiData::writeToFile(const std::string &filename)
 {
     MPI_File file;
     char outputName[32] = {
@@ -103,6 +104,59 @@ void PsiData::writeToFile(const std::string &filename)
 
     // Close file
     Comm::closeFile(file);
+}*/
+
+
+void writePsiToFile(const std::string &filename,
+                    const PsiData &psi)
+{
+    MPI_File file;
+    char outputName[32] = {
+        'T', 'y', 'c', 'h', 'o', ' ', '2', ' ', 'P', 's', 'i', ' ', 
+        'O', 'u', 't', 'p', 'u', 't', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+    uint64_t restOfHeader[4];
+
+
+    // Fill in rest of header
+    // version, number of cells, number of angles, and number of group
+    restOfHeader[0] = 1;
+    restOfHeader[1] = g_nCells;
+    Comm::gsum(restOfHeader[1]);
+    restOfHeader[2] = g_nAngles;
+    restOfHeader[3] = g_nGroups;
+
+
+    // Open file
+    Comm::openFileForWrite(filename, file);
+    
+
+    // If rank 0, write header data
+    if (Comm::rank() == 0) {
+        double header[8];
+        memcpy(header, outputName, 4 * sizeof(double));
+        memcpy(&header[4], restOfHeader, 4 * sizeof(double));
+        Comm::writeDoublesAt(file, 0, header, 8);
+    }
+
+
+    // Write data one cell at a time
+    Mat3<double> cellData(g_nGroups, g_nVrtxPerCell, g_nAngles);
+    for (size_t cell = 0; cell < g_nCells; cell++) {
+        int dataSize = g_nAngles * g_nGroups * g_nVrtxPerCell;
+        uint64_t globalCell = g_tychoMesh->getLGCell(cell);
+        uint64_t offset = 8 + globalCell * dataSize;
+        
+        for (UINT a = 0; a < g_nAngles; a++) {
+        for (UINT v = 0; v < g_nVrtxPerCell; v++) {
+        for (UINT g = 0; g < g_nGroups; g++) {
+            cellData(g,v,a) = psi(g,v,a,cell);    
+        }}}
+        double *data = &cellData[0];
+        Comm::writeDoublesAt(file, offset, data, dataSize);
+    }
+
+
+    // Close file
+    Comm::closeFile(file);
 }
-
-

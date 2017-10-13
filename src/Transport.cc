@@ -350,13 +350,10 @@ void gaussElim4(double A[4][4], double b[4])
 } 
 
 
-// Global functions
-namespace Transport
-{
-
 /*
     solve
 */
+static 
 void solve(
     const UINT cell, 
     const UINT angle, 
@@ -414,6 +411,7 @@ void solve(
     
     Put data from neighboring cells into localPsiBound(fvrtx, face, group).
 */
+static 
 void populateLocalPsiBound(
     const UINT angle, 
     const UINT cell, 
@@ -455,6 +453,54 @@ void populateLocalPsiBound(
         }
     }}
 }
+
+
+// Global functions
+namespace Transport
+{
+
+/*
+    update
+    
+    Does a transport update for the given cell/angle pair.
+*/
+void update(
+    const UINT cell, 
+    const UINT angle,
+    const PsiData &source,
+    const PsiBoundData &psiBound,
+    PsiData &psi) 
+{
+    double localSource[g_nVrtxPerCell][g_nMaxGroups];
+    double localPsi[g_nVrtxPerCell][g_nMaxGroups];
+    double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups];
+
+    
+    // Populate localSource
+    #pragma omp simd
+    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+        localSource[vrtx][group] = source(group, vrtx, angle, cell);
+    }}
+    
+    
+    // Populate localPsiBound
+    populateLocalPsiBound(angle, cell, psi, psiBound, 
+                                     localPsiBound);
+    
+    
+    // Transport solve
+    solve(cell, angle, g_sigmaT[cell],
+                     localPsiBound, localSource, localPsi);
+    
+    
+    // localPsi -> psi
+    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+        psi(group, vrtx, angle, cell) = localPsi[vrtx][group];
+    }}
+}
+
 
 
 } // End namespace Transport

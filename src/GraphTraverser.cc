@@ -133,44 +133,6 @@ GraphTraverser::GraphTraverser(
 
 
 /*
-    update
-    
-    Does a transport update for the given cell/angle pair.
-*/
-void GraphTraverser::update(UINT cell, UINT angle) 
-{
-    double localSource[g_nVrtxPerCell][g_nMaxGroups];
-    double localPsi[g_nVrtxPerCell][g_nMaxGroups];
-    double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups];
-
-    
-    // Populate localSource
-    #pragma omp simd
-    for (UINT group = 0; group < g_nGroups; group++) {
-    for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        localSource[vrtx][group] = c_source(group, vrtx, angle, cell);
-    }}
-    
-    
-    // Populate localPsiBound
-    Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound, 
-                                     localPsiBound);
-    
-    
-    // Transport solve
-    Transport::solve(cell, angle, g_sigmaT[cell],
-                     localPsiBound, localSource, localPsi);
-    
-    
-    // localPsi -> psi
-    for (UINT group = 0; group < g_nGroups; group++) {
-    for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        c_psi(group, vrtx, angle, cell) = localPsi[vrtx][group];
-    }}
-}
-
-
-/*
     traverse
     
     Traverses g_tychoMesh.
@@ -245,7 +207,7 @@ void GraphTraverser::traverse()
             int angle = item / g_nCells;
           
             // Update data for this cell-angle pair
-            update(cell, angle);
+            Transport::update(cell, angle, c_source, c_psiBound, c_psi);
         };
         Kokkos::parallel_for(policy, lambda);
     }
@@ -297,7 +259,7 @@ void GraphTraverser::traverse()
                 
                 
                 // Update data for this cell-angle pair
-                update(cell, angle);
+                Transport::update(cell, angle, c_source, c_psiBound, c_psi);
                 
                 
                 // Update dependency for children

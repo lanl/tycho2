@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
     // Solve
     Timer timer;
     timer.start();
-    PsiData psi;
+    PsiData psi("psi", g_nGroups, g_nVrtxPerCell, g_nAngles, g_nCells);
     Sweeper::solve(psi);
     timer.stop();
     
@@ -201,7 +201,8 @@ int main(int argc, char *argv[])
 
     // Output psi to file
     if(outputFile)
-        psi.writeToFile(outputFilename);
+        writePsiToFile(outputFilename, psi);
+        //psi.writeToFile(outputFilename);
 
 
     Kokkos::finalize();

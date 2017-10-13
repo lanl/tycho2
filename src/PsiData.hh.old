@@ -45,15 +45,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Global.hh"
 #include "Quadrature.hh"
 #include "TychoMesh.hh"
-#include <Kokkos_Core.hpp>
 #include <string>
 
-typedef Kokkos::View<double***, Kokkos::LayoutLeft, Kokkos::HostSpace> PhiData;
-typedef Kokkos::View<double****, Kokkos::LayoutLeft, Kokkos::HostSpace> PsiBoundData;
-typedef Kokkos::View<double****, Kokkos::LayoutLeft, Kokkos::HostSpace> PsiData;
 
-void writePsiToFile(const std::string &filename,
-                    const PsiData &psi);
 /*
     PsiData
 
@@ -62,7 +56,7 @@ void writePsiToFile(const std::string &filename,
     a = angle
     c = cell
 */
-/*class PsiData {
+class PsiData {
 public:
     
     // Accessors
@@ -105,8 +99,19 @@ public:
         c_nc = g_nCells;
         c_data = new double[size()];
         setToValue(0.0);
+        c_ownData = true;
     }
 
+    PsiData(double *data)
+    {
+        c_ng = g_nGroups;
+        c_nv = g_nVrtxPerCell;
+        c_na = g_nAngles;
+        c_nc = g_nCells;
+        c_data = data;
+        c_ownData = false;
+    }
+    
 
     // Don't allow copy constructor or assignment operator
     PsiData(const PsiData &other) = delete;
@@ -116,7 +121,7 @@ public:
     //Destructor
     ~PsiData()
     {
-        if (c_data != NULL) {
+        if (c_data != NULL && c_ownData) {
             delete[] c_data;
             c_data = NULL;
         }
@@ -143,6 +148,7 @@ public:
 private:
     size_t c_ng, c_nv, c_na, c_nc;
     double *c_data;
+    bool c_ownData;
 
 
     // Compute the offset into the data array.
@@ -155,7 +161,7 @@ private:
         
         return ((c * c_na + a) * c_nv + v) * c_ng + g;
     }
-};*/
+};
 
 
 /*
@@ -166,7 +172,7 @@ private:
     a = angle
     s = side
 */
-/*class PsiBoundData {
+class PsiBoundData {
 public:
     
     // Accessors
@@ -255,7 +261,7 @@ private:
         
         return ((s * c_na + a) * c_nv + v) * c_ng + g;
     }
-};*/
+};
 
 
 /*
@@ -265,7 +271,7 @@ private:
     v = vertex
     c = cell
 */
-/*class PhiData {
+class PhiData {
 public:
     
     // Accessors
@@ -307,9 +313,19 @@ public:
         c_nc = g_nCells;
         c_data = new double[size()];
         setToValue(0.0);
+        c_ownData = true;
     }
 
-    
+    PhiData(double *data)
+    {
+        c_ng = g_nGroups;
+        c_nv = g_nVrtxPerCell;
+        c_nc = g_nCells;
+        c_data = data;
+        c_ownData = false;
+    }
+
+
     // Don't allow copy constructor or assignment operator
     PhiData(const PhiData &other) = delete;
     PhiData & operator= (const PhiData &other) = delete;
@@ -318,7 +334,7 @@ public:
     // Destructor
     ~PhiData()
     {
-        if (c_data != NULL) {
+        if (c_data != NULL && c_ownData) {
             delete[] c_data;
             c_data = NULL;
         }
@@ -341,6 +357,7 @@ public:
 private:
     size_t c_ng, c_nv, c_nc;
     double *c_data;
+    bool c_ownData;
 
     // Compute the offset into the data array.
     size_t index(size_t g, size_t v, size_t c) const
@@ -352,7 +369,7 @@ private:
         return (c * c_nv + v) * c_ng + g;
     }
 };
-*/
+
 
 
 #endif

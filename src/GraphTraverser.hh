@@ -52,8 +52,6 @@ public:
     void traverse();
 
 private:
-    void update(UINT cell, UINT angle);
-
     Mat2<UINT> c_initNumDependencies;
     PsiData &c_psi;
     PsiBoundData &c_psiBound;

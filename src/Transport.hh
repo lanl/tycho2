@@ -48,19 +48,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Transport 
 {
 
-void solve(
-    const UINT cell, const UINT angle, 
-    const double sigmaTotal,
-    const double (&localPsiBound)[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups], 
-    const double (&localSource)[g_nVrtxPerCell][g_nMaxGroups],
-    double (&localPsi)[g_nVrtxPerCell][g_nMaxGroups]);
-
-void populateLocalPsiBound(
-    const UINT angle, 
+void update(
     const UINT cell, 
-    const PsiData &psi, 
+    const UINT angle,
+    const PsiData &source,
     const PsiBoundData &psiBound,
-    double (&localPsiBound)[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups]);
+    PsiData &psi);
 
 } // End namespace Transport
 

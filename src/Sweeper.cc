@@ -43,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "CommSides.hh"
 #include "GraphTraverser.hh"
+#include <Kokkos_Core.hpp>
 #include <math.h>
 
 using namespace std;
@@ -53,10 +54,14 @@ using namespace std;
 */
 void Sweeper::solve(PsiData &psi)
 {
-    PhiData phi0, phi1;
-    PsiData source, totalSource;
+    //PhiData phi0, phi1;
+    PhiData phi0("phi0", g_nGroups, g_nVrtxPerCell, g_nCells);
+    PhiData phi1("phi1", g_nGroups, g_nVrtxPerCell, g_nCells);
+    PsiData source("source", g_nGroups, g_nVrtxPerCell, g_nAngles, g_nCells);
+    PsiData totalSource("source", g_nGroups, g_nVrtxPerCell, g_nAngles, g_nCells);
+    PsiBoundData psiBound("psiBound", 
+        g_nGroups, g_nVrtxPerFace, g_nAngles, g_tychoMesh->getNSides());
     CommSides commSides;
-    PsiBoundData psiBound;
 
 
     // Setup GraphTraverser
@@ -65,9 +70,26 @@ void Sweeper::solve(PsiData &psi)
     
     // Initialize source and psi
     Problem::getSource(source);
-    psi.setToValue(0.0);
-    psiBound.setToValue(0.0);
-    phi0.setToValue(0.0);
+
+    for (UINT c = 0; c < g_nCells; c++) {
+    for (UINT a = 0; a < g_nAngles; a++) {
+    for (UINT v = 0; v < g_nVrtxPerCell; v++) {
+    for (UINT g = 0; g < g_nGroups; g++) {
+        psi(g,v,a,c) = 0.0;
+    }}}}
+
+    for (UINT s = 0; s < g_tychoMesh->getNSides(); s++) {
+    for (UINT a = 0; a < g_nAngles; a++) {
+    for (UINT v = 0; v < g_nVrtxPerFace; v++) {
+    for (UINT g = 0; g < g_nGroups; g++) {
+        psiBound(g,v,a,s) = 0.0;
+    }}}}
+
+    for (UINT c = 0; c < g_nCells; c++) {
+    for (UINT v = 0; v < g_nVrtxPerCell; v++) {
+    for (UINT g = 0; g < g_nGroups; g++) {
+        phi0(g,v,c) = 0.0;
+    }}}
 
     
     // Source iterate till converged
@@ -83,11 +105,13 @@ void Sweeper::solve(PsiData &psi)
         // Check tolerance and set phi0 = phi1
         double errL1 = 0.0;
         double normL1 = 0.0;
-        for (UINT i = 0; i < phi1.size(); i++) {
-            errL1  += fabs(phi1[i] - phi0[i]);
-            normL1 += fabs(phi1[i]);
-            phi0[i] = phi1[i];
-        }
+        for (UINT c = 0; c < g_nCells; c++) {
+        for (UINT v = 0; v < g_nVrtxPerCell; v++) {
+        for (UINT g = 0; g < g_nGroups; g++) {
+            errL1  += fabs(phi1(g,v,c) - phi0(g,v,c));
+            normL1 += fabs(phi1(g,v,c));
+            phi0(g,v,c) = phi1(g,v,c);
+        }}}
         
         Comm::gsum(errL1);
         Comm::gsum(normL1);
