@@ -56,7 +56,7 @@ using namespace std;
 */
 static
 void calcSource(const double volume, 
-                const double (&localSource)[g_nVrtxPerCell][g_nMaxGroups],
+                const double localSource[g_nVrtxPerCell][g_nMaxGroups],
                 double cellSource[4],
                 const UINT group) 
 {
@@ -175,7 +175,7 @@ static
 void calcIncomingFlux(
     const UINT cell, 
     const double area[g_nFacePerCell],
-    const double (&localPsiBound)[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
+    const double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
     double cellSource[g_nVrtxPerCell],
     const UINT group)
 {
@@ -358,9 +358,9 @@ void solve(
     const UINT cell, 
     const UINT angle, 
     const double sigmaTotal,
-    const double (&localPsiBound)[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
-    const double (&localSource)[g_nVrtxPerCell][g_nMaxGroups],
-    double (&localPsi)[g_nVrtxPerCell][g_nMaxGroups])
+    const double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
+    const double localSource[g_nVrtxPerCell][g_nMaxGroups],
+    double localPsi[g_nVrtxPerCell][g_nMaxGroups])
 {
     double volume, area[g_nFacePerCell];
 
@@ -417,7 +417,7 @@ void populateLocalPsiBound(
     const UINT cell, 
     const PsiData &__restrict psi, 
     const PsiBoundData & __restrict psiBound,
-    double (&localPsiBound)[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups])
+    double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups])
 {
     for (UINT i = 0; i < g_nVrtxPerFace; i++) {
     for (UINT j = 0; j < g_nFacePerCell; j++) {
