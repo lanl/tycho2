@@ -569,7 +569,6 @@ void ParallelMesh::createFromSerialMesh(const SerialMesh &serialMesh,
     Allow only serial read/write by defining PARALLEL_MESH_READ_SERIAL_ONLY.
 */
 #ifndef PARALLEL_MESH_READ_SERIAL_ONLY
-#include <mpi.h>
 #include <Comm.hh>
 
 
@@ -581,7 +580,7 @@ void ParallelMesh::createFromSerialMesh(const SerialMesh &serialMesh,
 void ParallelMesh::readInParallel(const std::string &filename, 
                                   PartitionData &partData)
 {
-    MPI_File file;
+    Comm::File file;
     uint64_t offset = 0;
     vector<uint64_t> bufferUint;
     

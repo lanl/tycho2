@@ -41,45 +41,64 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define __COMM_HH__
 
 #include "Global.hh"
-#include <mpi.h>
 #include <vector>
 #include <string>
+
 
 namespace Comm
 {
 
+
+class Request
+{
+public:
+    Request();
+    ~Request();
+    Request(const Comm::Request &other);
+    Comm::Request& operator=(const Comm::Request &other);
+    void setNull();
+    
+    void *c_request;
+};
+
+
+class File
+{
+public:
+    File();
+    ~File();
+    
+    void *c_file;
+};
+
+
+void init();
+void finalize();
+
 int rank();
-int rank(MPI_Comm comm);
 int numRanks();
 
 void gsum(double &x);
 void gsum(UINT &x);
 void gmax(double &x);
-void gmax(double &x, MPI_Comm comm);
 void gmax(UINT &x);
-
-void sendUInt(UINT i, int destination);
-void sendUIntVector(const std::vector<UINT> &buffer, int destination);
-void iSendUIntVector(const std::vector<UINT> &buffer, int destination, 
-                     int tag, MPI_Request &request);
-void iSendDoubleVector(const std::vector<double> &buffer, int destination, 
-                       int tag, MPI_Request &request);
-
-void recvUInt(UINT &i, int destination);
-void recvUIntVector(std::vector<UINT> &buffer, int destination);
-void recvUIntVector(std::vector<UINT> &buffer, int destination, int tag);
-void recvDoubleVector(std::vector<double> &buffer, int destination, int tag);
 
 void barrier();
 
-void openFileForRead(const std::string &filename, MPI_File &file);
-void openFileForWrite(const std::string &filename, MPI_File &file);
-void closeFile(MPI_File &file);
-void seek(const MPI_File &file, uint64_t position);
-void readUint64(const MPI_File &file, uint64_t &data);
-void readUint64(const MPI_File &file, uint64_t *data, int numData);
-void readChars(const MPI_File &file, char *data, int numData);
-void writeDoublesAt(const MPI_File &file, UINT offset, double *data, 
+void isend(void *data, int size, int proc, int tag, Comm::Request &request);
+void irecv(void *data, int size, int proc, int tag, Comm::Request &request);
+void recv(void *data, int size, int proc, int tag);
+void waitall(const std::vector<Comm::Request> &commRequests);
+int waitany(const std::vector<Comm::Request> &commRequests);
+
+void openFileForRead(const std::string &filename, Comm::File &file);
+void openFileForWrite(const std::string &filename, Comm::File &file);
+void closeFile(Comm::File &file);
+void seek(const Comm::File &file, uint64_t position);
+void readUint64(const Comm::File &file, uint64_t &data);
+void readUint64(const Comm::File &file, uint64_t *data, int numData);
+void readChars(const Comm::File &file, char *data, int numData);
+void writeDoublesAt(const Comm::File &file, UINT offset, double *data, 
                     UINT numData);
 
 } // End namespace

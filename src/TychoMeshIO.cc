@@ -296,20 +296,19 @@ void TychoMesh::readTychoMesh(const std::string &filename)
     
     
     // c_adjCellFromSide, c_adjFaceFromSide
-    vector<MPI_Request> mpiRequests;
+    vector<Comm::Request> commRequests;
     for(UINT  cell = 0; cell < g_nCells; cell++) {
     for(UINT face = 0; face < g_nFacePerCell; face++) {
         UINT adjProc = c_adjProc(cell, face);
         UINT adjCell = c_adjCell(cell, face);
         
         if(adjCell == BOUNDARY_FACE && adjProc != BAD_RANK) {
-            MPI_Request request;
+            Comm::Request request;
             UINT cellFace[2];
             cellFace[0] = cell;
             cellFace[1] = face;
-            MPI_Isend(cellFace, 2 * sizeof(UINT), MPI_CHAR, adjProc, 0, 
-                      MPI_COMM_WORLD, &request);
-            mpiRequests.push_back(request);
+            Comm::isend(cellFace, 2 * sizeof(UINT), adjProc, 0, request);
+            commRequests.push_back(request);
         }
     }}
     
@@ -322,14 +321,13 @@ void TychoMesh::readTychoMesh(const std::string &filename)
         
         if(adjCell == BOUNDARY_FACE && adjProc != BAD_RANK) {
             UINT cellFace[2];
-            MPI_Recv(cellFace, 2 * sizeof(UINT), MPI_CHAR, adjProc, 0, 
-                     MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            Comm::recv(cellFace, 2 * sizeof(UINT), adjProc, 0);
             c_adjCellFromSide(c_side(cell, face)) = cellFace[0];
             c_adjFaceFromSide(c_side(cell, face)) = cellFace[1];
         }
     }}
     
-    MPI_Waitall(mpiRequests.size(), &mpiRequests[0], MPI_STATUSES_IGNORE);
+    Comm::waitall(commRequests);
 }
 
 

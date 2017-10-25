@@ -9,7 +9,6 @@ make.inc
 *.x
 *.pmesh
 *.dSYM
-*.sh
 *.psi
 *.vtk
 *.visit

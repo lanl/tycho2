@@ -41,7 +41,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 #include <cassert>
 #include <cstring>
-#include <mpi.h>
 #include "Comm.hh"
 #include "ParallelMesh.hh"
 
@@ -60,7 +59,7 @@ int main(int argc, char* argv[])
     
     
     // Start MPI
-    MPI_Init(&argc, &argv);
+    Comm::init();
 
 
     // Print utility name
@@ -115,7 +114,7 @@ int main(int argc, char* argv[])
     if (Comm::rank() == 0) {
         printf("\n\n\n");
     }
-    MPI_Finalize();
+    Comm::finalize();
     return 0;
 }
 

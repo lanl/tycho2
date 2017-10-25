@@ -110,13 +110,8 @@ int main(int argc, char *argv[])
     UINT snOrder;
 
     
-    // Init MPI
-    int required = MPI_THREAD_SINGLE;
-    int provided = MPI_THREAD_SINGLE;
-    int mpiResult = MPI_Init_thread(&argc, &argv, required, &provided);
-    Insist (mpiResult == MPI_SUCCESS, "MPI_Init failed.");
-    Insist (required <= provided, "");
-    
+    // Init MPI and Kokkos
+    Comm::init();
     Kokkos::initialize(argc, argv);
 
 
@@ -125,7 +120,7 @@ int main(int argc, char *argv[])
         if (Comm::rank() == 0) {
             printf("Usage: ./sweep.x <parallel mesh> <input deck>\n");
         }
-        MPI_Finalize();
+        Comm::finalize();
         return 0;
     }
     readInput(argv[2], sigmaT, sigmaS, outputFile, outputFilename, snOrder);
@@ -206,7 +201,7 @@ int main(int argc, char *argv[])
 
 
     Kokkos::finalize();
-    MPI_Finalize();
+    Comm::finalize();
     return 0;
 }
 

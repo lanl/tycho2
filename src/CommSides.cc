@@ -118,12 +118,11 @@ static UINT getDataSize()
 */
 void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
 {
-    int mpiError;
     UINT numToRecv;
     UINT numAdjRanks = c_adjRanks.size();
     UINT packetSize = 2 * sizeof(UINT) + getDataSize();
-    std::vector<MPI_Request> mpiRecvRequests(numAdjRanks);
-    std::vector<MPI_Request> mpiSendRequests(numAdjRanks);
+    std::vector<Comm::Request> commRecvRequests(numAdjRanks);
+    std::vector<Comm::Request> commSendRequests(numAdjRanks);
     std::vector<std::vector<char>> dataToSend(numAdjRanks);
     std::vector<std::vector<char>> dataToRecv(numAdjRanks);
     Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
@@ -143,18 +142,14 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
         if (dataToRecv[rankIndex].size() > 0) {
             int tag = 0;
             int adjRank = c_adjRanks[rankIndex];
-            MPI_Request request;
-            mpiError = MPI_Irecv(dataToRecv[rankIndex].data(), 
-                                 dataToRecv[rankIndex].size(), 
-                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD,
-                                 &request);
-            Insist(mpiError == MPI_SUCCESS, "");
-            mpiRecvRequests[rankIndex] = request;
+            Comm::irecv(dataToRecv[rankIndex].data(),
+                        dataToRecv[rankIndex].size(),
+                        adjRank, tag, commRecvRequests[rankIndex]);
             numToRecv++;
         }
         
         else {
-            mpiRecvRequests[rankIndex] = MPI_REQUEST_NULL;
+            commRecvRequests[rankIndex].setNull();
         }
     }
     
@@ -190,17 +185,13 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
             
             int tag = 0;
             int adjRank = c_adjRanks[rankIndex];
-            MPI_Request request;
-            mpiError = MPI_Isend(dataToSend[rankIndex].data(), 
-                                 dataToSend[rankIndex].size(), 
-                                 MPI_BYTE, adjRank, tag, MPI_COMM_WORLD, 
-                                 &request);
-            Insist(mpiError == MPI_SUCCESS, "");
-            mpiSendRequests[rankIndex] = request;
+            Comm::isend(dataToSend[rankIndex].data(),
+                        dataToSend[rankIndex].size(),
+                        adjRank, tag, commSendRequests[rankIndex]);
         }
         
         else {
-            mpiSendRequests[rankIndex] = MPI_REQUEST_NULL;
+            commSendRequests[rankIndex].setNull();
         }
     }
     
@@ -209,10 +200,7 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
     for (UINT numWaits = 0; numWaits < numToRecv; numWaits++) {
         
         // Wait for a data packet to arrive
-        int rankIndex;
-        mpiError = MPI_Waitany(mpiRecvRequests.size(), mpiRecvRequests.data(), 
-                               &rankIndex, MPI_STATUS_IGNORE);
-        Insist(mpiError == MPI_SUCCESS, "");
+        int rankIndex = Comm::waitany(commRecvRequests);
         
         
         // Process Data
@@ -237,10 +225,8 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
     
     
     // Wait on send to complete
-    if (mpiSendRequests.size() > 0) {
-        mpiError = MPI_Waitall(mpiSendRequests.size(), mpiSendRequests.data(), 
-                               MPI_STATUSES_IGNORE);
-        Insist(mpiError == MPI_SUCCESS, "");
+    if (commSendRequests.size() > 0) {
+        Comm::waitall(commSendRequests);
     }
 }
 
