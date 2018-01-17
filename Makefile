@@ -8,8 +8,6 @@ MPICC += -DASSERT_ON=$(ASSERT_ON)
 
 # Source and library info
 INC += -Isrc
-INC += -I$(KOKKOS_DIR)/include
-LIBS = $(KOKKOS_DIR)/lib/libkokkos.a
 
 
 # List of sources, header files, and object files

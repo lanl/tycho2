@@ -43,7 +43,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "CommSides.hh"
 #include "GraphTraverser.hh"
-#include <Kokkos_Core.hpp>
 #include <math.h>
 
 using namespace std;

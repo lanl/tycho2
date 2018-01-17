@@ -81,7 +81,6 @@ EXTERN TychoMesh *g_tychoMesh;
 EXTERN Quadrature *g_quadrature;
 EXTERN UINT g_nAngles;
 EXTERN UINT g_nCells;
-EXTERN bool g_useKokkos;
 
 #endif
 

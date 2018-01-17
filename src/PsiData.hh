@@ -45,12 +45,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Global.hh"
 #include "Quadrature.hh"
 #include "TychoMesh.hh"
-#include <Kokkos_Core.hpp>
 #include <string>
-
-typedef Kokkos::View<double***, Kokkos::LayoutLeft, Kokkos::HostSpace> PhiData;
-typedef Kokkos::View<double****, Kokkos::LayoutLeft, Kokkos::HostSpace> PsiBoundData;
-typedef Kokkos::View<double****, Kokkos::LayoutLeft, Kokkos::HostSpace> PsiData;
 
 void writePsiToFile(const std::string &filename,
                     const PsiData &psi);

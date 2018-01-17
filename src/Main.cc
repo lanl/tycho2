@@ -47,7 +47,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Assert.hh"
 #include "Timer.hh"
 #include "Sweeper.hh"
-#include <Kokkos_Core.hpp>
 #include <omp.h>
 #include <vector>
 
@@ -84,8 +83,7 @@ void readInput(const string &inputFileName,
     kvr.getBool("OutputFile", outputFile);
     kvr.getString("OutputFilename", outputFilename);
     kvr.getDouble("errMax", g_errMax);
-    kvr.getBool("useKokkos", g_useKokkos);
-       
+    
     snOrder = isnOrder;
     g_iterMax = iterMax;
     g_nGroups = nGroups;
@@ -110,9 +108,8 @@ int main(int argc, char *argv[])
     UINT snOrder;
 
     
-    // Init MPI and Kokkos
+    // Init MPI
     Comm::init();
-    Kokkos::initialize(argc, argv);
 
 
     // Input data.
@@ -143,7 +140,7 @@ int main(int argc, char *argv[])
     }
     if (Comm::rank() == 0)
         printf("Num threads: %" PRIu64 "\n", g_nThreads);
-            
+    
     
     // Create quadrature
     g_quadrature = new Quadrature(snOrder);
@@ -200,7 +197,6 @@ int main(int argc, char *argv[])
         //psi.writeToFile(outputFilename);
 
 
-    Kokkos::finalize();
     Comm::finalize();
     return 0;
 }
