@@ -105,7 +105,7 @@ void writePsiToFile(const std::string &filename,
         for (UINT g = 0; g < g_nGroups; g++) {
             cellData(g,v,a) = psi(g,v,a,cell);    
         }}}
-        double *data = &cellData[0];
+        double *data = cellData.data();
         Comm::writeDoublesAt(file, offset, data, dataSize);
     }
 

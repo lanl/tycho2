@@ -4,6 +4,7 @@ include make.inc
 
 # Add assert level and PETSc flag to compile command
 MPICC += -DASSERT_ON=$(ASSERT_ON)
+NVCC += -DASSERT_ON=$(ASSERT_ON)
 
 
 # Source and library info
@@ -27,7 +28,7 @@ sweep.x: $(OBJECTS)
 # Make object files
 build/%.o: src/%.cc $(HEADERS) make.inc
 	@echo Making $@
-	$(MPICC) $(INC) -c $< -o $@
+	$(NVCC) $(INC) -c $< -o $@
 
 
 # Delete object files

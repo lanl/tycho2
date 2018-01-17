@@ -156,15 +156,19 @@ void GraphTraverser::traverse()
 
         // Get dependencies
         using space = Kokkos::DefaultExecutionSpace;
-        auto nitems = int(g_nCells * g_nAngles);
+        auto local_nCells = g_nCells; // GPU cannot read this directly
+        auto local_nFacePerCell = c_nFacePerCell; // GPU cannot read this directly
+        auto nitems = int(local_nCells * g_nAngles);
+        auto omegaDotN = g_tychoMesh->c_omegaDotN;
+        auto adjCellMat = g_tychoMesh->c_adjCell;
         Kokkos::View<int*> counts("counts", nitems);
         Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
-            int cell = item % g_nCells;
-            int angle = item / g_nCells;
-            for (UINT face = 0; face < g_nFacePerCell; ++face) {
-                bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
+            int cell = item % local_nCells;
+            int angle = item / local_nCells;
+            for (UINT face = 0; face < local_nFacePerCell; ++face) {
+                bool is_out = omegaDotN(angle, cell, face) > 0;
                 if (!is_out) continue;
-                auto adjCell = g_tychoMesh->getAdjCell(cell, face);
+                auto adjCell = adjCellMat(cell, face);
                 if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
                 counts(item) += 1;
             }
@@ -177,18 +181,18 @@ void GraphTraverser::traverse()
         auto nedges = row_map(row_map.size() - 1);
         Kokkos::View<int*> entries("entries", nedges);
         Kokkos::parallel_for(nitems, KOKKOS_LAMBDA(int item) {
-            int cell = item % g_nCells;
-            int angle = item / g_nCells;
+            int cell = item % local_nCells;
+            int angle = item / local_nCells;
             int j = 0;
-            for (UINT face = 0; face < g_nFacePerCell; ++face) {
-                bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
+            for (UINT face = 0; face < local_nFacePerCell; ++face) {
+                bool is_out = omegaDotN(angle, cell, face) > 0;
                 if (!is_out) continue;
-                auto adjCell = g_tychoMesh->getAdjCell(cell, face);
+                auto adjCell = adjCellMat(cell, face);
                 if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
-                entries(row_map(item) + j) = adjCell + g_nCells * angle;
+                entries(row_map(item) + j) = adjCell + local_nCells * angle;
                 ++j;
             }
-            Assert(j + row_map(item) == row_map(item + 1));
+            assert(j + row_map(item) == row_map(item + 1));
         });
 
 
@@ -203,8 +207,8 @@ void GraphTraverser::traverse()
 
         // Traverse DAG
         auto lambda = KOKKOS_LAMBDA(int item) {
-            int cell = item % g_nCells;
-            int angle = item / g_nCells;
+            int cell = item % local_nCells;
+            int angle = item / local_nCells;
           
             // Update data for this cell-angle pair
             Transport::update(cell, angle, c_source, c_psiBound, c_psi);

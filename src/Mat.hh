@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Assert.hh"
 #include <stddef.h>
+#include <Kokkos_Core.hpp>
 
 
 /*
@@ -162,121 +163,50 @@ class Mat2
 private:
     
     // Data members
-    size_t c_xlen, c_ylen;
-    T *c_v;
-
-
-    // Compute the offset into the data array, of the (i,j) element.
-    size_t index(size_t i, size_t j) const
-    {
-        Assert(i < c_xlen);
-        Assert(j < c_ylen);
-
-        return j * c_xlen + i;
-    }
-
-
-    // Delete data
-    void detach()
-    {
-        if (c_v != NULL) {
-            delete[] c_v;
-            c_v = NULL;
-        }
-    }
+    Kokkos::View<T**, Kokkos::LayoutLeft> c_view;
 
 public:
 
     // Accessors
-    T& operator()(size_t i, size_t j)
+    KOKKOS_INLINE_FUNCTION T& operator()(size_t i, size_t j)
     {
-        return c_v[index(i, j)];
+        return c_view(i, j);
     }
-    const T& operator()(size_t i, size_t j) const
+    KOKKOS_INLINE_FUNCTION T& operator[](size_t i)
     {
-        return c_v[index(i, j)];
-    }
-
-    T& operator[](size_t i)
-    {
-        Assert(i < size());
-        return c_v[i];
-    }
-    const T& operator[](size_t i) const
-    {
-        Assert(i < size());
-        return c_v[i];
+        return c_view[i];
     }
     
     
     // Size of Mat
     size_t size() const
     {
-        return c_xlen * c_ylen;
+        return c_view.size();
     }
     
     
     // Constructors
     Mat2()
     {
-        c_xlen = 0;
-        c_ylen = 0;
-        c_v = NULL;
     }
 
-    Mat2(size_t xmax, size_t ymax)
+    Mat2(size_t xmax, size_t ymax) : 
+        c_view("Mat2", xmax, ymax);
     {
-        c_xlen = xmax;
-        c_ylen = ymax;
-        c_v = new T[size()];
-        
-        for (size_t i = 0; i < size(); i++) {
-            c_v[i] = T();
-        }
     }
-    
-    
-    // Destructor
-    ~Mat2()
-    {
-        detach();
-    }
-
-
-    // Don't allow copy or assignment operators
-    Mat2(const Mat2<T> &m) = delete;
-    Mat2& operator=(const Mat2 &m) = delete;
     
     
     // Set all values to a constant
     void setAll(const T &t)
     {
-        for (size_t i = 0; i < size(); i++) {
-            c_v[i] = t;
-        }
-    }
-
-    
-    // Set raw data pointer
-    void setData(const T *data)
-    {
-        for (size_t i = 0; i < size(); i++) {
-            c_v[i] = data[i];
-        }
+        Kokkos::deep_copy(c_view, t);
     }
     
 
     // Resize matrix
     void resize( size_t nxmax, size_t nymax)
     {
-        detach();
-        c_xlen = nxmax;
-        c_ylen = nymax;
-        c_v = new T[size()];
-
-        for (size_t i = 0; i < size(); i++) {
-            c_v[i] = T();
-        }
+        c_view = decltype(c_view)("Mat2", nxmax, nymax);
     }
 };
 
@@ -292,108 +222,41 @@ class Mat3
 private:
     
     // Data members
-    size_t c_xlen, c_ylen, c_zlen;
-    T *c_v;
-
-
-    // Compute the offset into the data array, of the (i,j,k) element.
-    size_t index(size_t i, size_t j, size_t k) const
-    {
-        Assert(i < c_xlen);
-        Assert(j < c_ylen);
-        Assert(k < c_zlen);
-
-        return (k * c_ylen + j) * c_xlen + i;
-    }
-
-    
-    // Delete data
-    void detach()
-    {
-        if (c_v != NULL) {
-            delete[] c_v;
-            c_v = NULL;
-        }
-    }
-    
+    Kokkos::View<T***, Kokkos::LayoutLeft> c_view;
 
 public:
 
     // Accessors
-    T& operator()(size_t i, size_t j, size_t k)
+    KOKKOS_INLINE_FUNCTION T& operator()(size_t i, size_t j, size_t k)
     {
-        return c_v[index(i, j, k)];
-    }
-    const T& operator()(size_t i, size_t j, size_t k) const
-    {
-        return c_v[index(i, j, k)];
-    }
-
-    T& operator[](size_t i)
-    {
-        Assert(i < size());
-        return c_v[i];
-    }
-    const T& operator[](size_t i) const
-    {
-        Assert(i < size());
-        return c_v[i];
+        return c_view(i, j, k);
     }
 
 
     // Size of Mat
-    size_t size() const
+    KOKKOS_INLINE_FUNCTION size_t size() const
     {
-        return c_xlen * c_ylen * c_zlen;
+        return c_view.size();
     }
+
+    T* data() const { return c_view.data(); }
 
 
     // Constructors
     Mat3()
     {
-        c_xlen = 0;
-        c_ylen = 0;
-        c_zlen = 0;
-        c_v = NULL;
     }
 
-    Mat3(size_t xmax, size_t ymax, size_t zmax)
+    Mat3(size_t xmax, size_t ymax, size_t zmax) :
+        c_view("Mat3", xmax, ymax, zmax);
     {
-        c_xlen = xmax;
-        c_ylen = ymax;
-        c_zlen = zmax;
-        c_v = new T[size()];
-
-        for (size_t i = 0; i < size(); i++) {
-            c_v[i] = T();
-        }
     }
 
     
-    // Destructor
-    ~Mat3()
-    {
-        detach();
-    }
-
-
-    // Don't allow copy or assignment operators
-    Mat3(const Mat3<T> &m) = delete;
-    Mat3& operator=(const Mat3 &m) = delete;
-    
-
     // Resize matrix
     void resize(size_t nxmax, size_t nymax, size_t nzmax)
     {
-        detach();
-        c_xlen = nxmax;
-        c_ylen = nymax;
-        c_zlen = nzmax;
-        c_v = new T[size()];
-        
-        for (size_t i = 0; i < size(); i++) {
-            c_v[i] = T();
-        }
+        c_view = decltype(c_view)("Mat3", nxmax, nymax, nzmax);
     }
 };
 

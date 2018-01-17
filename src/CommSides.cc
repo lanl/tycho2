@@ -125,8 +125,10 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
     std::vector<Comm::Request> commSendRequests(numAdjRanks);
     std::vector<std::vector<char>> dataToSend(numAdjRanks);
     std::vector<std::vector<char>> dataToRecv(numAdjRanks);
-    Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
-    
+    Kokkos::View<double**, Kokkos::LayoutLeft, Kokkos::HostSpace> 
+        localFaceData("localFaceData", g_nVrtxPerFace, g_nGroups);
+    Kokkos::View<double**, Kokkos::LayoutLeft, Kokkos::MemoryUnmanaged> 
+        localFaceDataUnmanaged;
     
     // Data structures to send/recv packets
     for (UINT rankIndex = 0; rankIndex < numAdjRanks; rankIndex++) {
@@ -173,7 +175,7 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
                     localFaceData(fvrtx, group) = psi(group, vrtx, angle, cell);
                 }}
 
-                const char *data = (char*) (&localFaceData[0]);
+                const char *data = (char*) localFaceData.data();
                 
                 char *ptr = &dataToSend[rankIndex][metaDataIndex * packetSize];
                 memcpy(ptr, &gSide, sizeof(UINT));
@@ -215,10 +217,12 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
             ptr += sizeof(UINT);
             UINT side = g_tychoMesh->getGLSide(gSide);
 
-            localFaceData.setData((double*)ptr);
+            localFaceDataUnmanaged = decltype(localFaceDataUnmanaged)
+                ((double*)ptr, g_nVrtxPerFace, g_nGroups);
             for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
             for (UINT group = 0; group < g_nGroups; group++) {
-                psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
+                psiBound(group, fvrtx, angle, side) = 
+                    localFaceDataUnmanaged(fvrtx, group);
             }}
         }
     }
