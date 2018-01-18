@@ -575,7 +575,7 @@ void ParallelMesh::createFromSerialMesh(const SerialMesh &serialMesh,
 /*
     readInParallel
     
-    Read only 1 partition of mesh per MPI process from file.
+    Read only 1 partition of mesh per rank from file.
 */
 void ParallelMesh::readInParallel(const std::string &filename, 
                                   PartitionData &partData)

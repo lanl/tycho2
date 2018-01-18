@@ -296,14 +296,14 @@ void TychoMesh::readTychoMesh(const std::string &filename)
     
     
     // c_adjCellFromSide, c_adjFaceFromSide
-    vector<Comm::Request> commRequests;
+    vector<Comm_Request> commRequests;
     for(UINT  cell = 0; cell < g_nCells; cell++) {
     for(UINT face = 0; face < g_nFacePerCell; face++) {
         UINT adjProc = c_adjProc(cell, face);
         UINT adjCell = c_adjCell(cell, face);
         
         if(adjCell == BOUNDARY_FACE && adjProc != BAD_RANK) {
-            Comm::Request request;
+            Comm_Request request;
             UINT cellFace[2];
             cellFace[0] = cell;
             cellFace[1] = face;

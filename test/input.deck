@@ -6,6 +6,5 @@ nGroups         2
 sigmaT          10.0
 sigmaS          5.0
 OutputFile      true
-OutputFilename  no-kokkos.psi
-useKokkos       false
+OutputFilename  test.psi
 

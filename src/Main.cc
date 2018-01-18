@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     UINT snOrder;
 
     
-    // Init MPI
+    // Init parallel communication
     Comm::init();
 
 
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
     // Solve
     Timer timer;
     timer.start();
-    PsiData psi("psi", g_nGroups, g_nVrtxPerCell, g_nAngles, g_nCells);
+    PsiData psi;
     Sweeper::solve(psi);
     timer.stop();
     

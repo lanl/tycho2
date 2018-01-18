@@ -53,13 +53,9 @@ using namespace std;
 */
 void Sweeper::solve(PsiData &psi)
 {
-    //PhiData phi0, phi1;
-    PhiData phi0("phi0", g_nGroups, g_nVrtxPerCell, g_nCells);
-    PhiData phi1("phi1", g_nGroups, g_nVrtxPerCell, g_nCells);
-    PsiData source("source", g_nGroups, g_nVrtxPerCell, g_nAngles, g_nCells);
-    PsiData totalSource("source", g_nGroups, g_nVrtxPerCell, g_nAngles, g_nCells);
-    PsiBoundData psiBound("psiBound", 
-        g_nGroups, g_nVrtxPerFace, g_nAngles, g_tychoMesh->getNSides());
+    PhiData phi0, phi1;
+    PsiData source, totalSource;
+    PsiBoundData psiBound;
     CommSides commSides;
 
 

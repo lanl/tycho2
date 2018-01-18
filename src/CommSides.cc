@@ -121,8 +121,8 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
     UINT numToRecv;
     UINT numAdjRanks = c_adjRanks.size();
     UINT packetSize = 2 * sizeof(UINT) + getDataSize();
-    std::vector<Comm::Request> commRecvRequests(numAdjRanks);
-    std::vector<Comm::Request> commSendRequests(numAdjRanks);
+    std::vector<Comm_Request> commRecvRequests(numAdjRanks);
+    std::vector<Comm_Request> commSendRequests(numAdjRanks);
     std::vector<std::vector<char>> dataToSend(numAdjRanks);
     std::vector<std::vector<char>> dataToRecv(numAdjRanks);
     Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
@@ -149,7 +149,7 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
         }
         
         else {
-            commRecvRequests[rankIndex].setNull();
+            Comm::setNullRequest(commRecvRequests[rankIndex]);
         }
     }
     
@@ -191,7 +191,7 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
         }
         
         else {
-            commSendRequests[rankIndex].setNull();
+            Comm::setNullRequest(commSendRequests[rankIndex]);
         }
     }
     

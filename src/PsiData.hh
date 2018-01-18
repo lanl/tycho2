@@ -47,8 +47,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TychoMesh.hh"
 #include <string>
 
-void writePsiToFile(const std::string &filename,
-                    const PsiData &psi);
 /*
     PsiData
 
@@ -57,7 +55,7 @@ void writePsiToFile(const std::string &filename,
     a = angle
     c = cell
 */
-/*class PsiData {
+class PsiData {
 public:
     
     // Accessors
@@ -150,7 +148,7 @@ private:
         
         return ((c * c_na + a) * c_nv + v) * c_ng + g;
     }
-};*/
+};
 
 
 /*
@@ -161,7 +159,7 @@ private:
     a = angle
     s = side
 */
-/*class PsiBoundData {
+class PsiBoundData {
 public:
     
     // Accessors
@@ -250,7 +248,7 @@ private:
         
         return ((s * c_na + a) * c_nv + v) * c_ng + g;
     }
-};*/
+};
 
 
 /*
@@ -260,7 +258,7 @@ private:
     v = vertex
     c = cell
 */
-/*class PhiData {
+class PhiData {
 public:
     
     // Accessors
@@ -347,7 +345,12 @@ private:
         return (c * c_nv + v) * c_ng + g;
     }
 };
-*/
 
+
+/*
+    writePsiToFile
+*/
+void writePsiToFile(const std::string &filename,
+                    const PsiData &psi);
 
 #endif

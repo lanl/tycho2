@@ -9,5 +9,4 @@ sigmaT          10.0
 sigmaS          5.0
 OutputFile      false
 OutputFilename  out.psi
-useKokkos       false
 

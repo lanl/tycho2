@@ -63,33 +63,6 @@ File::~File()
 
 
 /*
-    Constructor/Destructor for Comm::Request
-*/
-Request::Request()
-{
-    c_request = new MPI_Request;
-}
-Request::~Request()
-{
-    delete (MPI_Request*)c_request;
-}
-Request::Request(const Comm::Request &other)
-{
-    c_request = new MPI_Request;
-    *((MPI_Request*)c_request) = *((MPI_Request*)other.c_request);
-}
-Comm::Request& Request::operator=(const Comm::Request &other)
-{
-    *((MPI_Request*)c_request) = *((MPI_Request*)other.c_request);
-    return *this;
-}
-void Request::setNull()
-{
-    *((MPI_Request*)c_request) = MPI_REQUEST_NULL;
-}
-
-
-/*
     initialize
 
     Implements MPI_Init_thread
@@ -220,12 +193,21 @@ void barrier()
 
 
 /*
+    setNullRequest
+*/
+void setNullRequest(Comm_Request &commRequest)
+{
+    commRequest = (Comm_Request)MPI_REQUEST_NULL;
+}
+
+
+/*
     isend
 */
-void isend(void *data, int size, int proc, int tag, Comm::Request &request)
+void isend(void *data, int size, int proc, int tag, Comm_Request &request)
 {
     int result = MPI_Isend(data, size, MPI_BYTE, proc, tag, MPI_COMM_WORLD, 
-                           (MPI_Request*)request.c_request);
+                           (MPI_Request*)&request);
     Insist(result == MPI_SUCCESS, "Comm::isend MPI error.\n");
 }
 
@@ -233,10 +215,10 @@ void isend(void *data, int size, int proc, int tag, Comm::Request &request)
 /*
     irecv
 */
-void irecv(void *data, int size, int proc, int tag, Comm::Request &request)
+void irecv(void *data, int size, int proc, int tag, Comm_Request &request)
 {
     int result = MPI_Irecv(data, size, MPI_BYTE, proc, tag, MPI_COMM_WORLD, 
-                           (MPI_Request*)request.c_request);
+                           (MPI_Request*)&request);
     Insist(result == MPI_SUCCESS, "Comm::irecv MPI error.\n");
 }
 
@@ -257,13 +239,10 @@ void recv(void *data, int size, int proc, int tag)
 
     Wait on all requests to finish
 */
-void waitall(const std::vector<Comm::Request> &commRequests)
+void waitall(const std::vector<Comm_Request> &commRequests)
 {
-    vector<MPI_Request> mpiRequests(commRequests.size());
-    for (unsigned i = 0; i < commRequests.size(); i++) {
-        mpiRequests[i] = *((MPI_Request*)commRequests[i].c_request);
-    }
-    int result = MPI_Waitall(mpiRequests.size(), &mpiRequests[0], 
+    int result = MPI_Waitall(commRequests.size(), 
+                             (MPI_Request*)commRequests.data(), 
                              MPI_STATUSES_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::waitall MPI error.\n");
 }
@@ -274,15 +253,12 @@ void waitall(const std::vector<Comm::Request> &commRequests)
 
     Wait on any request to finish
 */
-int waitany(const std::vector<Comm::Request> &commRequests)
+int waitany(const std::vector<Comm_Request> &commRequests)
 {
     int rankIndex;
-    vector<MPI_Request> mpiRequests(commRequests.size());
-    for (unsigned i = 0; i < commRequests.size(); i++) {
-        mpiRequests[i] = *((MPI_Request*)commRequests[i].c_request);
-    }
-    int result = MPI_Waitany(mpiRequests.size(), &mpiRequests[0], &rankIndex, 
-                             MPI_STATUSES_IGNORE);
+    int result = MPI_Waitany(commRequests.size(), 
+                             (MPI_Request*)commRequests.data(), 
+                             &rankIndex, MPI_STATUSES_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::waitall MPI error.\n");
 
     return rankIndex;

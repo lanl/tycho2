@@ -45,21 +45,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+typedef uint64_t Comm_Request;
+
 namespace Comm
 {
-
-
-class Request
-{
-public:
-    Request();
-    ~Request();
-    Request(const Comm::Request &other);
-    Comm::Request& operator=(const Comm::Request &other);
-    void setNull();
-    
-    void *c_request;
-};
 
 
 class File
@@ -85,11 +74,13 @@ void gmax(UINT &x);
 
 void barrier();
 
-void isend(void *data, int size, int proc, int tag, Comm::Request &request);
-void irecv(void *data, int size, int proc, int tag, Comm::Request &request);
+void setNullRequest(Comm_Request &commRequest);
+
+void isend(void *data, int size, int proc, int tag, Comm_Request &request);
+void irecv(void *data, int size, int proc, int tag, Comm_Request &request);
 void recv(void *data, int size, int proc, int tag);
-void waitall(const std::vector<Comm::Request> &commRequests);
-int waitany(const std::vector<Comm::Request> &commRequests);
+void waitall(const std::vector<Comm_Request> &commRequests);
+int waitany(const std::vector<Comm_Request> &commRequests);
 
 void openFileForRead(const std::string &filename, Comm::File &file);
 void openFileForWrite(const std::string &filename, Comm::File &file);
