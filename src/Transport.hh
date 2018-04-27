@@ -43,9 +43,38 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Mat.hh"
 #include "PsiData.hh"
 #include "Global.hh"
+#include <Kokkos_Core.hpp>
+
+using host = Kokkos::DefaultHostExecutionSpace;
+using device = Kokkos::DefaultExecutionSpace;
+using host_psi_data_t =
+  Kokkos::View<double****, Kokkos::LayoutLeft, host>;
+using device_psi_data_t =
+  Kokkos::View<double****, Kokkos::LayoutLeft, device>;
+template <class T>
+using host_mat1_t =
+  Kokkos::View<T*, Kokkos::LayoutLeft, host>;
+template <class T>
+using device_mat1_t =
+  Kokkos::View<T*, Kokkos::LayoutLeft, device>;
+template <class T>
+using host_mat2_t =
+  Kokkos::View<T**, Kokkos::LayoutLeft, host>;
+template <class T>
+using device_mat2_t =
+  Kokkos::View<T**, Kokkos::LayoutLeft, device>;
+template <class T>
+using host_mat3_t =
+  Kokkos::View<T***, Kokkos::LayoutLeft, host>;
+template <class T>
+using device_mat3_t =
+  Kokkos::View<T***, Kokkos::LayoutLeft, device>;
 
 
-namespace Transport 
+#include "Transport.cc.hh"
+
+
+/*namespace Transport 
 {
 
 void update(
@@ -56,6 +85,7 @@ void update(
     PsiData &psi);
 
 } // End namespace Transport
+*/
 
 #endif
 

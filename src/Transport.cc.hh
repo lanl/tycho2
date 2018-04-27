@@ -55,10 +55,12 @@ using namespace std;
     calcSource
 */
 static
-void calcSource(const double volume, 
-                const double localSource[g_nVrtxPerCell][g_nMaxGroups],
-                double cellSource[4],
-                const UINT group) 
+KOKKOS_INLINE_FUNCTION
+void calcSourceKokkos(
+    const double volume, 
+    const double localSource[g_nVrtxPerCell][g_nMaxGroups],
+    double cellSource[g_nVrtxPerCell],
+    const UINT group) 
 {
     double q0 = localSource[0][group];
     double q1 = localSource[1][group];
@@ -76,10 +78,12 @@ void calcSource(const double volume,
     calcVolumeIntegrals
 */
 static
-void calcVolumeIntegrals(const double volume, 
-                         const double area[g_nFacePerCell],
-                         const double sigmaTotal,
-                         double matrix[g_nVrtxPerCell][g_nVrtxPerCell]) 
+KOKKOS_INLINE_FUNCTION
+void calcVolumeIntegralsKokkos(
+    const double volume, 
+    const double area[g_nFacePerCell],
+    const double sigmaTotal,
+    double matrix[g_nVrtxPerCell][g_nVrtxPerCell]) 
 {
     matrix[0][0] = area[0] / 12.0 + 2.0 * sigmaTotal * volume / 20.0;
     matrix[0][1] = area[0] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
@@ -107,8 +111,10 @@ void calcVolumeIntegrals(const double volume,
     calcOutgoingFlux
 */
 static
-void calcOutgoingFlux(const double area[g_nFacePerCell],
-                      double matrix[g_nVrtxPerCell][g_nVrtxPerCell])
+KOKKOS_INLINE_FUNCTION
+void calcOutgoingFluxKokkos(
+    const double area[g_nFacePerCell],
+    double matrix[g_nVrtxPerCell][g_nVrtxPerCell])
 {
     if (area[0] > 0) {
         matrix[1][1] += 2.0 * area[0] / 12.0;
@@ -172,20 +178,22 @@ void calcOutgoingFlux(const double area[g_nFacePerCell],
     calcIncomingFlux
 */
 static
-void calcIncomingFlux(
+KOKKOS_INLINE_FUNCTION
+void calcIncomingFluxKokkos(
     const UINT cell, 
     const double area[g_nFacePerCell],
     const double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
     double cellSource[g_nVrtxPerCell],
-    const UINT group)
+    const UINT group,
+    device_mat3_t<UINT> const &cell_to_face_vertex)
 {
     UINT faceVertex0, faceVertex1, faceVertex2, faceVertex3;
     double psiNeighbor0, psiNeighbor1, psiNeighbor2, psiNeighbor3;
 
     if (area[0] < 0) {
-        faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 1);
-        faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 2);
-        faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 3);
+        faceVertex1 = cell_to_face_vertex(cell, 0, 1);
+        faceVertex2 = cell_to_face_vertex(cell, 0, 2);
+        faceVertex3 = cell_to_face_vertex(cell, 0, 3);
         
         psiNeighbor1 = localPsiBound[faceVertex1][0][group];
         psiNeighbor2 = localPsiBound[faceVertex2][0][group];
@@ -205,9 +213,9 @@ void calcIncomingFlux(
     }
 
     if (area[1] < 0) {
-        faceVertex0 = g_tychoMesh->getCellToFaceVrtx(cell, 1, 0);
-        faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 1, 2);
-        faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 1, 3);
+        faceVertex0 = cell_to_face_vertex(cell, 1, 0);
+        faceVertex2 = cell_to_face_vertex(cell, 1, 2);
+        faceVertex3 = cell_to_face_vertex(cell, 1, 3);
         
         psiNeighbor0 = localPsiBound[faceVertex0][1][group];
         psiNeighbor2 = localPsiBound[faceVertex2][1][group];
@@ -227,9 +235,9 @@ void calcIncomingFlux(
     }
 
     if (area[2] < 0) {
-        faceVertex0 = g_tychoMesh->getCellToFaceVrtx(cell, 2, 0);
-        faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 2, 1);
-        faceVertex3 = g_tychoMesh->getCellToFaceVrtx(cell, 2, 3);
+        faceVertex0 = cell_to_face_vertex(cell, 2, 0);
+        faceVertex1 = cell_to_face_vertex(cell, 2, 1);
+        faceVertex3 = cell_to_face_vertex(cell, 2, 3);
         
         psiNeighbor0 = localPsiBound[faceVertex0][2][group];
         psiNeighbor1 = localPsiBound[faceVertex1][2][group];
@@ -249,9 +257,9 @@ void calcIncomingFlux(
     }
 
     if (area[3] < 0) {
-        faceVertex0 = g_tychoMesh->getCellToFaceVrtx(cell, 3, 0);
-        faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 3, 1);
-        faceVertex2 = g_tychoMesh->getCellToFaceVrtx(cell, 3, 2);
+        faceVertex0 = cell_to_face_vertex(cell, 3, 0);
+        faceVertex1 = cell_to_face_vertex(cell, 3, 1);
+        faceVertex2 = cell_to_face_vertex(cell, 3, 2);
         
         psiNeighbor0 = localPsiBound[faceVertex0][3][group];
         psiNeighbor1 = localPsiBound[faceVertex1][3][group];
@@ -276,7 +284,8 @@ void calcIncomingFlux(
     gaussElim4
 */
 static 
-void gaussElim4(double A[4][4], double b[4])
+KOKKOS_INLINE_FUNCTION
+void gaussElim4Kokkos(double A[4][4], double b[4])
 {
     double tmp;
     
@@ -354,51 +363,58 @@ void gaussElim4(double A[4][4], double b[4])
     solve
 */
 static 
-void solve(
+KOKKOS_INLINE_FUNCTION
+void solveKokkos(
     const UINT cell, 
     const UINT angle, 
     const double sigmaTotal,
     const double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
     const double localSource[g_nVrtxPerCell][g_nMaxGroups],
-    double localPsi[g_nVrtxPerCell][g_nMaxGroups])
+    double localPsi[g_nVrtxPerCell][g_nMaxGroups],
+    device_mat1_t<double> const &cell_volume,
+    device_mat2_t<double> const &face_area,
+    device_mat3_t<double> const &omega_dot_n,
+    device_mat3_t<UINT> const &cell_to_face_vertex,
+    UINT nGroups)
 {
     double volume, area[g_nFacePerCell];
 
     
     // Get cell volume and face areas
-    volume = g_tychoMesh->getCellVolume(cell);
+    volume = cell_volume(cell);
     
-    area[0] = g_tychoMesh->getFaceArea(cell, 0) * 
-              g_tychoMesh->getOmegaDotN(angle, cell, 0);
-    area[1] = g_tychoMesh->getFaceArea(cell, 1) * 
-              g_tychoMesh->getOmegaDotN(angle, cell, 1);
-    area[2] = g_tychoMesh->getFaceArea(cell, 2) * 
-              g_tychoMesh->getOmegaDotN(angle, cell, 2);
-    area[3] = g_tychoMesh->getFaceArea(cell, 3) * 
-              g_tychoMesh->getOmegaDotN(angle, cell, 3);
+    area[0] = face_area(cell, 0) * 
+              omega_dot_n(angle, cell, 0);
+    area[1] = face_area(cell, 1) * 
+              omega_dot_n(angle, cell, 1);
+    area[2] = face_area(cell, 2) * 
+              omega_dot_n(angle, cell, 2);
+    area[3] = face_area(cell, 3) * 
+              omega_dot_n(angle, cell, 3);
     
     
     // Solve local transport problem for each group
-    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT group = 0; group < nGroups; group++) {
         
         double cellSource[g_nVrtxPerCell] = {0.0};
         double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
         double solution[g_nVrtxPerCell];
     
         // form local source term
-        calcSource(volume, localSource, cellSource, group);
+        calcSourceKokkos(volume, localSource, cellSource, group);
         
         // form streaming-plus-collision portion of matrix
-        calcVolumeIntegrals(volume, area, sigmaTotal, matrix);
+        calcVolumeIntegralsKokkos(volume, area, sigmaTotal, matrix);
         
         // form dependencies on incoming (outgoing) faces
-        calcOutgoingFlux(area, matrix);
-        calcIncomingFlux(cell, area, localPsiBound, cellSource, group);
+        calcOutgoingFluxKokkos(area, matrix);
+        calcIncomingFluxKokkos(cell, area, localPsiBound, cellSource, group,
+                               cell_to_face_vertex);
         
         // solve matrix
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
             solution[vertex] = cellSource[vertex];
-        gaussElim4(matrix, solution);
+        gaussElim4Kokkos(matrix, solution);
         
         // put local solution onto global solution
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
@@ -412,40 +428,46 @@ void solve(
     Put data from neighboring cells into localPsiBound(fvrtx, face, group).
 */
 static 
-void populateLocalPsiBound(
+KOKKOS_INLINE_FUNCTION
+void populateLocalPsiBoundKokkos(
     const UINT angle, 
     const UINT cell, 
-    const PsiData &__restrict psi, 
-    const PsiBoundData & __restrict psiBound,
-    double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups])
+    device_psi_data_t const &psi, 
+    device_psi_data_t const &psiBound, 
+    double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
+    device_mat3_t<double> const& omega_dot_n,
+    device_mat2_t<UINT> const& adj_cell,
+    device_mat3_t<UINT> const& neighbor_vertex,
+    device_mat2_t<UINT> const& adj_proc,
+    device_mat2_t<UINT> const& sides,
+    UINT nGroups)
 {
     for (UINT i = 0; i < g_nVrtxPerFace; i++) {
     for (UINT j = 0; j < g_nFacePerCell; j++) {
-    for (UINT k = 0; k < g_nGroups; k++) {
+    for (UINT k = 0; k < nGroups; k++) {
         localPsiBound[i][j][k] = 0.0;
     }}}
     
     // Populate if incoming flux
     #pragma omp simd
-    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT group = 0; group < nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
-        if (g_tychoMesh->isIncoming(angle, cell, face)) {
-            UINT neighborCell = g_tychoMesh->getAdjCell(cell, face);
+        if (omega_dot_n(angle, cell, face) <= 0) {
+            UINT neighborCell = adj_cell(cell, face);
             
             // In local mesh
             if (neighborCell != TychoMesh::BOUNDARY_FACE) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    UINT neighborVrtx = 
-                        g_tychoMesh->getNeighborVrtx(cell, face, fvrtx);
+                    UINT neighborVrtx = neighbor_vertex(cell, face, fvrtx);
                     localPsiBound[fvrtx][face][group] = 
                         psi(group, neighborVrtx, angle, neighborCell);
                 }
             }
             
             // Not in local mesh
-            else if (g_tychoMesh->getAdjRank(cell, face) != TychoMesh::BAD_RANK) {
+            else if (adj_proc(cell, face) != TychoMesh::BAD_RANK) {
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
-                    UINT side = g_tychoMesh->getSide(cell, face);
+                    UINT side = sides(cell, face);
                     localPsiBound[fvrtx][face][group] = 
                         psiBound(group, fvrtx, angle, side);
                 }
@@ -464,12 +486,23 @@ namespace Transport
     
     Does a transport update for the given cell/angle pair.
 */
+KOKKOS_INLINE_FUNCTION
 void update(
     const UINT cell, 
     const UINT angle,
-    const PsiData &source,
-    const PsiBoundData &psiBound,
-    PsiData &psi) 
+    device_psi_data_t const &device_source, 
+    device_psi_data_t const &device_psi_bound, 
+    device_psi_data_t &device_psi,
+    UINT nGroups,
+    device_mat3_t<double> const& device_omega_dot_n,
+    device_mat2_t<UINT> const& device_adj_cell,
+    device_mat3_t<UINT> const& device_neighbor_vertex,
+    device_mat2_t<UINT> const& device_adj_proc,
+    device_mat2_t<UINT> const& device_side,
+    device_mat1_t<double> const &device_cell_volume,
+    device_mat1_t<double> const &device_sigma_t,
+    device_mat2_t<double> const &device_face_area,
+    device_mat3_t<UINT> const &device_cell_to_face_vertex)
 {
     double localSource[g_nVrtxPerCell][g_nMaxGroups];
     double localPsi[g_nVrtxPerCell][g_nMaxGroups];
@@ -477,27 +510,29 @@ void update(
 
     
     // Populate localSource
-    #pragma omp simd
-    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT group = 0; group < nGroups; group++) {
     for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        localSource[vrtx][group] = source(group, vrtx, angle, cell);
+        localSource[vrtx][group] = device_source(group, vrtx, angle, cell);
     }}
     
     
     // Populate localPsiBound
-    populateLocalPsiBound(angle, cell, psi, psiBound, 
-                                     localPsiBound);
+    populateLocalPsiBoundKokkos(angle, cell, device_psi, device_psi_bound, 
+                                localPsiBound, device_omega_dot_n,
+                                device_adj_cell, device_neighbor_vertex, 
+                                device_adj_proc, device_side, nGroups);
     
     
     // Transport solve
-    solve(cell, angle, g_sigmaT[cell],
-                     localPsiBound, localSource, localPsi);
+    solveKokkos(cell, angle, device_sigma_t(cell), localPsiBound, localSource, 
+          localPsi, device_cell_volume, device_face_area, device_omega_dot_n,
+          device_cell_to_face_vertex, nGroups);
     
     
     // localPsi -> psi
-    for (UINT group = 0; group < g_nGroups; group++) {
+    for (UINT group = 0; group < nGroups; group++) {
     for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        psi(group, vrtx, angle, cell) = localPsi[vrtx][group];
+        device_psi(group, vrtx, angle, cell) = localPsi[vrtx][group];
     }}
 }
 

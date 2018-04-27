@@ -71,7 +71,6 @@ enum : UINT { g_nMaxGroups = 128 };
 
 
 // Global variables
-EXTERN UINT g_nThreads;
 EXTERN UINT g_nGroups;
 EXTERN UINT g_iterMax;
 EXTERN double g_errMax;

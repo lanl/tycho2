@@ -52,7 +52,6 @@ public:
     void traverse();
 
 private:
-    Mat2<UINT> c_initNumDependencies;
     PsiData &c_psi;
     PsiBoundData &c_psiBound;
     const PsiData &c_source;
