@@ -43,9 +43,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Global.hh"
 #include <vector>
 #include <string>
+#include <mpi.h>
 
 
-typedef uint64_t Comm_Request;
+typedef MPI_Request Comm_Request;
 
 namespace Comm
 {

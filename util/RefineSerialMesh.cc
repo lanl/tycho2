@@ -162,6 +162,7 @@ int index2To1(int i, int j)
     if (i == 2 && j == 3) return 5;
     
     assert(false);
+    return -1;
 }
 
 

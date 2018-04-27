@@ -88,7 +88,7 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
         phi(g,v,c) = 0.0;
     }}}
     
-    #pragma omp parallel for
+  //#pragma omp parallel for
     for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
@@ -104,7 +104,7 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
 */
 void phiToPsi(const PhiData &phi, PsiData &psi) 
 {
-    #pragma omp parallel for
+  //#pragma omp parallel for
     for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
@@ -120,7 +120,7 @@ void phiToPsi(const PhiData &phi, PsiData &psi)
 void calcTotalSource(const PsiData &source, const PhiData &phi, 
                      PsiData &totalSource)
 {
-    #pragma omp parallel for
+  //#pragma omp parallel for
     for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
     for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {

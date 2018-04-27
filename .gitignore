@@ -12,3 +12,5 @@ make.inc
 *.psi
 *.vtk
 *.visit
+KokkosCore_config.*
+*.a

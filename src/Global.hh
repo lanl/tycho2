@@ -63,11 +63,11 @@ typedef uint64_t UINT;
 
 
 // Global constants
-static const UINT g_ndim = 3;
-static const UINT g_nVrtxPerCell = 4;
-static const UINT g_nVrtxPerFace = 3;
-static const UINT g_nFacePerCell = 4;
-static const UINT g_nMaxGroups = 128;
+enum : UINT { g_ndim = 3 };
+enum : UINT { g_nVrtxPerCell = 4 };
+enum : UINT { g_nVrtxPerFace = 3 };
+enum : UINT { g_nFacePerCell = 4 };
+enum : UINT { g_nMaxGroups = 128 };
 
 
 // Global variables
@@ -83,4 +83,3 @@ EXTERN UINT g_nAngles;
 EXTERN UINT g_nCells;
 
 #endif
-

@@ -51,6 +51,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <Kokkos_Core.hpp>
+
 using namespace std;
 
 
@@ -111,6 +113,7 @@ int main(int argc, char *argv[])
     // Init parallel communication
     Comm::init();
 
+    Kokkos::initialize(argc, argv);
 
     // Input data.
     if (argc < 3) {
@@ -133,11 +136,12 @@ int main(int argc, char *argv[])
     // Get number of angle groups
     // This is the same as the number of OpenMP threads
     g_nThreads = 1;
-    #pragma omp parallel
-    {
-        if(omp_get_thread_num() == 0)
-            g_nThreads = omp_get_num_threads();
-    }
+    // TODO: Get rid of g_nThreads completely
+  //#pragma omp parallel
+  //{
+  //    if(omp_get_thread_num() == 0)
+  //        g_nThreads = omp_get_num_threads();
+  //}
     if (Comm::rank() == 0)
         printf("Num threads: %" PRIu64 "\n", g_nThreads);
     
@@ -196,6 +200,7 @@ int main(int argc, char *argv[])
         writePsiToFile(outputFilename, psi);
         //psi.writeToFile(outputFilename);
 
+    Kokkos::finalize();
 
     Comm::finalize();
     return 0;

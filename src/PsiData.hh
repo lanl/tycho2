@@ -88,6 +88,7 @@ public:
         return c_ng * c_nv * c_na * c_nc;
     }
 
+    double* data() { return c_data; }
 
     // Constructor
     PsiData()
@@ -192,6 +193,7 @@ public:
         return c_ng * c_nv * c_na * c_ns;
     }
 
+    double* data() { return c_data; }
 
     // Constructor
     PsiBoundData()
@@ -352,5 +354,7 @@ private:
 */
 void writePsiToFile(const std::string &filename,
                     const PsiData &psi);
+void writePhiToFile(const std::string &filename,
+                    const PhiData &phi);
 
 #endif
