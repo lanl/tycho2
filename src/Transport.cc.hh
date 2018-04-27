@@ -487,12 +487,12 @@ namespace Transport
     Does a transport update for the given cell/angle pair.
 */
 KOKKOS_INLINE_FUNCTION
-void update(
+void updateKokkos(
     const UINT cell, 
     const UINT angle,
     device_psi_data_t const &device_source, 
     device_psi_data_t const &device_psi_bound, 
-    device_psi_data_t &device_psi,
+    device_psi_data_t device_psi,       // WHY NO REFERENCE HERE???
     UINT nGroups,
     device_mat3_t<double> const& device_omega_dot_n,
     device_mat2_t<UINT> const& device_adj_cell,

@@ -44,7 +44,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "Timer.hh"
 #include "Transport.hh"
-//#include "Transport.cc"
 #include <Kokkos_Core.hpp>
 
 
@@ -239,42 +238,22 @@ void GraphTraverser::traverse()
         int cell = item % nCells;
         int angle = item / nCells;
 
-
-        // Update data for this cell-angle pair
-        double localSource[g_nVrtxPerCell][g_nMaxGroups];
-        double localPsi[g_nVrtxPerCell][g_nMaxGroups];
-        double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups];
-
-
-        // Populate localSource
-        for (UINT group = 0; group < nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-            localSource[vrtx][group] =
-                device_source(group, vrtx, angle, cell);
-        }}
-
-
-        // Populate localPsiBound
-        populateLocalPsiBoundKokkos(
-            angle, cell, device_psi, device_psi_bound, 
-            localPsiBound, device_omega_dot_n,
-            device_adj_cell, device_neighbor_vertex,
-            device_adj_proc, device_side, nGroups);
-
-
-        // Transport solve
-        solveKokkos(cell, angle, device_sigma_t(cell),
-            localPsiBound, localSource, localPsi,
-            device_cell_volume, device_face_area,
-            device_omega_dot_n, device_cell_to_face_vertex,
-            nGroups);
-
-
-        // localPsi -> psi
-        for (UINT group = 0; group < nGroups; group++) {
-        for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-          device_psi(group, vrtx, angle, cell) = localPsi[vrtx][group];
-        }}
+        Transport::updateKokkos(
+            cell,
+            angle,
+            device_source,
+            device_psi_bound,
+            device_psi,
+            nGroups,
+            device_omega_dot_n,
+            device_adj_cell,
+            device_neighbor_vertex,
+            device_adj_proc,
+            device_side,
+            device_cell_volume,
+            device_sigma_t,
+            device_face_area,
+            device_cell_to_face_vertex);
     };
     
 
