@@ -60,7 +60,7 @@ void Sweeper::solve(PsiData &psi)
 
 
     // Setup GraphTraverser
-    GraphTraverser graphTraverser(psi, totalSource, psiBound);
+    GraphTraverser graphTraverser;
     
     
     // Initialize source and psi
@@ -92,7 +92,7 @@ void Sweeper::solve(PsiData &psi)
     for (iter = 1; iter < g_iterMax; iter++) {
         
         Util::calcTotalSource(source, phi0, totalSource);
-        graphTraverser.traverse();
+        graphTraverser.traverse(totalSource, psiBound, psi);
         Util::psiToPhi(phi1, psi);
         commSides.commSides(psi, psiBound);
         

@@ -44,20 +44,79 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "Timer.hh"
 #include "Transport.hh"
+#include "Transport.cc.hh"
 #include <Kokkos_Core.hpp>
 
 
 /*
     GraphTraverser
 */
-GraphTraverser::GraphTraverser(
-        PsiData &psi, 
-        const PsiData &source, 
-        PsiBoundData &psiBound)
-: c_psi(psi), 
-  c_psiBound(psiBound), 
-  c_source(source)
+GraphTraverser::GraphTraverser()
 {
+    auto host_omega_dot_n = host_mat3_t<double>(
+        g_tychoMesh->c_omegaDotN.data(),
+        g_nAngles,
+        g_nCells,
+        g_nFacePerCell);
+    auto host_adj_cell = host_mat2_t<UINT>(
+        g_tychoMesh->c_adjCell.data(),
+        g_nCells,
+        g_nFacePerCell);
+    auto host_neighbor_vertex = host_mat3_t<UINT>(
+        g_tychoMesh->c_neighborVrtx.data(),
+        g_nCells,
+        g_nFacePerCell,
+        g_nVrtxPerFace);
+    auto host_adj_proc = host_mat2_t<UINT>(
+        g_tychoMesh->c_adjProc.data(),
+        g_nCells,
+        g_nFacePerCell);
+    auto host_side = host_mat2_t<UINT>(
+        g_tychoMesh->c_side.data(),
+        g_nCells,
+        g_nFacePerCell);
+    auto host_sigma_t = host_mat1_t<double>(
+        g_sigmaT.data(),
+        g_sigmaT.size());
+    auto host_cell_volume = host_mat1_t<double>(
+        g_tychoMesh->c_cellVolume.data(),
+        g_nCells);
+    auto host_face_area = host_mat2_t<double>(
+        g_tychoMesh->c_faceArea.data(),
+        g_nCells,
+        g_nFacePerCell);
+    auto host_cell_to_face_vertex = host_mat3_t<UINT>(
+        g_tychoMesh->c_cellToFaceVrtx.data(),
+        g_nCells,
+        g_nFacePerCell,
+        g_nVrtxPerCell);
+
+    c_device_omega_dot_n = Kokkos::create_mirror_view_and_copy(
+        device(), host_omega_dot_n);
+    c_device_adj_cell = Kokkos::create_mirror_view_and_copy(
+        device(), host_adj_cell);
+    c_device_neighbor_vertex = Kokkos::create_mirror_view_and_copy(
+        device(), host_neighbor_vertex);
+    c_device_adj_proc = Kokkos::create_mirror_view_and_copy(
+        device(), host_adj_proc);
+    c_device_side = Kokkos::create_mirror_view_and_copy(
+        device(), host_side);
+    c_device_sigma_t = Kokkos::create_mirror_view_and_copy(
+        device(), host_sigma_t);
+    c_device_cell_volume = Kokkos::create_mirror_view_and_copy(
+        device(), host_cell_volume);
+    c_device_face_area = Kokkos::create_mirror_view_and_copy(
+        device(), host_face_area);
+    c_device_cell_to_face_vertex = Kokkos::create_mirror_view_and_copy(
+        device(), host_cell_to_face_vertex);
+
+    // NOT SAFE?
+    c_device_source = device_psi_data_t(
+        "source",
+        g_nGroups,
+        g_nVrtxPerCell,
+        g_nAngles,
+        g_nCells);
 }
 
 
@@ -66,7 +125,10 @@ GraphTraverser::GraphTraverser(
     
     Traverses g_tychoMesh.
 */
-void GraphTraverser::traverse()
+void GraphTraverser::traverse(
+    const PsiData &source,
+    const PsiBoundData &psiBound,
+    PsiData &psi)
 {
     Timer totalTimer;
     Timer setupTimer;
@@ -128,112 +190,49 @@ void GraphTraverser::traverse()
     setupTimer.stop();
 
 
-    //copy data to device views
-    auto host_source =
-      host_psi_data_t(const_cast<PsiData&>(c_source).data(),
-          g_nGroups,
-          g_nVrtxPerCell,
-          g_nAngles,
-          g_nCells);
-    auto host_psi =
-      host_psi_data_t(c_psi.data(),
-          g_nGroups,
-          g_nVrtxPerCell,
-          g_nAngles,
-          g_nCells);
-    auto host_psi_bound =
-      host_psi_data_t(c_psiBound.data(),
-          g_nGroups,
-          g_nVrtxPerFace,
-          g_nAngles,
-          g_tychoMesh->getNSides());
-    auto host_omega_dot_n =
-      host_mat3_t<double>(
-          g_tychoMesh->c_omegaDotN.data(),
-          g_nAngles,
-          g_nCells,
-          g_nFacePerCell);
-    auto host_adj_cell =
-      host_mat2_t<UINT>(
-          g_tychoMesh->c_adjCell.data(),
-          g_nCells,
-          g_nFacePerCell);
-    auto host_neighbor_vertex =
-      host_mat3_t<UINT>(
-          g_tychoMesh->c_neighborVrtx.data(),
-          g_nCells,
-          g_nFacePerCell,
-          g_nVrtxPerFace);
-    auto host_adj_proc =
-      host_mat2_t<UINT>(
-          g_tychoMesh->c_adjProc.data(),
-          g_nCells,
-          g_nFacePerCell);
-    auto host_side =
-      host_mat2_t<UINT>(
-          g_tychoMesh->c_side.data(),
-          g_nCells,
-          g_nFacePerCell);
-    auto host_sigma_t =
-      host_mat1_t<double>(
-          g_sigmaT.data(),
-          g_sigmaT.size());
-    auto host_cell_volume =
-      host_mat1_t<double>(
-          g_tychoMesh->c_cellVolume.data(),
-          g_nCells);
-    auto host_face_area =
-      host_mat2_t<double>(
-          g_tychoMesh->c_faceArea.data(),
-          g_nCells,
-          g_nFacePerCell);
-    auto host_cell_to_face_vertex =
-      host_mat3_t<UINT>(
-          g_tychoMesh->c_cellToFaceVrtx.data(),
-          g_nCells,
-          g_nFacePerCell,
-          g_nVrtxPerCell);
-    auto device_source =
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_source);
-    auto device_psi =
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_psi);
-    auto device_psi_bound =
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_psi_bound);
-    auto device_omega_dot_n =
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_omega_dot_n);
-    auto device_adj_cell =
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_adj_cell);
-    auto device_neighbor_vertex =
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_neighbor_vertex);
-    auto device_adj_proc =
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_adj_proc);
-    auto device_side =
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_side);
-    auto device_sigma_t = 
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_sigma_t);
-    auto device_cell_volume = 
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_cell_volume);
-    auto device_face_area = 
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_face_area);
-    auto device_cell_to_face_vertex = 
-      Kokkos::create_mirror_view_and_copy(
-          device(), host_cell_to_face_vertex);
+    // Copy data to device views
+    auto host_source = host_psi_data_t(
+        const_cast<PsiData&>(source).data(),
+        g_nGroups,
+        g_nVrtxPerCell,
+        g_nAngles,
+        g_nCells);
+    auto host_psi_bound = host_psi_data_t(
+        const_cast<PsiBoundData&>(psiBound).data(),
+        g_nGroups,
+        g_nVrtxPerFace,
+        g_nAngles,
+        g_tychoMesh->getNSides());
+    auto host_psi = host_psi_data_t(
+        psi.data(),
+        g_nGroups,
+        g_nVrtxPerCell,
+        g_nAngles,
+        g_nCells);
+
+    //auto device_source = Kokkos::create_mirror_view_and_copy(
+    //    device(), host_source);
+    Kokkos::deep_copy(c_device_source, host_source);
+    auto device_psi_bound = Kokkos::create_mirror_view_and_copy(
+        device(), host_psi_bound);
+    auto device_psi = Kokkos::create_mirror_view_and_copy(
+        device(), host_psi);
 
 
     // Actually do graph traversal
     auto nCells = g_nCells;
     auto nGroups = g_nGroups;
+    auto device_omega_dot_n = c_device_omega_dot_n;
+    auto device_adj_cell = c_device_adj_cell;
+    auto device_neighbor_vertex = c_device_neighbor_vertex;
+    auto device_adj_proc = c_device_adj_proc;
+    auto device_side = c_device_side;
+    auto device_sigma_t = c_device_sigma_t;
+    auto device_cell_volume = c_device_cell_volume;
+    auto device_face_area = c_device_face_area;
+    auto device_cell_to_face_vertex = c_device_cell_to_face_vertex;
+    auto device_source = c_device_source;
+
     auto lambda = KOKKOS_LAMBDA(int item) {
         int cell = item % nCells;
         int angle = item / nCells;

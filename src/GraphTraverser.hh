@@ -42,19 +42,32 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Mat.hh"
 #include "PsiData.hh"
+#include "Transport.hh"
 #include <vector>
 
 
 class GraphTraverser
 {
 public:
-    GraphTraverser(PsiData &psi, const PsiData &source, PsiBoundData &psiBound);
-    void traverse();
+    GraphTraverser();
+    void traverse(
+        const PsiData &source,
+        const PsiBoundData &psiBound,
+        PsiData &psi);
 
 private:
-    PsiData &c_psi;
-    PsiBoundData &c_psiBound;
-    const PsiData &c_source;
+    device_psi_data_t     c_device_source;
+    device_psi_data_t     c_device_psi_bound;
+    device_psi_data_t     c_device_psi;
+    device_mat3_t<double> c_device_omega_dot_n;
+    device_mat2_t<UINT>   c_device_adj_cell;
+    device_mat3_t<UINT>   c_device_neighbor_vertex;
+    device_mat2_t<UINT>   c_device_adj_proc;
+    device_mat2_t<UINT>   c_device_side;
+    device_mat1_t<double> c_device_sigma_t;
+    device_mat1_t<double> c_device_cell_volume;
+    device_mat2_t<double> c_device_face_area;
+    device_mat3_t<UINT>   c_device_cell_to_face_vertex;
 };
 
 #endif
