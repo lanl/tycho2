@@ -53,6 +53,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 GraphTraverser::GraphTraverser()
 {
+    // Put constant data on GPU
     auto host_omega_dot_n = host_mat3_t<double>(
         g_tychoMesh->c_omegaDotN.data(),
         g_nAngles,
@@ -110,9 +111,22 @@ GraphTraverser::GraphTraverser()
     c_device_cell_to_face_vertex = Kokkos::create_mirror_view_and_copy(
         device(), host_cell_to_face_vertex);
 
+    // Allocate space on GPU
     // NOT SAFE?
     c_device_source = device_psi_data_t(
         "source",
+        g_nGroups,
+        g_nVrtxPerCell,
+        g_nAngles,
+        g_nCells);
+    c_device_psi_bound = device_psi_data_t(
+        "psi_bound",
+        g_nGroups,
+        g_nVrtxPerFace,
+        g_nAngles,
+        g_tychoMesh->getNSides());
+    c_device_psi = device_psi_data_t(
+        "psi",
         g_nGroups,
         g_nVrtxPerCell,
         g_nAngles,
@@ -210,16 +224,13 @@ void GraphTraverser::traverse(
         g_nAngles,
         g_nCells);
 
-    //auto device_source = Kokkos::create_mirror_view_and_copy(
-    //    device(), host_source);
     Kokkos::deep_copy(c_device_source, host_source);
-    auto device_psi_bound = Kokkos::create_mirror_view_and_copy(
-        device(), host_psi_bound);
-    auto device_psi = Kokkos::create_mirror_view_and_copy(
-        device(), host_psi);
+    Kokkos::deep_copy(c_device_psi_bound, host_psi_bound);
+    Kokkos::deep_copy(c_device_psi, host_psi);
 
 
     // Actually do graph traversal
+    // THIS IS WEIRD!!!
     auto nCells = g_nCells;
     auto nGroups = g_nGroups;
     auto device_omega_dot_n = c_device_omega_dot_n;
@@ -232,6 +243,8 @@ void GraphTraverser::traverse(
     auto device_face_area = c_device_face_area;
     auto device_cell_to_face_vertex = c_device_cell_to_face_vertex;
     auto device_source = c_device_source;
+    auto device_psi_bound = c_device_psi_bound;
+    auto device_psi = c_device_psi;
 
     auto lambda = KOKKOS_LAMBDA(int item) {
         int cell = item % nCells;
