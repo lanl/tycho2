@@ -47,10 +47,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Assert.hh"
 #include "Timer.hh"
 #include "Sweeper.hh"
-#include <omp.h>
-#include <vector>
-
-
 #include <Kokkos_Core.hpp>
 
 using namespace std;
@@ -112,8 +108,8 @@ int main(int argc, char *argv[])
     
     // Init parallel communication
     Comm::init();
-
     Kokkos::initialize(argc, argv);
+
 
     // Input data.
     if (argc < 3) {
@@ -185,10 +181,10 @@ int main(int argc, char *argv[])
     // Output psi to file
     if(outputFile)
         writePsiToFile(outputFilename, psi);
-        //psi.writeToFile(outputFilename);
 
+    
+    // Cleanup
     Kokkos::finalize();
-
     Comm::finalize();
     return 0;
 }

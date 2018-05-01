@@ -1,6 +1,6 @@
 ##### Settings for local environment #####
-include make.inc
-
+#include make.inc
+CPP = mpicxx -Wall -std=c++11
 
 ##### Variables #####
 CPP1 = $(CPP) -DPARALLEL_MESH_READ_SERIAL_ONLY

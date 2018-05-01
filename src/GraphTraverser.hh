@@ -43,7 +43,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Mat.hh"
 #include "PsiData.hh"
 #include "Transport.hh"
-#include <vector>
 
 
 class GraphTraverser

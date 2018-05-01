@@ -47,6 +47,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using host = Kokkos::DefaultHostExecutionSpace;
 using device = Kokkos::DefaultExecutionSpace;
+//using device = Kokkos::DefaultHostExecutionSpace;
 using host_psi_data_t =
   Kokkos::View<double****, Kokkos::LayoutLeft, host>;
 using device_psi_data_t =

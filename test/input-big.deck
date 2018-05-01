@@ -1,0 +1,10 @@
+
+snOrder         8
+iterMax         4
+errMax          1e-10
+nGroups         2
+sigmaT          10.0
+sigmaS          5.0
+OutputFile      true
+OutputFilename  test.psi
+
