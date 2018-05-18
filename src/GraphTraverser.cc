@@ -141,7 +141,7 @@ GraphTraverser::GraphTraverser()
         int angle = item / g_nCells;
         for (UINT face = 0; face < g_nFacePerCell; ++face) {
             bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
-            if (!is_out) continue;
+            if (is_out) continue;
             auto adjCell = g_tychoMesh->getAdjCell(cell, face);
             if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
             counts(item) += 1;
@@ -160,7 +160,7 @@ GraphTraverser::GraphTraverser()
         int j = 0;
         for (UINT face = 0; face < g_nFacePerCell; ++face) {
             bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
-            if (!is_out) continue;
+            if (is_out) continue;
             auto adjCell = g_tychoMesh->getAdjCell(cell, face);
             if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
             entries(row_map(item) + j) = adjCell + g_nCells * angle;
@@ -243,7 +243,23 @@ void GraphTraverser::traverse(
     auto device_psi_bound = c_device_psi_bound;
     auto device_psi = c_device_psi;
 
-    auto lambda = KOKKOS_LAMBDA(int item) {
+    Kokkos::View<int*> done("done", g_nCells * g_nAngles);
+    Kokkos::View<int*> done2("done2", g_nCells * g_nAngles);
+
+    auto graph = c_device_graph;
+
+    auto lambda = KOKKOS_LAMBDA(int item, int& ldone) {
+        if (done[item]) {
+          done2[item] = 1;
+          return;
+        }
+        for (auto ij = graph.row_map[item]; ij < graph.row_map[item + 1]; ++ij) {
+          auto j = graph.entries[ij];
+          if (!done[j]) {
+            done2[item] = 0;
+            return;
+          }
+        }
         int cell = item % nCells;
         int angle = item / nCells;
 
@@ -263,11 +279,22 @@ void GraphTraverser::traverse(
             device_sigma_t,
             device_face_area,
             device_cell_to_face_vertex);
+
+        ldone += 1;
+        done2[item] = 1;
     };
-    
 
     // Perform sweep and copy Psi back to host
-    Kokkos::parallel_for(policy, lambda, "traverse-dag");
+    for (int nfronts = 0; true; ++nfronts) {
+      int num_done = 0;
+      Kokkos::parallel_reduce("sweep", Kokkos::RangePolicy<device,int>(0, g_nCells*g_nAngles),
+          lambda, num_done);
+      Kokkos::deep_copy(done, done2);
+      if (num_done == 0) {
+        std::cout << "ran " << nfronts << " wave fronts\n";
+        break;
+      }
+    }
     Kokkos::deep_copy(host_psi, device_psi);
 
     

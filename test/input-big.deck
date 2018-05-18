@@ -1,6 +1,6 @@
 
 snOrder         8
-iterMax         10
+iterMax         4
 errMax          1e-10
 nGroups         2
 sigmaT          10.0
