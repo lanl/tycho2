@@ -94,23 +94,23 @@ GraphTraverser::GraphTraverser()
         g_nVrtxPerCell);
 
     c_device_omega_dot_n = Kokkos::create_mirror_view_and_copy(
-        device(), host_omega_dot_n);
+        device(), host_omega_dot_n, "omega_dot_n");
     c_device_adj_cell = Kokkos::create_mirror_view_and_copy(
-        device(), host_adj_cell);
+        device(), host_adj_cell, "adj_cell");
     c_device_neighbor_vertex = Kokkos::create_mirror_view_and_copy(
-        device(), host_neighbor_vertex);
+        device(), host_neighbor_vertex, "neighbor_vertex");
     c_device_adj_proc = Kokkos::create_mirror_view_and_copy(
-        device(), host_adj_proc);
+        device(), host_adj_proc, "adj_proc");
     c_device_side = Kokkos::create_mirror_view_and_copy(
-        device(), host_side);
+        device(), host_side, "side");
     c_device_sigma_t = Kokkos::create_mirror_view_and_copy(
-        device(), host_sigma_t);
+        device(), host_sigma_t, "sigma_t");
     c_device_cell_volume = Kokkos::create_mirror_view_and_copy(
-        device(), host_cell_volume);
+        device(), host_cell_volume, "cell_volume");
     c_device_face_area = Kokkos::create_mirror_view_and_copy(
-        device(), host_face_area);
+        device(), host_face_area, "face_area");
     c_device_cell_to_face_vertex = Kokkos::create_mirror_view_and_copy(
-        device(), host_cell_to_face_vertex);
+        device(), host_cell_to_face_vertex, "cell_to_face_vertex");
 
     // Allocate space on GPU
     // NOT SAFE?
