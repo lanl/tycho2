@@ -43,6 +43,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <string.h>
 
+#include <Kokkos_Core.hpp>
+
 
 /*
     Constructor
@@ -118,6 +120,7 @@ static UINT getDataSize()
 */
 void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
 {
+  Kokkos::Profiling::pushRegion("CommSides::commSides");
     UINT numToRecv;
     UINT numAdjRanks = c_adjRanks.size();
     UINT packetSize = 2 * sizeof(UINT) + getDataSize();
@@ -228,5 +231,6 @@ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
     if (commSendRequests.size() > 0) {
         Comm::waitall(commSendRequests);
     }
+    Kokkos::Profiling::popRegion();
 }
 

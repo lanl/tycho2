@@ -44,6 +44,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 
 
+#include <Kokkos_Core.hpp>
+
 namespace Util
 {
 
@@ -82,6 +84,7 @@ double diffBetweenGroups(const PsiData &psi)
 */
 void psiToPhi(PhiData &phi, const PsiData &psi) 
 {
+  Kokkos::Profiling::pushRegion("psiToPhi");
     for (UINT c = 0; c < g_nCells; c++) {
     for (UINT v = 0; v < g_nVrtxPerCell; v++) {
     for (UINT g = 0; g < g_nGroups; g++) {
@@ -96,6 +99,7 @@ void psiToPhi(PhiData &phi, const PsiData &psi)
         phi(group, vertex, cell) +=
             psi(group, vertex, angle, cell) * g_quadrature->getWt(angle);
     }}}}
+  Kokkos::Profiling::popRegion();
 }
 
 
@@ -120,6 +124,7 @@ void phiToPsi(const PhiData &phi, PsiData &psi)
 void calcTotalSource(const PsiData &source, const PhiData &phi, 
                      PsiData &totalSource)
 {
+  Kokkos::Profiling::pushRegion("Util::calcTotalSource");
   //#pragma omp parallel for
     for (UINT cell = 0; cell < g_nCells; ++cell) {
     for (UINT angle = 0; angle < g_nAngles; ++angle) {
@@ -129,6 +134,7 @@ void calcTotalSource(const PsiData &source, const PhiData &phi,
             source(group, vertex, angle, cell) + 
             g_sigmaS[cell] / (4.0 * M_PI) *  phi(group, vertex, cell);
     }}}}
+  Kokkos::Profiling::popRegion();
 }
 
 
