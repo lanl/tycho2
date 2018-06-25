@@ -44,7 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // cubeSize assumes using cube meshes in util folder
-static const double cubeSize = 100.0;
+static const float cubeSize = 100.0;
 
 
 /*
@@ -58,15 +58,15 @@ void hatSource(PsiData &source)
     for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
         
         UINT node = g_tychoMesh->getCellNode(cell, vrtx);
-        double x = g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
-        double y = g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
-        double z = g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
+        float x = g_tychoMesh->getNodeCoord(node, 0) - cubeSize / 2.0;
+        float y = g_tychoMesh->getNodeCoord(node, 1) - cubeSize / 2.0;
+        float z = g_tychoMesh->getNodeCoord(node, 2) - cubeSize / 2.0;
         
-        double xi  = g_quadrature->getXi(angle);
-        double eta = g_quadrature->getEta(angle);
-        double mu  = g_quadrature->getMu(angle);
+        float xi  = g_quadrature->getXi(angle);
+        float eta = g_quadrature->getEta(angle);
+        float mu  = g_quadrature->getMu(angle);
         
-        double c = sqrt(x*x + y*y + z*z);
+        float c = sqrt(x*x + y*y + z*z);
         
         for(UINT group = 0; group < g_nGroups; group++) {
             if(c <= 30.0) {
@@ -88,19 +88,19 @@ namespace Problem
 /*
     hatL2Error
 */
-double hatL2Error(const PsiData &psi)
+float hatL2Error(const PsiData &psi)
 {
-    double diff = 0.0;
-    double norm = 0.0;
+    float diff = 0.0;
+    float norm = 0.0;
     
     
     for(UINT cell = 0; cell < g_nCells; cell++) {
     for(UINT angle = 0; angle < g_nAngles; angle++) {
     for(UINT group = 0; group < g_nGroups; group++) {
-        double x = 0.0;
-        double y = 0.0;
-        double z = 0.0;
-        double psiVal = 0.0;
+        float x = 0.0;
+        float y = 0.0;
+        float z = 0.0;
+        float psiVal = 0.0;
         
         for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
             UINT node = g_tychoMesh->getCellNode(cell, vrtx);
@@ -115,13 +115,13 @@ double hatL2Error(const PsiData &psi)
         z = z / g_nVrtxPerCell;
         psiVal = psiVal / g_nVrtxPerCell;
         
-        double c = sqrt(x*x + y*y + z*z);
-        double psiAct = 0.0;
+        float c = sqrt(x*x + y*y + z*z);
+        float psiAct = 0.0;
         if(c <= 30.0) {
             psiAct = 1.0 - c / 30.0;
         }
         
-        double localDiff = psiVal - psiAct;
+        float localDiff = psiVal - psiAct;
         norm += psiVal * psiVal;
         diff += localDiff * localDiff;
     }}}
@@ -146,10 +146,10 @@ void getSource(PsiData &source)
 /*
     createCrossSections
 */
-void createCrossSections(std::vector<double> &sigmaT, 
-                         std::vector<double> &sigmaS,
-                         double sigmaT1, double sigmaS1,
-                         double sigmaT2, double sigmaS2)
+void createCrossSections(std::vector<float> &sigmaT, 
+                         std::vector<float> &sigmaS,
+                         float sigmaT1, float sigmaS1,
+                         float sigmaT2, float sigmaS2)
 {
     sigmaT.resize(g_nCells);
     sigmaS.resize(g_nCells);

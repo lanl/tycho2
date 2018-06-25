@@ -46,12 +46,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Problem
 {
 
-double hatL2Error(const PsiData &psi);
+float hatL2Error(const PsiData &psi);
 void getSource(PsiData &source);
-void createCrossSections(std::vector<double> &sigmaT, 
-                         std::vector<double> &sigmaS,
-                         double sigmaT1, double sigmaS1,
-                         double sigmaT2, double sigmaS2);
+void createCrossSections(std::vector<float> &sigmaT, 
+                         std::vector<float> &sigmaS,
+                         float sigmaT1, float sigmaS1,
+                         float sigmaT2, float sigmaS2);
 
 } // End namespace
 #endif

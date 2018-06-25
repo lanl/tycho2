@@ -48,8 +48,8 @@ PetscErrorCode lhsPetsc(Mat mat, Vec x, Vec b)
     void *userData;
     KrylovSolver::Data *krylovData;
     KrylovSolver::Function lhsOperator;
-    const double *xArray;
-    double *bArray;
+    const float *xArray;
+    float *bArray;
     
     
     // Get data for the solve
@@ -76,7 +76,7 @@ PetscErrorCode lhsPetsc(Mat mat, Vec x, Vec b)
 }
 
 
-KrylovSolver::KrylovSolver(UINT localVecSize, double rtol, UINT iterMax, 
+KrylovSolver::KrylovSolver(UINT localVecSize, float rtol, UINT iterMax, 
                            Function lhsOperator)
 {
     // Create the vectors
@@ -119,9 +119,9 @@ void KrylovSolver::setInitialGuessNonzero()
 }
 
 
-double* KrylovSolver::getB()
+float* KrylovSolver::getB()
 {
-    double *bArray;
+    float *bArray;
     VecGetArray(c_b, &bArray);
     return bArray;
 }
@@ -133,9 +133,9 @@ void KrylovSolver::releaseB()
 }
 
 
-double* KrylovSolver::getX()
+float* KrylovSolver::getX()
 {
-    double *xArray;
+    float *xArray;
     VecGetArray(c_x, &xArray);
     return xArray;
 }
@@ -155,9 +155,9 @@ UINT KrylovSolver::getNumIterations()
 }
 
 
-double KrylovSolver::getResidualNorm()
+float KrylovSolver::getResidualNorm()
 {
-    double norm;
+    float norm;
     KSPGetResidualNorm(c_ksp, &norm);
     return norm;
 }

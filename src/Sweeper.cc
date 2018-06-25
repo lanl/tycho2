@@ -75,7 +75,7 @@ UINT VG(UINT vrtx, UINT group)
 */
 static
 void getBoundData(const PsiBoundData &psiBound, const UINT side,
-                  const UINT angle, vector<double> &psiSide)
+                  const UINT angle, vector<float> &psiSide)
 {
     for (UINT vertex = 0; vertex < g_nVrtxPerFace; ++vertex) {
     for (UINT group = 0; group < g_nGroups; ++group) {
@@ -91,7 +91,7 @@ void getBoundData(const PsiBoundData &psiBound, const UINT side,
 */
 static
 void setBoundData(PsiBoundData &psiBound, const vector<UINT> &commSides,
-                  const vector<UINT> &commAngles, const vector<double> &commPsi) 
+                  const vector<UINT> &commAngles, const vector<float> &commPsi) 
 {
     for(unsigned i = 0; i < commSides.size(); i++) {
         UINT side = commSides[i];
@@ -112,7 +112,7 @@ void setBoundData(PsiBoundData &psiBound, const vector<UINT> &commSides,
 */
 static
 void send(const UINT step, const UINT angleGroup,
-          Mat2<vector<UINT>> &commSidesAngles, Mat2<vector<double>> &commPsi,
+          Mat2<vector<UINT>> &commSidesAngles, Mat2<vector<float>> &commPsi,
           vector<MPI_Request> &mpiRequests)
 {
     if (step < g_sweepSchedule[angleGroup]->nSteps()) {
@@ -169,7 +169,7 @@ void recv(const UINT step, const UINT angleGroup, PsiBoundData &psiBound)
     
                 // Receive data
                 vector<UINT> commSidesAngles(2*nSides);
-                vector<double> commPsi(nData);
+                vector<float> commPsi(nData);
                 Comm::recvUIntVector(commSidesAngles, proc, tag1);
                 Comm::recvDoubleVector(commPsi, proc, tag2);
     
@@ -200,10 +200,10 @@ static
 void updateComm(const UINT cell, const UINT angle,
                 const PsiBoundData &psiBound,
                 Mat2<vector<UINT>> &commSidesAngles,
-                Mat2<vector<double>> &commPsi)
+                Mat2<vector<float>> &commPsi)
 {
     UINT angleGroup = omp_get_thread_num();
-    vector<double> psiSide(g_nVrtxPerFace * g_nGroups);
+    vector<float> psiSide(g_nVrtxPerFace * g_nGroups);
     for (UINT face = 0; face < g_nFacePerCell; ++face) {
         size_t neighborCell = g_tychoMesh->getAdjCell(cell, face);
         UINT proc = g_tychoMesh->getAdjRank(cell, face);
@@ -231,7 +231,7 @@ void updateComm(const UINT cell, const UINT angle,
 */
 static
 void updateBoundData(const UINT cell, const UINT angle, PsiBoundData &psiBound,
-                     const Mat2<double> &localPsi)
+                     const Mat2<float> &localPsi)
 {
     for (UINT group = 0; group < g_nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; ++face) {
@@ -266,12 +266,12 @@ void doComputation(const UINT step,
                    const PsiData &source, 
                    PsiData &psi, 
                    Mat2<vector<UINT>> &commSidesAngles,
-                   Mat2<vector<double>> &commPsi,
+                   Mat2<vector<float>> &commPsi,
                    PsiBoundData &psiBound)
 {
-    Mat2<double> localSource(g_nVrtxPerCell, g_nGroups);
-    Mat2<double> localPsi(g_nVrtxPerCell, g_nGroups);
-    Mat3<double> localPsiBound(g_nVrtxPerFace, g_nFacePerCell, g_nGroups);            
+    Mat2<float> localSource(g_nVrtxPerCell, g_nGroups);
+    Mat2<float> localPsi(g_nVrtxPerCell, g_nGroups);
+    Mat3<float> localPsiBound(g_nVrtxPerFace, g_nFacePerCell, g_nGroups);            
     
     // Do work
     if (step < g_sweepSchedule[angleGroup]->nSteps()) {
@@ -389,12 +389,12 @@ void Sweeper::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
     
     // Communication variables
     Mat2<vector<UINT>> commSidesAngles(g_nAngleGroups, Comm::numRanks());
-    Mat2<vector<double>> commPsi(g_nAngleGroups, Comm::numRanks());
+    Mat2<vector<float>> commPsi(g_nAngleGroups, Comm::numRanks());
     PsiBoundData psiBound;
     
     
     // Time computation for each thread
-    vector<double> computationTimes(g_nAngleGroups);
+    vector<float> computationTimes(g_nAngleGroups);
     computationTimes.assign(g_nAngleGroups, 0.0);
     
     
@@ -462,7 +462,7 @@ void Sweeper::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
                 
                 // Require communication in thread id order
                 while(true) {
-                    double temp;
+                    float temp;
                     #pragma omp atomic read
                     temp = commNumber;
                     if (temp == angleGroup)
@@ -496,7 +496,7 @@ void Sweeper::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
     
     
     // Timing output
-    double totalTime = totalTimer.wall_clock();
+    float totalTime = totalTimer.wall_clock();
     Comm::gmax(totalTime);
     
     for (UINT i = 0; i < g_nAngleGroups; i++) {
@@ -504,7 +504,7 @@ void Sweeper::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
     }
     
     if (Comm::rank() == 0) {
-        double computationTime = 0.0;
+        float computationTime = 0.0;
         for (UINT i = 0; i < g_nAngleGroups; i++) {
             computationTime = max(computationTime, computationTimes[i]);
         }

@@ -51,21 +51,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 class KrylovSolver
 {
 public:
-    typedef void (*Function)(const double*, double*, void*);
+    typedef void (*Function)(const float*, float*, void*);
 
 
-    KrylovSolver(UINT localVecSize, double rtol, UINT iterMax,
+    KrylovSolver(UINT localVecSize, float rtol, UINT iterMax,
                  Function lhsOperator);
     ~KrylovSolver();
 
 
     void solve();
-    double* getB();
+    float* getB();
     void releaseB();
-    double* getX();
+    float* getX();
     void releaseX();
     UINT getNumIterations();
-    double getResidualNorm();
+    float getResidualNorm();
     void setData(void *data);
     void setInitialGuessNonzero();
 
@@ -99,10 +99,10 @@ private:
 class KrylovSolver
 {
 public:
-    typedef void (*Function)(const double*, double*, void*);
+    typedef void (*Function)(const float*, float*, void*);
 
 
-    KrylovSolver(UINT localVecSize, double rtol, UINT iterMax,
+    KrylovSolver(UINT localVecSize, float rtol, UINT iterMax,
                  Function lhsOperator)
     {
         UNUSED_VARIABLE(localVecSize);
@@ -115,12 +115,12 @@ public:
 
 
     void solve()                    { }
-    double* getB()                  { return NULL; }
+    float* getB()                  { return NULL; }
     void releaseB()                 {}
-    double* getX()                  { return NULL; }
+    float* getX()                  { return NULL; }
     void releaseX()                 {}
     UINT getNumIterations()         { return 0; }
-    double getResidualNorm()        { return 0.0; }
+    float getResidualNorm()        { return 0.0; }
     void setData(void *data)        { UNUSED_VARIABLE(data); }
     void setInitialGuessNonzero()   {}
 

@@ -52,22 +52,22 @@ namespace Util
 /*
     diffBetweenGroups
 */
-double diffBetweenGroups(const PsiData &psi)
+float diffBetweenGroups(const PsiData &psi)
 {
-    double maxDiff = 0.0;
-    double maxEntry = 0.0;
+    float maxDiff = 0.0;
+    float maxEntry = 0.0;
     
     for(UINT cell = 0; cell < g_nCells; cell++) {
     for(UINT angle = 0; angle < g_nAngles; angle++) {
     for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
         
-        double psi0 = psi(0, vrtx, angle, cell);
+        float psi0 = psi(0, vrtx, angle, cell);
         
         if(fabs(psi0) > maxEntry)
             maxEntry = fabs(psi0);
         
         for(UINT group = 1; group < g_nGroups; group++) {
-            double psi1 = psi(group, vrtx, angle, cell);
+            float psi1 = psi(group, vrtx, angle, cell);
             if (fabs(psi0 - psi1) > maxDiff)
                 maxDiff = fabs(psi0 - psi1);
         }

@@ -73,7 +73,7 @@ public:
 
     Performs b = (I - D L^{-1} M S) x
 */
-void lhsOperator(const double *x, double *b, void *voidData)
+void lhsOperator(const float *x, float *b, void *voidData)
 {
     // Get data for the solve
     LHSData *data = (LHSData*) voidData;
@@ -138,14 +138,14 @@ UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
     
     // Source iteration
     UINT iter = 0;
-    double error = 1.0;
+    float error = 1.0;
     Timer totalTimer;
     totalTimer.start();
     while (iter < g_iterMax && error > g_errMax)
     {
         Timer timer;
-        double wallClockTime = 0.0;
-        double norm = 0.0;
+        float wallClockTime = 0.0;
+        float norm = 0.0;
         timer.start();
         
 
@@ -192,7 +192,7 @@ UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
     
     // Time total solve
     totalTimer.stop();
-    double clockTime = totalTimer.wall_clock();
+    float clockTime = totalTimer.wall_clock();
     Comm::gmax(clockTime);
     if(Comm::rank() == 0) {
         printf("\nTotal source iteration time: %.2f\n",
@@ -217,9 +217,9 @@ UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
 {
     UINT vecSize;
     int its;
-    double rnorm;
-    double *bArray;
-    double *xArray;
+    float rnorm;
+    float *bArray;
+    float *xArray;
     PsiData tempSource;
     Timer totalTimer;
     totalTimer.start();
@@ -270,7 +270,7 @@ UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
 
     // Time total solve
     totalTimer.stop();
-    double clockTime = totalTimer.wall_clock();
+    float clockTime = totalTimer.wall_clock();
     Comm::gmax(clockTime);
     if(Comm::rank() == 0) {
         printf("\nTotal Krylov time: %.2f\n",

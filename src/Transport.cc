@@ -55,15 +55,15 @@ using namespace std;
     calcSource
 */
 static
-void calcSource(const double volume, 
-                     const Mat2<double> &localSource,
-                     double cellSource[4],
+void calcSource(const float volume, 
+                     const Mat2<float> &localSource,
+                     float cellSource[4],
                      const UINT group) 
 {
-    double q0 = localSource(0, group);
-    double q1 = localSource(1, group);
-    double q2 = localSource(2, group);
-    double q3 = localSource(3, group);
+    float q0 = localSource(0, group);
+    float q1 = localSource(1, group);
+    float q2 = localSource(2, group);
+    float q3 = localSource(3, group);
     
     cellSource[0] = volume / 20.0 * (2.0 * q0 + q1 + q2 + q3);
     cellSource[1] = volume / 20.0 * (q0 + 2.0 * q1 + q2 + q3);
@@ -76,10 +76,10 @@ void calcSource(const double volume,
     calcVolumeIntegrals
 */
 static
-void calcVolumeIntegrals(const double volume, 
-                         const double area[g_nFacePerCell],
-                         const double sigmaTotal,
-                         double matrix[g_nVrtxPerCell][g_nVrtxPerCell]) 
+void calcVolumeIntegrals(const float volume, 
+                         const float area[g_nFacePerCell],
+                         const float sigmaTotal,
+                         float matrix[g_nVrtxPerCell][g_nVrtxPerCell]) 
 {
     matrix[0][0] = area[0] / 12.0 + 2.0 * sigmaTotal * volume / 20.0;
     matrix[0][1] = area[0] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
@@ -107,8 +107,8 @@ void calcVolumeIntegrals(const double volume,
     calcOutgoingFlux
 */
 static
-void calcOutgoingFlux(const double area[g_nFacePerCell],
-                      double matrix[g_nVrtxPerCell][g_nVrtxPerCell])
+void calcOutgoingFlux(const float area[g_nFacePerCell],
+                      float matrix[g_nVrtxPerCell][g_nVrtxPerCell])
 {
     if (area[0] > 0) {
         matrix[1][1] += 2.0 * area[0] / 12.0;
@@ -173,13 +173,13 @@ void calcOutgoingFlux(const double area[g_nFacePerCell],
 */
 static
 void calcIncomingFlux(const UINT cell, 
-                      const double area[g_nFacePerCell],
-                      const Mat3<double> &localPsiBound,
-                      double cellSource[g_nVrtxPerCell],
+                      const float area[g_nFacePerCell],
+                      const Mat3<float> &localPsiBound,
+                      float cellSource[g_nVrtxPerCell],
                       const UINT group)
 {
     UINT faceVertex0, faceVertex1, faceVertex2, faceVertex3;
-    double psiNeighbor0, psiNeighbor1, psiNeighbor2, psiNeighbor3;
+    float psiNeighbor0, psiNeighbor1, psiNeighbor2, psiNeighbor3;
 
     if (area[0] < 0) {
         faceVertex1 = g_tychoMesh->getCellToFaceVrtx(cell, 0, 1);
@@ -275,7 +275,7 @@ void calcIncomingFlux(const UINT cell,
     gaussElim4
 */
 static 
-void gaussElim4(double A[4][4], double b[4])
+void gaussElim4(float A[4][4], float b[4])
 {
 
     switch (g_gaussElim) {    
@@ -286,9 +286,9 @@ void gaussElim4(double A[4][4], double b[4])
         
             for (int column = 0; column < n-1; ++column) {
                 int rowmax = column;
-                double colmax = fabs(A[column][column]);
+                float colmax = fabs(A[column][column]);
                 for (int row = column+1; row < n; ++row) {
-                    double temp = fabs(A[row][column]);
+                    float temp = fabs(A[row][column]);
                     if (temp > colmax)  {
                         rowmax = row;
                         colmax = temp;
@@ -297,11 +297,11 @@ void gaussElim4(double A[4][4], double b[4])
 
                 if (rowmax != column) {
                     for (int column2 = 0; column2 < n; ++column2) {
-                        double temp = A[rowmax][column2];
+                        float temp = A[rowmax][column2];
                         A[rowmax][column2] = A[column][column2];
                         A[column][column2] = temp;
                     }
-                    double temp = b[rowmax];
+                    float temp = b[rowmax];
                     b[rowmax] = b[column];
                     b[column] = temp;
                 }
@@ -337,7 +337,7 @@ void gaussElim4(double A[4][4], double b[4])
         // Gaussian-No Pivot
         case GaussElim_NoPivot: {
 
-            double tmp;
+            float tmp;
             
             // Normalize first row
             tmp = 1.0/A[0][0];
@@ -415,10 +415,10 @@ void gaussElim4(double A[4][4], double b[4])
 
             int i;
             
-            double inv[16], invOut[16], bCpy[4], det;    
+            float inv[16], invOut[16], bCpy[4], det;    
         
             // 1d array
-            double* m = &(A[0][0]);
+            float* m = &(A[0][0]);
         
             inv[0] = m[5]  * m[10] * m[15] -
             m[5]  * m[11] * m[14] -
@@ -558,7 +558,7 @@ void gaussElim4(double A[4][4], double b[4])
         // Intel's implementation of Cramer's rule
         case GaussElim_CramerIntel: {
         
-            double tmp[12], src[16], dst[16], bCpy[4], det;
+            float tmp[12], src[16], dst[16], bCpy[4], det;
 
             // transpose matrix
             for (int i = 0; i < 4; i++) {
@@ -684,11 +684,11 @@ namespace Transport
 /*
     solve
 */
-void solve(const UINT cell, const UINT angle, const double sigmaTotal,
-           const Mat3<double> &localPsiBound, const Mat2<double> &localSource,
-           Mat2<double> &localPsi)
+void solve(const UINT cell, const UINT angle, const float sigmaTotal,
+           const Mat3<float> &localPsiBound, const Mat2<float> &localSource,
+           Mat2<float> &localPsi)
 {
-    double volume, area[g_nFacePerCell];
+    float volume, area[g_nFacePerCell];
 
     
     // Get cell volume and face areas
@@ -707,9 +707,9 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
     // Solve local transport problem for each group
     for (UINT group = 0; group < g_nGroups; group++) {
         
-        double cellSource[g_nVrtxPerCell] = {0.0};
-        double matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
-        double solution[g_nVrtxPerCell];
+        float cellSource[g_nVrtxPerCell] = {0.0};
+        float matrix[g_nVrtxPerCell][g_nVrtxPerCell] = {0.0};
+        float solution[g_nVrtxPerCell];
     
         // form local source term
         calcSource(volume, localSource, cellSource, group);
@@ -740,7 +740,7 @@ void solve(const UINT cell, const UINT angle, const double sigmaTotal,
 void populateLocalPsiBound(const UINT angle, const UINT cell, 
                            const PsiData &__restrict psi, 
                            const PsiBoundData & __restrict psiBound,
-                           Mat3<double> &__restrict localPsiBound)
+                           Mat3<float> &__restrict localPsiBound)
 {
     // Default to 0.0
     for (UINT i = 0; i < localPsiBound.size(); i++)

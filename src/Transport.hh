@@ -48,14 +48,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace Transport 
 {
     void solve(const UINT cell, const UINT angle, 
-               const double sigmaTotal,
-               const Mat3<double> &localPsiBound, 
-               const Mat2<double> &localSource,
-               Mat2<double> &localPsi);
+               const float sigmaTotal,
+               const Mat3<float> &localPsiBound, 
+               const Mat2<float> &localSource,
+               Mat2<float> &localPsi);
 
     void populateLocalPsiBound(const UINT angle, const UINT cell, 
                                const PsiData &psi, const PsiBoundData &psiBound,
-                               Mat3<double> &localPsiBound);
+                               Mat3<float> &localPsiBound);
 } // End namespace Transport
 
 #endif

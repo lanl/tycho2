@@ -83,8 +83,8 @@ void SweeperPBJOuter::solve()
         
 
         // Check tolerance and set psi0 = psi1
-        double errL1 = 0.0;
-        double normL1 = 0.0;
+        float errL1 = 0.0;
+        float normL1 = 0.0;
         for (UINT i = 0; i < c_psi.size(); i++) {
             errL1  += fabs(psi0[i] - c_psi[i]);
             normL1 += fabs(c_psi[i]);
@@ -187,8 +187,8 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
         
 
         // Check tolerance and set psi0 = psi1
-        double errL1 = 0.0;
-        double normL1 = 0.0;
+        float errL1 = 0.0;
+        float normL1 = 0.0;
         for (UINT i = 0; i < psi.size(); i++) {
             errL1  += fabs(psi0[i] - psi[i]);
             normL1 += fabs(psi[i]);
@@ -253,8 +253,8 @@ void SweeperPBJSI::solve()
         
 
         // Check tolerance and set phi0 = phi1
-        double errL1 = 0.0;
-        double normL1 = 0.0;
+        float errL1 = 0.0;
+        float normL1 = 0.0;
         for (UINT i = 0; i < phi1.size(); i++) {
             errL1  += fabs(phi1[i] - phi0[i]);
             normL1 += fabs(phi1[i]);

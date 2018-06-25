@@ -75,7 +75,7 @@ struct SchurData
 /*
     psiBoundToVec 
 */
-void psiBoundToVec(double *x, const PsiBoundData &psiBound)
+void psiBoundToVec(float *x, const PsiBoundData &psiBound)
 {
     int xArrayIndex = 0;
 
@@ -106,7 +106,7 @@ void psiBoundToVec(double *x, const PsiBoundData &psiBound)
 /*
     vecToPsiBound
 */
-void vecToPsiBound(const double *x, PsiBoundData &psiBound)
+void vecToPsiBound(const float *x, PsiBoundData &psiBound)
 {
     int xArrayIndex = 0;
 
@@ -185,7 +185,7 @@ UINT getPsiBoundSize()
     Performs b = (I - W L_I^{-1} L_B) x
 */
 static
-void Schur(const double *x, double *b, void *voidData)
+void Schur(const float *x, float *b, void *voidData)
 {
     // Unpack data
     SchurData *data = (SchurData*) voidData;
@@ -252,10 +252,10 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
     zeroSource.setToValue(0.0);
     PsiBoundData psiBound;
     
-    double rnorm;
+    float rnorm;
     UINT its;
-    double *x;
-    double *b;
+    float *x;
+    float *b;
 
     
     // Set static variables
@@ -331,7 +331,7 @@ void SweeperSchur::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
     Performs b = (I - W (L_i - MSD)^{-1} L_B) x
 */
 static
-void SchurOuter(const double *x, double *b, void *voidData)
+void SchurOuter(const float *x, float *b, void *voidData)
 {
     // Get data for the solve
     SchurData *data = (SchurData*) voidData;
@@ -371,12 +371,12 @@ void SchurOuter(const double *x, double *b, void *voidData)
 void SweeperSchurOuter::solve()
 {
     // Variables
-    double rnorm;
+    float rnorm;
     UINT its;
     UINT sourceIts1, sourceIts3;
     std::vector<UINT> sourceItsVec;
-    double *x;
-    double *b;
+    float *x;
+    float *b;
 
 
     // Initialize class variables
@@ -487,7 +487,7 @@ void SweeperSchurOuter::sweep(PsiData &psi, const PsiData &source,
               -(D L_I^{-1} L_B)   Psi_B + (I - D L_I^{-1} M S) Phi
 */
 static
-void SchurKrylov(const double *x, double *b, void *voidData)
+void SchurKrylov(const float *x, float *b, void *voidData)
 {
     // Unpack data for the solve
     SchurData *data = (SchurData*) voidData;
@@ -501,7 +501,7 @@ void SchurKrylov(const double *x, double *b, void *voidData)
 
     // x -> (Psi_B, Phi)
     vecToPsiBound(x, psiBound);
-    const PhiData phi1(const_cast<double*>(&x[psiBoundSize]));
+    const PhiData phi1(const_cast<float*>(&x[psiBoundSize]));
     Util::operatorS(phi1, phi);
     Util::phiToPsi(phi, source);
 
@@ -532,9 +532,9 @@ void SchurKrylov(const double *x, double *b, void *voidData)
 void SweeperSchurKrylov::solve()
 {
     
-    double *x;
-    double *b;
-    double rnorm;
+    float *x;
+    float *b;
+    float rnorm;
     UINT its;
     PhiData phi;
     SchurData data;

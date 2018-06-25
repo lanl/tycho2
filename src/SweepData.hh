@@ -80,7 +80,7 @@ public:
     static
     size_t getDataSizeInBytes()
     {
-        return g_nGroups * g_nVrtxPerFace * sizeof(double);
+        return g_nGroups * g_nVrtxPerFace * sizeof(float);
     }
     
     
@@ -91,7 +91,7 @@ public:
     */
     virtual const char* getData(UINT cell, UINT face, UINT angle)
     {
-        Mat2<double> &localFaceData = c_localFaceData[omp_get_thread_num()];
+        Mat2<float> &localFaceData = c_localFaceData[omp_get_thread_num()];
         
         for (UINT group = 0; group < g_nGroups; group++) {
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
@@ -110,8 +110,8 @@ public:
     */
     virtual void setSideData(UINT side, UINT angle, const char *data)
     {
-        Mat2<double> localFaceData(g_nVrtxPerFace, g_nGroups);
-        localFaceData.setData((double*)data);
+        Mat2<float> localFaceData(g_nVrtxPerFace, g_nGroups);
+        localFaceData.setData((float*)data);
         
         for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
         for (UINT group = 0; group < g_nGroups; group++) {
@@ -143,9 +143,9 @@ public:
         UNUSED_VARIABLE(adjCellsSides);
         UNUSED_VARIABLE(bdryType);
         
-        Mat2<double> &localSource = c_localSource[omp_get_thread_num()];
-        Mat2<double> &localPsi = c_localPsi[omp_get_thread_num()];
-        Mat3<double> &localPsiBound = c_localPsiBound[omp_get_thread_num()];
+        Mat2<float> &localSource = c_localSource[omp_get_thread_num()];
+        Mat2<float> &localPsi = c_localPsi[omp_get_thread_num()];
+        Mat3<float> &localPsiBound = c_localPsiBound[omp_get_thread_num()];
 
         
         // Populate localSource
@@ -178,10 +178,10 @@ private:
     PsiBoundData &c_psiBound;
     const PsiData &c_source;
     const Mat2<UINT> &c_priorities;
-    std::vector<Mat2<double>> c_localFaceData;
-    std::vector<Mat2<double>> c_localSource;
-    std::vector<Mat2<double>> c_localPsi;
-    std::vector<Mat3<double>> c_localPsiBound;
+    std::vector<Mat2<float>> c_localFaceData;
+    std::vector<Mat2<float>> c_localSource;
+    std::vector<Mat2<float>> c_localPsi;
+    std::vector<Mat3<float>> c_localPsiBound;
 };
 
 #endif

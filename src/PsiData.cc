@@ -57,7 +57,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     CellData[]: array of cell data
 
     CellData Format:
-    double[]: psi(:, :, :, global cell index)
+    float[]: psi(:, :, :, global cell index)
 */
 void PsiData::writeToFile(const std::string &filename)
 {
@@ -84,9 +84,9 @@ void PsiData::writeToFile(const std::string &filename)
 
     // If rank 0, write header data
     if (Comm::rank() == 0) {
-        double header[8];
-        memcpy(header, outputName, 4 * sizeof(double));
-        memcpy(&header[4], restOfHeader, 4 * sizeof(double));
+        float header[8];
+        memcpy(header, outputName, 4 * sizeof(float));
+        memcpy(&header[4], restOfHeader, 4 * sizeof(float));
         Comm::writeDoublesAt(file, 0, header, 8);
     }
 
@@ -96,7 +96,7 @@ void PsiData::writeToFile(const std::string &filename)
         int dataSize = c_na * c_ng * c_nv;
         uint64_t globalCell = g_tychoMesh->getLGCell(cell);
         uint64_t offset = 8 + globalCell * dataSize;
-        double *data = &c_data[index(0, 0, 0, cell)];
+        float *data = &c_data[index(0, 0, 0, cell)];
         Comm::writeDoublesAt(file, offset, data, dataSize);
     }
 

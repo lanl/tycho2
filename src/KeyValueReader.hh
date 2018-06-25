@@ -60,7 +60,7 @@ public:
     void readFile(const std::string &filename);
     void getString(const std::string &key, std::string &value) const;
     void getInt(const std::string &key, int &value) const;
-    void getDouble(const std::string &key, double &value) const;
+    void getDouble(const std::string &key, float &value) const;
     void getFloat(const std::string &key, float &value) const;
     void getBool(const std::string &key, bool &value) const;
     void print() const;
