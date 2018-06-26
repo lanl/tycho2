@@ -84,10 +84,10 @@ void PsiData::writeToFile(const std::string &filename)
 
     // If rank 0, write header data
     if (Comm::rank() == 0) {
-        float header[8];
-        memcpy(header, outputName, 4 * sizeof(float));
-        memcpy(&header[4], restOfHeader, 4 * sizeof(float));
-        Comm::writeDoublesAt(file, 0, header, 8);
+        float header[16];
+        memcpy(header, outputName, 8 * sizeof(float));
+        memcpy(&header[8], restOfHeader, 8 * sizeof(float));
+        Comm::writeDoublesAt(file, 0, header, 16);
     }
 
 
@@ -95,7 +95,7 @@ void PsiData::writeToFile(const std::string &filename)
     for (size_t cell = 0; cell < c_nc; cell++) {
         int dataSize = c_na * c_ng * c_nv;
         uint64_t globalCell = g_tychoMesh->getLGCell(cell);
-        uint64_t offset = 8 + globalCell * dataSize;
+        uint64_t offset = 16 + globalCell * dataSize;
         float *data = &c_data[index(0, 0, 0, cell)];
         Comm::writeDoublesAt(file, offset, data, dataSize);
     }
