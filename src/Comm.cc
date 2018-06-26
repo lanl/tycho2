@@ -44,7 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 static const int INT_TAG = 1;
-static const int DOUBLE_TAG = 2;
+static const int FLOAT_TAG = 2;
 
 
 namespace Comm
@@ -101,7 +101,7 @@ void gsum(float &x)
 {
     float send = x;
     float recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_SUM, 
+    int result = MPI_Allreduce(&send, &recv, 1, MPI_FLOAT, MPI_SUM, 
                                MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::gsum(float) MPI error.\n");
     x = recv;
@@ -133,7 +133,7 @@ void gmax(float &x)
 {
     float send = x;
     float recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_MAX, 
+    int result = MPI_Allreduce(&send, &recv, 1, MPI_FLOAT, MPI_MAX, 
                                MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::gmax(float) MPI error.\n");
     x = recv;
@@ -149,7 +149,7 @@ void gmax(float &x, MPI_Comm comm)
 {
     float send = x;
     float recv = 0;
-    int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_MAX, comm);
+    int result = MPI_Allreduce(&send, &recv, 1, MPI_FLOAT, MPI_MAX, comm);
     Insist(result == MPI_SUCCESS, "Comm::gmax(float, comm) MPI error.\n");
     x = recv;
 }
@@ -222,7 +222,7 @@ void iSendDoubleVector(const std::vector<float> &buffer, int destination,
                        int tag, MPI_Request &request)
 {
     float *buffer1 = const_cast<float*>(buffer.data());
-    int result = MPI_Isend(buffer1, buffer.size(), MPI_DOUBLE, destination, tag, 
+    int result = MPI_Isend(buffer1, buffer.size(), MPI_FLOAT, destination, tag, 
                            MPI_COMM_WORLD, &request);
     Insist(result == MPI_SUCCESS, "Comm::iSendDoubleVector MPI error.\n");
 }
@@ -274,7 +274,7 @@ void recvUIntVector(std::vector<UINT> &buffer, int destination, int tag)
 */
 void recvDoubleVector(std::vector<float> &buffer, int destination, int tag)
 {
-    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_DOUBLE, destination, 
+    int result = MPI_Recv(&buffer[0], buffer.size(), MPI_FLOAT, destination, 
                           tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::recvDoubleVector MPI error.\n");
 }
@@ -410,7 +410,7 @@ void readChars(const MPI_File &file, char *data, int numData)
 void writeDoublesAt(const MPI_File &file, UINT offset, float *data, 
                     UINT numData)
 {
-    int result = MPI_File_write_at(file, offset * 8, data, numData, MPI_DOUBLE, 
+    int result = MPI_File_write_at(file, offset * 4, data, numData, MPI_FLOAT, 
                                    MPI_STATUS_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::writeDoublesAt MPI error.\n");
 }
