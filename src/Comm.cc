@@ -408,14 +408,10 @@ void readChars(const MPI_File &file, char *data, int numData)
 
     Writes an array of floats to specified location in file.
 */
-void writeDoublesAt(const MPI_File &file, UINT offset, float *data, 
+void writeDoublesAt(const MPI_File &file, UINT offset, double *data, 
                     UINT numData)
 {
-   std::vector<double> dbldata(numData);
-    for(int i=0; i<numData; i++){
-	dbldata[i]=(double)data[i];
-	}
-    int result = MPI_File_write_at(file, offset * 8, dbldata.data(), numData, MPI_DOUBLE,
+    int result = MPI_File_write_at(file, offset * 8, data, numData, MPI_DOUBLE,
                                    MPI_STATUS_IGNORE);
     Insist(result == MPI_SUCCESS, "Comm::writeDoublesAt MPI error.\n");
 }

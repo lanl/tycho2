@@ -84,20 +84,24 @@ void PsiData::writeToFile(const std::string &filename)
 
     // If rank 0, write header data
     if (Comm::rank() == 0) {
-        float header[16];
-        memcpy(header, outputName, 8 * sizeof(float));
-        memcpy(&header[8], restOfHeader, 8 * sizeof(float));
-        Comm::writeDoublesAt(file, 0, header, 16);
+        double header[8];
+        memcpy(header, outputName, 4 * sizeof(double));
+        memcpy(&header[4], restOfHeader, 4 * sizeof(double));
+        Comm::writeDoublesAt(file, 0, header, 8);
     }
 
 
+   std::vector <double>  dbldata(c_na*c_ng*c_nv);
     // Write data one cell at a time
     for (size_t cell = 0; cell < c_nc; cell++) {
         int dataSize = c_na * c_ng * c_nv;
         uint64_t globalCell = g_tychoMesh->getLGCell(cell);
-        uint64_t offset = 16 + globalCell * dataSize;
+        uint64_t offset = 8 + globalCell * dataSize;
         float *data = &c_data[index(0, 0, 0, cell)];
-        Comm::writeDoublesAt(file, offset, data, dataSize);
+	for(int i=0; i< dataSize; i++){
+		dbldata[i] = (double)data[i];
+	}
+        Comm::writeDoublesAt(file, offset, dbldata.data(), dataSize);
     }
 
 

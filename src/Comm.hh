@@ -79,7 +79,7 @@ void seek(const MPI_File &file, uint64_t position);
 void readUint64(const MPI_File &file, uint64_t &data);
 void readUint64(const MPI_File &file, uint64_t *data, int numData);
 void readChars(const MPI_File &file, char *data, int numData);
-void writeDoublesAt(const MPI_File &file, UINT offset, float *data, 
+void writeDoublesAt(const MPI_File &file, UINT offset, double *data, 
                     UINT numData);
 
 } // End namespace
