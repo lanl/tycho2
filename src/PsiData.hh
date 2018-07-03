@@ -173,6 +173,7 @@ private:
     a = angle
     s = side
 */
+template <class T>
 class PsiBoundData {
 public:
 
@@ -272,6 +273,7 @@ private:
     v = vertex
     c = cell
 */
+template <class T>
 class PhiData {
 public:
 

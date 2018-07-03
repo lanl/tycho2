@@ -126,7 +126,8 @@ void SweeperPBJOuter::solve()
 /*
     sweep
 */
-void SweeperPBJOuter::sweep(PsiData &psi, const PsiData &source,
+template <class T>
+void SweeperPBJOuter::sweep(PsiData<T> &psi, const PsiData<T> &source,
                             bool zeroPsiBound)
 {
     if (zeroPsiBound) {

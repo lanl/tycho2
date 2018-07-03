@@ -87,7 +87,8 @@ namespace Problem
 /*
     hatL2Error
 */
-double hatL2Error(const PsiData<double> &psi)
+template <class T>
+T hatL2Error(const PsiData<T> &psi)
 {
     double diff = 0.0;
     double norm = 0.0;
