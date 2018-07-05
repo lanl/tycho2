@@ -43,12 +43,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include <string>
 
-
+template <class T>
 class SweeperAbstract
 {
 public:
     virtual
-    void sweep(PsiData<double> &psi, const PsiData<float> &source,
+    void sweep(PsiData<T> &psi, const PsiData<T> &source,
                bool zeroPsiBound = false) = 0;
 
     virtual
@@ -59,14 +59,14 @@ public:
         c_psi.writeToFile(filename);
     }
 
-    PsiData<double>& getPsi()
+    PsiData<T>& getPsi()
     {
         return c_psi;
     }
 
 protected:
-    PsiData<double> L c_psi;
-    PsiData<float> c_source;
+    PsiData<T> c_psi;
+    PsiData<T> c_source;
 };
 
 #endif

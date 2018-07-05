@@ -1,0 +1,1514 @@
+Making build/CommSides.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/CommSides.cc -o build/CommSides.o
+Making build/Util.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/Util.cc -o build/Util.o
+Making build/Problem.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/Problem.cc -o build/Problem.o
+Making build/SweeperSchur.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/SweeperSchur.cc -o build/SweeperSchur.o
+Making build/SweeperPBJ.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/SweeperPBJ.cc -o build/SweeperPBJ.o
+Making build/Sweeper.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/Sweeper.cc -o build/Sweeper.o
+Making build/SourceIteration.o
+Making build/PsiData.o
+Making build/SweeperTraverse.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/SourceIteration.cc -o build/SourceIteration.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/PsiData.cc -o build/PsiData.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/SweeperTraverse.cc -o build/SweeperTraverse.o
+Making build/Main.o
+mpicxx -g -std=c++11 -fopenmp -Wall -Wextra -Wpedantic -DASSERT_ON=0 -DUSE_PETSC=0  -Isrc -c src/Main.cc -o build/Main.o
+In file included from src/SweeperPBJ.hh:42:0,
+                 from src/SweeperPBJ.cc:38:
+src/SweeperAbstract.hh:68:21: error: expected ‘;’ at end of member declaration
+     PsiData<double> L c_psi;
+                     ^
+src/SweeperAbstract.hh:68:23: error: ‘c_psi’ does not name a type
+     PsiData<double> L c_psi;
+                       ^~~~~
+src/SweeperAbstract.hh: In member function ‘void SweeperAbstract::writePsiToFile(std::__cxx11::string&)’:
+src/SweeperAbstract.hh:59:9: error: ‘c_psi’ was not declared in this scope
+         c_psi.writeToFile(filename);
+         ^~~~~
+src/SweeperAbstract.hh: In member function ‘PsiData<double>& SweeperAbstract::getPsi()’:
+src/SweeperAbstract.hh:64:16: error: ‘c_psi’ was not declared in this scope
+         return c_psi;
+                ^~~~~
+In file included from src/Util.cc:40:0:
+src/Util.hh:50:23: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                       ^
+src/Util.hh:50:24: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                        ^
+src/Util.hh:50:46: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                              ^
+src/Util.hh:50:47: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                               ^
+src/Util.hh:51:29: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                             ^
+src/Util.hh:51:30: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                              ^
+src/Util.hh:51:46: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                              ^
+src/Util.hh:51:47: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                               ^
+src/Util.hh:52:36: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                    ^
+src/Util.hh:52:37: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                     ^
+src/Util.hh:52:62: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                              ^
+src/Util.hh:52:63: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                               ^
+src/Util.hh:53:30: error: ‘T’ was not declared in this scope
+                      PsiData<T> &totalSource);
+                              ^
+src/Util.hh:53:31: error: template argument 1 is invalid
+                      PsiData<T> &totalSource);
+                               ^
+src/Util.hh:54:25: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                         ^
+src/Util.hh:54:26: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                          ^
+src/Util.hh:54:48: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                ^
+src/Util.hh:54:49: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                 ^
+src/Util.hh:54:73: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                         ^
+src/Util.hh:54:74: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                          ^
+src/Util.hh:55:30: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                              ^
+src/Util.hh:55:31: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                               ^
+src/Util.hh:55:48: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                ^
+src/Util.hh:55:49: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                 ^
+In file included from src/SweeperPBJ.cc:38:0:
+src/SweeperPBJ.hh: At global scope:
+src/SweeperPBJ.hh:60:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBoundPrev;
+     ^~~~~~~~~~~~
+In file included from src/SweeperPBJ.hh:41:0,
+                 from src/SweeperPBJ.cc:38:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/SweeperPBJ.cc:38:0:
+src/SweeperPBJ.hh:79:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/SweeperPBJ.hh:41:0,
+                 from src/SweeperPBJ.cc:38:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/SweeperPBJ.cc:38:0:
+src/SweeperPBJ.hh:80:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_zeroPsiBound;
+     ^~~~~~~~~~~~
+In file included from src/SweeperPBJ.hh:41:0,
+                 from src/SweeperPBJ.cc:38:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/SweeperPBJ.cc:38:0:
+src/SweeperPBJ.hh:98:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/SweeperPBJ.hh:41:0,
+                 from src/SweeperPBJ.cc:38:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/SweeperPBJ.cc:39:0:
+src/Util.hh:50:23: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                       ^
+src/Util.hh:50:24: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                        ^
+src/Util.hh:50:46: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                              ^
+src/Util.hh:50:47: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                               ^
+src/Util.hh:51:29: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                             ^
+src/Util.hh:51:30: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                              ^
+src/Util.hh:51:46: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                              ^
+src/Util.hh:51:47: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                               ^
+src/Util.hh:52:36: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                    ^
+src/Util.hh:52:37: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                     ^
+src/Util.hh:52:62: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                              ^
+src/Util.hh:52:63: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                               ^
+src/Util.hh:53:30: error: ‘T’ was not declared in this scope
+                      PsiData<T> &totalSource);
+                              ^
+src/Util.hh:53:31: error: template argument 1 is invalid
+                      PsiData<T> &totalSource);
+                               ^
+src/Util.hh:54:25: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                         ^
+src/Util.hh:54:26: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                          ^
+src/Util.hh:54:48: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                ^
+src/Util.hh:54:49: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                 ^
+src/Util.hh:54:73: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                         ^
+src/Util.hh:54:74: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                          ^
+src/Util.hh:55:30: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                              ^
+src/Util.hh:55:31: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                               ^
+src/Util.hh:55:48: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                ^
+src/Util.hh:55:49: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                 ^
+In file included from src/SweeperSchur.hh:42:0,
+                 from src/SweeperSchur.cc:39:
+src/SweeperAbstract.hh:68:21: error: expected ‘;’ at end of member declaration
+     PsiData<double> L c_psi;
+                     ^
+src/SweeperAbstract.hh:68:23: error: ‘c_psi’ does not name a type
+     PsiData<double> L c_psi;
+                       ^~~~~
+In file included from src/SweeperPBJ.cc:40:0:
+src/Problem.hh:50:24: error: ‘T’ was not declared in this scope
+ void getSource(PsiData<T> &source);
+                        ^
+src/Problem.hh:50:25: error: template argument 1 is invalid
+ void getSource(PsiData<T> &source);
+                         ^
+src/SweeperAbstract.hh: In member function ‘void SweeperAbstract::writePsiToFile(std::__cxx11::string&)’:
+src/SweeperAbstract.hh:59:9: error: ‘c_psi’ was not declared in this scope
+         c_psi.writeToFile(filename);
+         ^~~~~
+src/SweeperAbstract.hh: In member function ‘PsiData<double>& SweeperAbstract::getPsi()’:
+src/SweeperAbstract.hh:64:16: error: ‘c_psi’ was not declared in this scope
+         return c_psi;
+                ^~~~~
+In file included from src/SweeperSchur.cc:39:0:
+src/SweeperSchur.hh: At global scope:
+src/SweeperSchur.hh:55:24: error: ‘T’ was not declared in this scope
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+                        ^
+src/SweeperSchur.hh:55:25: error: template argument 1 is invalid
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+                         ^
+src/SweeperSchur.hh:55:47: error: ‘T’ was not declared in this scope
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+                                               ^
+src/SweeperSchur.hh:55:48: error: template argument 1 is invalid
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+                                                ^
+src/SweeperSchur.hh:60:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBoundPrev;
+     ^~~~~~~~~~~~
+In file included from src/SweeperSchur.hh:41:0,
+                 from src/SweeperSchur.cc:39:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+src/PsiData.cc:62:6: error: ‘template<class T> class PsiData’ used without template parameters
+ void PsiData::writeToFile(const std::string &filename)
+      ^~~~~~~
+In file included from src/SweeperSchur.cc:39:0:
+src/SweeperSchur.hh:76:39: error: invalid use of template-name ‘PsiData’ without an argument list
+     void sweep(PsiData<T> &psi, const PsiData &source, bool zeroPsiBound);
+                                       ^~~~~~~
+In file included from src/SweeperSchur.hh:41:0,
+                 from src/SweeperSchur.cc:39:
+src/PsiData.hh:60:7: note: ‘template<class T> class PsiData’ declared here
+ class PsiData {
+       ^~~~~~~
+In file included from src/SweeperSchur.cc:39:0:
+src/SweeperSchur.hh:81:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/SweeperSchur.hh:41:0,
+                 from src/SweeperSchur.cc:39:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/SweeperSchur.cc:39:0:
+src/SweeperSchur.hh:82:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_zeroPsiBound;
+     ^~~~~~~~~~~~
+src/PsiData.cc: In function ‘void writeToFile(const string&)’:
+src/PsiData.cc:75:23: error: ‘c_nc’ was not declared in this scope
+     restOfHeader[1] = c_nc;
+                       ^~~~
+In file included from src/SweeperSchur.hh:41:0,
+                 from src/SweeperSchur.cc:39:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+src/PsiData.cc:77:23: error: ‘c_na’ was not declared in this scope
+     restOfHeader[2] = c_na;
+                       ^~~~
+src/PsiData.cc:78:23: error: ‘c_ng’ was not declared in this scope
+     restOfHeader[3] = c_ng;
+                       ^~~~
+In file included from src/SweeperSchur.cc:39:0:
+src/SweeperSchur.hh:101:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/SweeperSchur.hh:41:0,
+                 from src/SweeperSchur.cc:39:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+src/PsiData.cc:94:17: error: ‘T’ was not declared in this scope
+    std::vector <T>  dbldata(c_na*c_ng*c_nv);
+                 ^
+src/PsiData.cc:94:18: error: template argument 1 is invalid
+    std::vector <T>  dbldata(c_na*c_ng*c_nv);
+                  ^
+src/PsiData.cc:94:18: error: template argument 2 is invalid
+src/PsiData.cc:94:39: error: ‘c_nv’ was not declared in this scope
+    std::vector <T>  dbldata(c_na*c_ng*c_nv);
+                                       ^~~~
+src/PsiData.cc:100:12: error: ‘data’ was not declared in this scope
+         T *data = &c_data[index(0, 0, 0, cell)]; //not sure about this line
+            ^~~~
+src/PsiData.cc:100:20: error: ‘c_data’ was not declared in this scope
+         T *data = &c_data[index(0, 0, 0, cell)]; //not sure about this line
+                    ^~~~~~
+In file included from src/SweeperSchur.cc:40:0:
+src/Util.hh:50:23: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                       ^
+src/Util.hh:50:24: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                        ^
+src/PsiData.cc:100:46: error: no matching function for call to ‘index(int, int, int, size_t&)’
+         T *data = &c_data[index(0, 0, 0, cell)]; //not sure about this line
+                                              ^
+src/Util.hh:50:46: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                              ^
+src/Util.hh:50:47: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                               ^
+src/Util.hh:51:29: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                             ^
+src/Util.hh:51:30: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                              ^
+src/Util.hh:51:46: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                              ^
+src/Util.hh:51:47: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                               ^
+src/Util.hh:52:36: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                    ^
+src/Util.hh:52:37: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                     ^
+src/Util.hh:52:62: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                              ^
+src/Util.hh:52:63: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                               ^
+src/Util.hh:53:30: error: ‘T’ was not declared in this scope
+                      PsiData<T> &totalSource);
+                              ^
+src/Util.hh:53:31: error: template argument 1 is invalid
+                      PsiData<T> &totalSource);
+                               ^
+In file included from src/PsiData.cc:43:0:
+/usr/include/string.h:465:14: note: candidate: char* index(char*, int)
+ extern char *index (char *__s, int __c)
+              ^~~~~
+src/Util.hh:54:25: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                         ^
+src/Util.hh:54:26: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                          ^
+/usr/include/string.h:465:14: note:   candidate expects 2 arguments, 4 provided
+/usr/include/string.h:467:20: note: candidate: const char* index(const char*, int)
+ extern const char *index (const char *__s, int __c)
+                    ^~~~~
+/usr/include/string.h:467:20: note:   candidate expects 2 arguments, 4 provided
+src/Util.hh:54:48: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                ^
+src/Util.hh:54:49: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                 ^
+src/Util.hh:54:73: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                         ^
+src/Util.hh:54:74: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                          ^
+src/PsiData.cc:102:23: error: invalid types ‘int[int]’ for array subscript
+              dbldata[i] = (double)data[i];
+                       ^
+src/Util.hh:55:30: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                              ^
+src/PsiData.cc:104:52: error: request for member ‘data’ in ‘dbldata’, which is of non-class type ‘int’
+         Comm::writeDoublesAt(file, offset, dbldata.data(), dataSize);
+                                                    ^~~~
+src/Util.hh:55:31: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                               ^
+src/Util.hh:55:48: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                ^
+src/Util.hh:55:49: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                 ^
+In file included from src/SweeperSchur.cc:41:0:
+src/Problem.hh:50:24: error: ‘T’ was not declared in this scope
+ void getSource(PsiData<T> &source);
+                        ^
+src/Problem.hh:50:25: error: template argument 1 is invalid
+ void getSource(PsiData<T> &source);
+                         ^
+In file included from src/SweeperTraverse.hh:46:0,
+                 from src/SweeperTraverse.cc:40:
+src/SweeperAbstract.hh:68:21: error: expected ‘;’ at end of member declaration
+     PsiData<double> L c_psi;
+                     ^
+src/SweeperAbstract.hh:68:23: error: ‘c_psi’ does not name a type
+     PsiData<double> L c_psi;
+                       ^~~~~
+src/SweeperAbstract.hh: In member function ‘void SweeperAbstract::writePsiToFile(std::__cxx11::string&)’:
+src/SweeperAbstract.hh:59:9: error: ‘c_psi’ was not declared in this scope
+         c_psi.writeToFile(filename);
+         ^~~~~
+src/SweeperAbstract.hh: In member function ‘PsiData<double>& SweeperAbstract::getPsi()’:
+src/SweeperAbstract.hh:64:16: error: ‘c_psi’ was not declared in this scope
+         return c_psi;
+                ^~~~~
+In file included from src/SweeperTraverse.cc:42:0:
+src/Problem.hh: At global scope:
+src/Problem.hh:50:24: error: ‘T’ was not declared in this scope
+ void getSource(PsiData<T> &source);
+                        ^
+src/Problem.hh:50:25: error: template argument 1 is invalid
+ void getSource(PsiData<T> &source);
+                         ^
+In file included from src/Util.cc:43:0:
+src/SweepData.hh:60:67: error: ‘PsiBoundData’ is not a type
+     SweepData(PsiData<double> &psi, const PsiData<float> &source, PsiBoundData &psiBound,
+                                                                   ^~~~~~~~~~~~
+src/SweepData.hh:178:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData &c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/Util.hh:44:0,
+                 from src/Util.cc:40:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/Problem.cc:41:0:
+src/Problem.hh:50:24: error: ‘T’ was not declared in this scope
+ void getSource(PsiData<T> &source);
+                        ^
+src/Problem.hh:50:25: error: template argument 1 is invalid
+ void getSource(PsiData<T> &source);
+                         ^
+In file included from src/Sweeper.hh:44:0,
+                 from src/Sweeper.cc:40:
+src/SweeperAbstract.hh:68:21: error: expected ‘;’ at end of member declaration
+     PsiData<double> L c_psi;
+                     ^
+src/SweeperAbstract.hh:68:23: error: ‘c_psi’ does not name a type
+     PsiData<double> L c_psi;
+                       ^~~~~
+src/SweeperAbstract.hh: In member function ‘void SweeperAbstract::writePsiToFile(std::__cxx11::string&)’:
+src/SweeperAbstract.hh:59:9: error: ‘c_psi’ was not declared in this scope
+         c_psi.writeToFile(filename);
+         ^~~~~
+src/SweeperAbstract.hh: In member function ‘PsiData<double>& SweeperAbstract::getPsi()’:
+src/SweeperAbstract.hh:64:16: error: ‘c_psi’ was not declared in this scope
+         return c_psi;
+                ^~~~~
+In file included from src/Sweeper.cc:41:0:
+src/Problem.hh: At global scope:
+src/Problem.hh:50:24: error: ‘T’ was not declared in this scope
+ void getSource(PsiData<T> &source);
+                        ^
+In file included from src/Util.cc:43:0:
+src/SweepData.hh: In constructor ‘SweepData::SweepData(PsiData<double>&, const PsiData<float>&, int&, const Mat2<long unsigned int>&)’:
+src/SweepData.hh:62:19: error: class ‘SweepData’ does not have any field named ‘c_psiBound’
+     : c_psi(psi), c_psiBound(psiBound), c_source(source),
+                   ^~~~~~~~~~
+src/Problem.hh:50:25: error: template argument 1 is invalid
+ void getSource(PsiData<T> &source);
+                         ^
+src/SweepData.hh: In member function ‘virtual void SweepData::setSideData(UINT, UINT, const char*)’:
+src/SweepData.hh:118:49: error: ‘c_psiBound’ was not declared in this scope
+             c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
+                                                 ^
+src/SweepData.hh: In member function ‘virtual void SweepData::update(UINT, UINT, UINT*, BoundaryType*)’:
+src/SweepData.hh:160:62: error: ‘c_psiBound’ was not declared in this scope
+         Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound,
+                                                              ^~~~~~~~~~
+src/CommSides.cc:119:27: error: variable or field ‘commSides’ declared void
+ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
+                           ^~~~~~~
+src/CommSides.cc:119:35: error: missing template arguments before ‘&’ token
+ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
+                                   ^
+src/CommSides.cc:119:36: error: ‘psi’ was not declared in this scope
+ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
+                                    ^~~
+src/CommSides.cc:119:54: error: missing template arguments before ‘&’ token
+ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
+                                                      ^
+src/CommSides.cc:119:55: error: ‘psiBound’ was not declared in this scope
+ void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
+                                                       ^~~~~~~~
+In file included from src/SweeperTraverse.cc:43:0:
+src/SweepData.hh:60:67: error: ‘PsiBoundData’ is not a type
+     SweepData(PsiData<double> &psi, const PsiData<float> &source, PsiBoundData &psiBound,
+                                                                   ^~~~~~~~~~~~
+src/SweepData.hh:178:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData &c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/SweeperTraverse.hh:44:0,
+                 from src/SweeperTraverse.cc:40:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+src/SweeperPBJ.cc:60:6: error: ‘template<class T> class SweeperPBJOuter’ used without template parameters
+ void SweeperPBJOuter::solve()
+      ^~~~~~~~~~~~~~~
+src/SweeperPBJ.cc: In function ‘void solve()’:
+src/SweeperPBJ.cc:67:24: error: ‘c_source’ was not declared in this scope
+     Problem::getSource(c_source);
+                        ^~~~~~~~
+src/SweeperPBJ.cc:68:5: error: ‘c_psi’ was not declared in this scope
+     c_psi.setToValue(0.0);
+     ^~~~~
+src/SweeperPBJ.cc:69:5: error: ‘c_psiBound’ was not declared in this scope
+     c_psiBound.setToValue(0.0);
+     ^~~~~~~~~~
+src/SweeperPBJ.cc:79:48: error: invalid use of ‘this’ in non-member function
+             its = SourceIteration::fixedPoint(*this, c_psi, c_source);
+                                                ^~~~
+src/SweeperPBJ.cc:81:44: error: invalid use of ‘this’ in non-member function
+             its = SourceIteration::krylov(*this, c_psi, c_source);
+                                            ^~~~
+src/SweeperPBJ.cc:107:9: error: ‘c_commSides’ was not declared in this scope
+         c_commSides.commSides(c_psi, c_psiBound);
+         ^~~~~~~~~~~
+src/SweeperPBJ.cc: At global scope:
+src/SweeperPBJ.cc:130:6: error: ‘template<class T> class SweeperPBJOuter’ used without template parameters
+ void SweeperPBJOuter::sweep(PsiData<T> &psi, const PsiData<T> &source,
+      ^~~~~~~~~~~~~~~
+src/SweeperPBJ.cc: In function ‘void sweep(PsiData<T>&, const PsiData<T>&, bool)’:
+src/SweeperPBJ.cc:134:39: error: ‘c_zeroPsiBound’ was not declared in this scope
+         Util::sweepLocal(psi, source, c_zeroPsiBound);
+                                       ^~~~~~~~~~~~~~
+src/SweeperPBJ.cc:137:39: error: ‘c_psiBound’ was not declared in this scope
+         Util::sweepLocal(psi, source, c_psiBound);
+                                       ^~~~~~~~~~
+src/SweeperPBJ.cc: At global scope:
+src/SweeperPBJ.cc:149:6: error: ‘template<class T> class SweeperPBJ’ used without template parameters
+ void SweeperPBJ::solve()
+      ^~~~~~~~~~
+src/SweeperPBJ.cc: In function ‘void solve()’:
+src/SweeperPBJ.cc:149:6: error: redefinition of ‘void solve()’
+src/SweeperPBJ.cc:60:6: note: ‘void solve()’ previously defined here
+ void SweeperPBJOuter::solve()
+      ^~~~~~~~~~~~~~~
+src/SweeperPBJ.cc:151:5: error: ‘c_iters’ was not declared in this scope
+     c_iters = 0;
+     ^~~~~~~
+src/SweeperPBJ.cc:152:24: error: ‘c_source’ was not declared in this scope
+     Problem::getSource(c_source);
+                        ^~~~~~~~
+src/SweeperPBJ.cc:153:5: error: ‘c_psi’ was not declared in this scope
+     c_psi.setToValue(0.0);
+     ^~~~~
+src/SweeperPBJ.cc:156:38: error: invalid use of ‘this’ in non-member function
+         SourceIteration::fixedPoint(*this, c_psi, c_source);
+                                      ^~~~
+In file included from src/SourceIteration.hh:44:0,
+                 from src/SourceIteration.cc:40:
+src/SweeperAbstract.hh:68:21: error: expected ‘;’ at end of member declaration
+     PsiData<double> L c_psi;
+                     ^
+src/SweeperPBJ.cc:158:34: error: invalid use of ‘this’ in non-member function
+         SourceIteration::krylov(*this, c_psi, c_source);
+                                  ^~~~
+src/SweeperAbstract.hh:68:23: error: ‘c_psi’ does not name a type
+     PsiData<double> L c_psi;
+                       ^~~~~
+src/SweeperPBJ.cc: At global scope:
+src/SweeperPBJ.cc:169:6: error: ‘template<class T> class SweeperPBJ’ used without template parameters
+ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
+      ^~~~~~~~~~
+src/SweeperPBJ.cc:169:24: error: variable or field ‘sweep’ declared void
+ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
+                        ^~~~~~~
+src/SweeperPBJ.cc:169:32: error: missing template arguments before ‘&’ token
+ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
+                                ^
+src/SweeperPBJ.cc:169:33: error: ‘psi’ was not declared in this scope
+ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
+                                 ^~~
+src/SweeperPBJ.cc:169:38: error: expected primary-expression before ‘const’
+ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
+                                      ^~~~~
+src/SweeperPBJ.cc:169:61: error: expected primary-expression before ‘bool’
+ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
+                                                             ^~~~
+src/SweeperAbstract.hh: In member function ‘void SweeperAbstract::writePsiToFile(std::__cxx11::string&)’:
+src/SweeperAbstract.hh:59:9: error: ‘c_psi’ was not declared in this scope
+         c_psi.writeToFile(filename);
+         ^~~~~
+src/SweeperAbstract.hh: In member function ‘PsiData<double>& SweeperAbstract::getPsi()’:
+src/SweeperAbstract.hh:64:16: error: ‘c_psi’ was not declared in this scope
+         return c_psi;
+                ^~~~~
+In file included from src/SweeperTraverse.cc:43:0:
+src/SweepData.hh: In constructor ‘SweepData::SweepData(PsiData<double>&, const PsiData<float>&, int&, const Mat2<long unsigned int>&)’:
+src/SweepData.hh:62:19: error: class ‘SweepData’ does not have any field named ‘c_psiBound’
+     : c_psi(psi), c_psiBound(psiBound), c_source(source),
+                   ^~~~~~~~~~
+src/SweepData.hh: In member function ‘virtual void SweepData::setSideData(UINT, UINT, const char*)’:
+src/SweepData.hh:118:49: error: ‘c_psiBound’ was not declared in this scope
+             c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
+                                                 ^
+src/SweepData.hh: In member function ‘virtual void SweepData::update(UINT, UINT, UINT*, BoundaryType*)’:
+src/SweepData.hh:160:62: error: ‘c_psiBound’ was not declared in this scope
+         Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound,
+                                                              ^~~~~~~~~~
+src/SweeperTraverse.cc: At global scope:
+src/SweeperTraverse.cc:55:1: error: invalid use of template-name ‘SweeperTraverse’ without an argument list
+ SweeperTraverse::SweeperTraverse()
+ ^~~~~~~~~~~~~~~
+In file included from src/SweeperTraverse.cc:40:0:
+src/SweeperTraverse.hh:49:7: note: ‘template<class T> class SweeperTraverse’ declared here
+ class SweeperTraverse : public SweeperAbstract
+       ^~~~~~~~~~~~~~~
+src/SweeperTraverse.cc:65:6: error: ‘template<class T> class SweeperTraverse’ used without template parameters
+ void SweeperTraverse::solve()
+      ^~~~~~~~~~~~~~~
+src/SweeperTraverse.cc: In function ‘void solve()’:
+src/SweeperTraverse.cc:67:24: error: ‘c_source’ was not declared in this scope
+     Problem::getSource(c_source);
+                        ^~~~~~~~
+src/SweeperTraverse.cc:68:5: error: ‘c_psi’ was not declared in this scope
+     c_psi.setToValue(0.0);
+     ^~~~~
+src/SweeperTraverse.cc:71:38: error: invalid use of ‘this’ in non-member function
+         SourceIteration::fixedPoint(*this, c_psi, c_source);
+                                      ^~~~
+src/SweeperTraverse.cc:73:34: error: invalid use of ‘this’ in non-member function
+         SourceIteration::krylov(*this, c_psi, c_source);
+                                  ^~~~
+src/SweeperTraverse.cc: At global scope:
+src/SweeperTraverse.cc:82:6: error: ‘template<class T> class SweeperTraverse’ used without template parameters
+ void SweeperTraverse::sweep(PsiData &psi, const PsiData &source,
+      ^~~~~~~~~~~~~~~
+src/SweeperTraverse.cc:82:29: error: variable or field ‘sweep’ declared void
+ void SweeperTraverse::sweep(PsiData &psi, const PsiData &source,
+                             ^~~~~~~
+src/SweeperTraverse.cc:82:37: error: missing template arguments before ‘&’ token
+ void SweeperTraverse::sweep(PsiData &psi, const PsiData &source,
+                                     ^
+src/SweeperTraverse.cc:82:38: error: ‘psi’ was not declared in this scope
+ void SweeperTraverse::sweep(PsiData &psi, const PsiData &source,
+                                      ^~~
+src/SweeperTraverse.cc:82:43: error: expected primary-expression before ‘const’
+ void SweeperTraverse::sweep(PsiData &psi, const PsiData &source,
+                                           ^~~~~
+src/SweeperTraverse.cc:83:29: error: expected primary-expression before ‘bool’
+                             bool zeroPsiBound)
+                             ^~~~
+src/SweeperSchur.cc:72:5: error: invalid use of template-name ‘SweeperSchurOuter’ without an argument list
+     SweeperSchurOuter *sweeperSchurOuter;
+     ^~~~~~~~~~~~~~~~~
+In file included from src/SweeperSchur.cc:39:0:
+src/SweeperSchur.hh:72:7: note: ‘template<class T> class SweeperSchurOuter’ declared here
+ class SweeperSchurOuter : public SweeperAbstract
+       ^~~~~~~~~~~~~~~~~
+src/SweeperSchur.cc:79:36: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+ void psiBoundToVec(float *x, const PsiBoundData &psiBound)
+                                    ^~~~~~~~~~~~
+In file included from src/SweeperSchur.hh:41:0,
+                 from src/SweeperSchur.cc:39:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+make: *** [build/PsiData.o] Error 1
+src/SweeperSchur.cc: In function ‘void {anonymous}::psiBoundToVec(float*, const int&)’:
+src/SweeperSchur.cc:98:72: error: expression cannot be used as a function
+                     x[xArrayIndex] = psiBound(group, fvrtx, angle, side);
+                                                                        ^
+make: *** Waiting for unfinished jobs....
+src/SweeperSchur.cc: At global scope:
+src/SweeperSchur.cc:110:36: error: ‘PsiBoundData’ is not a type
+ void vecToPsiBound(const float *x, PsiBoundData &psiBound)
+                                    ^~~~~~~~~~~~
+src/SweeperSchur.cc: In function ‘void {anonymous}::vecToPsiBound(const float*, int&)’:
+src/SweeperSchur.cc:129:55: error: expression cannot be used as a function
+                     psiBound(group, fvrtx, angle, side) = x[xArrayIndex];
+                                                       ^
+In file included from src/Main.cc:41:0:
+src/Problem.hh:50:24: error: ‘T’ was not declared in this scope
+ void getSource(PsiData<T> &source);
+                        ^
+src/Problem.hh:50:25: error: template argument 1 is invalid
+ void getSource(PsiData<T> &source);
+                         ^
+src/SweeperSchur.cc: In function ‘void Schur(const float*, float*, void*)’:
+src/SweeperSchur.cc:192:15: error: missing template arguments before ‘*’ token
+     SchurData *data = (SchurData*) voidData;
+               ^
+src/SweeperSchur.cc:192:16: error: ‘data’ was not declared in this scope
+     SchurData *data = (SchurData*) voidData;
+                ^~~~
+src/SweeperSchur.cc:192:33: error: missing template arguments before ‘*’ token
+     SchurData *data = (SchurData*) voidData;
+                                 ^
+src/SweeperSchur.cc:192:34: error: expected primary-expression before ‘)’ token
+     SchurData *data = (SchurData*) voidData;
+                                  ^
+src/SweeperSchur.cc:189:44: warning: unused parameter ‘voidData’ [-Wunused-parameter]
+ void Schur(const float *x, float *b, void *voidData)
+                                            ^~~~~~~~
+In file included from src/SourceIteration.hh:44:0,
+                 from src/Main.cc:42:
+src/SweeperAbstract.hh:68:21: error: expected ‘;’ at end of member declaration
+     PsiData<double> L c_psi;
+                     ^
+src/SweeperAbstract.hh:68:23: error: ‘c_psi’ does not name a type
+     PsiData<double> L c_psi;
+                       ^~~~~
+src/SweeperSchur.cc: In member function ‘virtual void SweeperSchur::solve()’:
+src/SweeperSchur.cc:224:24: error: invalid initialization of reference of type ‘int&’ from expression of type ‘PsiData<float>’
+     Problem::getSource(c_source);
+                        ^~~~~~~~
+In file included from src/SweeperSchur.cc:41:0:
+src/Problem.hh:50:6: note: in passing argument 1 of ‘void Problem::getSource(int&)’
+ void getSource(PsiData<T> &source);
+      ^~~~~~~~~
+src/SweeperSchur.cc:225:5: error: ‘c_psi’ was not declared in this scope
+     c_psi.setToValue(0.0);
+     ^~~~~
+src/SweeperAbstract.hh: In member function ‘void SweeperAbstract::writePsiToFile(std::__cxx11::string&)’:
+src/SweeperAbstract.hh:59:9: error: ‘c_psi’ was not declared in this scope
+         c_psi.writeToFile(filename);
+         ^~~~~
+src/SweeperAbstract.hh: In member function ‘PsiData<double>& SweeperAbstract::getPsi()’:
+src/SweeperAbstract.hh:64:16: error: ‘c_psi’ was not declared in this scope
+         return c_psi;
+                ^~~~~
+src/SweeperSchur.cc: At global scope:
+src/SweeperSchur.cc:248:6: error: prototype for ‘void SweeperSchur::sweep(PsiData<T>&, const PsiData<T>&, bool)’ does not match any in class ‘SweeperSchur’
+ void SweeperSchur::sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound)
+      ^~~~~~~~~~~~
+In file included from src/SweeperSchur.cc:39:0:
+src/SweeperSchur.hh:55:10: error: candidate is: void SweeperSchur::sweep(int&, const int&, bool)
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+          ^~~~~
+src/SweeperSchur.cc: In function ‘void SchurOuter(const float*, float*, void*)’:
+src/SweeperSchur.cc:339:15: error: missing template arguments before ‘*’ token
+     SchurData *data = (SchurData*) voidData;
+               ^
+src/SweeperSchur.cc:339:16: error: ‘data’ was not declared in this scope
+     SchurData *data = (SchurData*) voidData;
+                ^~~~
+src/SweeperSchur.cc:339:33: error: missing template arguments before ‘*’ token
+     SchurData *data = (SchurData*) voidData;
+                                 ^
+src/SweeperSchur.cc:339:34: error: expected primary-expression before ‘)’ token
+     SchurData *data = (SchurData*) voidData;
+                                  ^
+src/SweeperSchur.cc:336:49: warning: unused parameter ‘voidData’ [-Wunused-parameter]
+ void SchurOuter(const float *x, float *b, void *voidData)
+                                                 ^~~~~~~~
+src/SweeperSchur.cc: At global scope:
+src/SweeperSchur.cc:373:6: error: ‘template<class T> class SweeperSchurOuter’ used without template parameters
+ void SweeperSchurOuter::solve()
+      ^~~~~~~~~~~~~~~~~
+In file included from src/Main.cc:43:0:
+src/Util.hh: At global scope:
+src/Util.hh:50:23: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                       ^
+src/Util.hh:50:24: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                        ^
+src/Util.hh:50:46: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                              ^
+src/Util.hh:50:47: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                               ^
+src/Util.hh:51:29: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                             ^
+src/Util.hh:51:30: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                              ^
+src/Util.hh:51:46: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                              ^
+src/Util.hh:51:47: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                               ^
+src/Util.hh:52:36: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                    ^
+src/Util.hh:52:37: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                     ^
+src/Util.hh:52:62: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                              ^
+src/Util.hh:52:63: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                               ^
+src/Util.hh:53:30: error: ‘T’ was not declared in this scope
+                      PsiData<T> &totalSource);
+                              ^
+src/Util.hh:53:31: error: template argument 1 is invalid
+                      PsiData<T> &totalSource);
+                               ^
+src/Util.hh:54:25: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                         ^
+src/Util.hh:54:26: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                          ^
+src/Util.hh:54:48: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                ^
+src/Util.hh:54:49: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                 ^
+src/Util.hh:54:73: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                         ^
+src/Util.hh:54:74: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                          ^
+src/Util.hh:55:30: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                              ^
+src/Util.hh:55:31: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                               ^
+src/Util.hh:55:48: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                ^
+src/Util.hh:55:49: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                 ^
+src/SweeperSchur.cc: In function ‘void solve()’:
+src/SweeperSchur.cc:385:24: error: ‘c_source’ was not declared in this scope
+     Problem::getSource(c_source);
+                        ^~~~~~~~
+src/SweeperSchur.cc:386:5: error: ‘c_psi’ was not declared in this scope
+     c_psi.setToValue(0.0);
+     ^~~~~
+src/SweeperSchur.cc:387:5: error: ‘c_psiBound’ was not declared in this scope
+     c_psiBound.setToValue(0.0);
+     ^~~~~~~~~~
+src/SweeperSchur.cc:389:5: error: ‘c_krylovSolver’ was not declared in this scope
+     c_krylovSolver = &ks;
+     ^~~~~~~~~~~~~~
+src/SweeperSchur.cc:393:15: error: missing template arguments before ‘data’
+     SchurData data;
+               ^~~~
+src/SweeperSchur.cc:394:5: error: ‘data’ was not declared in this scope
+     data.commSides = &c_commSides;
+     ^~~~
+src/SweeperSchur.cc:394:23: error: ‘c_commSides’ was not declared in this scope
+     data.commSides = &c_commSides;
+                       ^~~~~~~~~~~
+src/SweeperSchur.cc:399:30: error: invalid use of ‘this’ in non-member function
+     data.sweeperSchurOuter = this;
+                              ^~~~
+src/SweeperSchur.cc:410:51: error: invalid use of ‘this’ in non-member function
+         sourceIts1 = SourceIteration::fixedPoint(*this, c_psi, c_source);
+                                                   ^~~~
+src/SweeperSchur.cc:412:47: error: invalid use of ‘this’ in non-member function
+         sourceIts1 = SourceIteration::krylov(*this, c_psi, c_source);
+                                               ^~~~
+src/SweeperSchur.cc:440:51: error: invalid use of ‘this’ in non-member function
+         sourceIts3 = SourceIteration::fixedPoint(*this, c_psi, c_source);
+                                                   ^~~~
+src/SweeperSchur.cc:442:47: error: invalid use of ‘this’ in non-member function
+         sourceIts3 = SourceIteration::krylov(*this, c_psi, c_source);
+                                               ^~~~
+src/SweeperSchur.cc: At global scope:
+src/SweeperSchur.cc:468:6: error: ‘template<class T> class SweeperSchurOuter’ used without template parameters
+ void SweeperSchurOuter::sweep(PsiData<T> &psi, const PsiData<T> &source,
+      ^~~~~~~~~~~~~~~~~
+src/SweeperSchur.cc: In function ‘void sweep(PsiData<T>&, const PsiData<T>&, bool)’:
+src/SweeperSchur.cc:472:39: error: ‘c_zeroPsiBound’ was not declared in this scope
+         Util::sweepLocal(psi, source, c_zeroPsiBound);
+                                       ^~~~~~~~~~~~~~
+src/SweeperSchur.cc:475:39: error: ‘c_psiBound’ was not declared in this scope
+         Util::sweepLocal(psi, source, c_psiBound);
+                                       ^~~~~~~~~~
+src/SweeperSchur.cc: In function ‘void SchurKrylov(const float*, float*, void*)’:
+src/SweeperSchur.cc:497:15: error: missing template arguments before ‘*’ token
+     SchurData *data = (SchurData*) voidData;
+               ^
+src/SweeperSchur.cc:497:16: error: ‘data’ was not declared in this scope
+     SchurData *data = (SchurData*) voidData;
+                ^~~~
+src/SweeperSchur.cc:497:33: error: missing template arguments before ‘*’ token
+     SchurData *data = (SchurData*) voidData;
+                                 ^
+src/SweeperSchur.cc:497:34: error: expected primary-expression before ‘)’ token
+     SchurData *data = (SchurData*) voidData;
+                                  ^
+src/SweeperSchur.cc:497:36: error: expected ‘;’ before ‘voidData’
+     SchurData *data = (SchurData*) voidData;
+                                    ^~~~~~~~
+src/SweeperSchur.cc:508:11: error: invalid use of template-name ‘PhiData’ without an argument list
+     const PhiData phi1(const_cast<float*>(&x[psiBoundSize]));
+           ^~~~~~~
+In file included from src/SweeperSchur.hh:41:0,
+                 from src/SweeperSchur.cc:39:
+src/PsiData.hh:277:7: note: ‘template<class T> class PhiData’ declared here
+ class PhiData {
+       ^~~~~~~
+src/SweeperSchur.cc:509:21: error: ‘phi1’ was not declared in this scope
+     Util::operatorS(phi1, phi);
+                     ^~~~
+src/SweeperSchur.cc: At global scope:
+src/SweeperSchur.cc:536:6: error: ‘template<class T> class SweeperSchurKrylov’ used without template parameters
+ void SweeperSchurKrylov::solve()
+      ^~~~~~~~~~~~~~~~~~
+src/SweeperSchur.cc: In function ‘void solve()’:
+src/SweeperSchur.cc:536:6: error: redefinition of ‘void solve()’
+src/SweeperSchur.cc:373:6: note: ‘void solve()’ previously defined here
+ void SweeperSchurOuter::solve()
+      ^~~~~~~~~~~~~~~~~
+src/SweeperSchur.cc:543:13: error: missing template arguments before ‘phi’
+     PhiData phi;
+             ^~~
+src/SweeperSchur.cc:544:15: error: missing template arguments before ‘data’
+     SchurData data;
+               ^~~~
+src/SweeperSchur.cc:547:35: error: ‘phi’ was not declared in this scope
+     UINT vecSize = psiBoundSize + phi.size();
+                                   ^~~
+src/SweeperSchur.cc:550:66: error: no matching function for call to ‘KrylovSolver::KrylovSolver(UINT&, float&, UINT&, <unresolved overloaded function type>)’
+     KrylovSolver ks(vecSize, g_ddErrMax, g_ddIterMax, SchurKrylov);
+                                                                  ^
+In file included from src/SweeperSchur.hh:44:0,
+                 from src/SweeperSchur.cc:39:
+src/KrylovSolver.hh:105:5: note: candidate: KrylovSolver::KrylovSolver(UINT, float, UINT, KrylovSolver::Function)
+     KrylovSolver(UINT localVecSize, float rtol, UINT iterMax,
+     ^~~~~~~~~~~~
+src/KrylovSolver.hh:105:5: note:   no known conversion for argument 4 from ‘<unresolved overloaded function type>’ to ‘KrylovSolver::Function {aka void (*)(const float*, float*, void*)}’
+src/KrylovSolver.hh:99:7: note: candidate: constexpr KrylovSolver::KrylovSolver(const KrylovSolver&)
+ class KrylovSolver
+       ^~~~~~~~~~~~
+src/KrylovSolver.hh:99:7: note:   candidate expects 1 argument, 4 provided
+src/SweeperSchur.cc:551:5: error: ‘c_krylovSolver’ was not declared in this scope
+     c_krylovSolver = &ks;
+     ^~~~~~~~~~~~~~
+src/SweeperSchur.cc:555:5: error: ‘data’ was not declared in this scope
+     data.psiBoundSize = psiBoundSize;
+     ^~~~
+src/SweeperSchur.cc:556:23: error: ‘c_commSides’ was not declared in this scope
+     data.commSides = &c_commSides;
+                       ^~~~~~~~~~~
+src/SweeperSchur.cc:557:17: error: ‘c_psi’ was not declared in this scope
+     data.psi = &c_psi;
+                 ^~~~~
+src/SweeperSchur.cc:558:22: error: ‘c_psiBound’ was not declared in this scope
+     data.psiBound = &c_psiBound;
+                      ^~~~~~~~~~
+src/SweeperSchur.cc:559:20: error: ‘c_source’ was not declared in this scope
+     data.source = &c_source;
+                    ^~~~~~~~
+src/SweeperSchur.cc: At global scope:
+src/SweeperSchur.cc:628:6: error: ‘template<class T> class SweeperSchurKrylov’ used without template parameters
+ void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source,
+      ^~~~~~~~~~~~~~~~~~
+src/SweeperSchur.cc:628:32: error: variable or field ‘sweep’ declared void
+ void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source,
+                                ^~~~~~~
+src/SweeperSchur.cc:628:40: error: missing template arguments before ‘&’ token
+ void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source,
+                                        ^
+src/SweeperSchur.cc:628:41: error: ‘psi’ was not declared in this scope
+ void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source,
+                                         ^~~
+src/SweeperSchur.cc:628:46: error: expected primary-expression before ‘const’
+ void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source,
+                                              ^~~~~
+src/SweeperSchur.cc:629:32: error: expected primary-expression before ‘bool’
+                                bool zeroPsiBound)
+                                ^~~~
+src/Problem.cc:54:24: error: ‘T’ was not declared in this scope
+ void hatSource(PsiData<T> &source)
+                        ^
+src/Problem.cc:54:25: error: template argument 1 is invalid
+ void hatSource(PsiData<T> &source)
+                         ^
+src/Problem.cc: In function ‘void hatSource(int&)’:
+src/Problem.cc:73:48: error: expression cannot be used as a function
+                 source(group, vrtx, angle, cell) =
+                                                ^
+src/Problem.cc:78:48: error: expression cannot be used as a function
+                 source(group, vrtx, angle, cell) = 0.0;
+                                                ^
+src/Util.cc: At global scope:
+src/Util.cc:105:29: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi)
+                             ^
+src/Util.cc:105:30: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi)
+                              ^
+src/Util.cc:105:46: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi)
+                                              ^
+src/Util.cc:105:47: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi)
+                                               ^
+src/Util.cc: In function ‘void Util::phiToPsi(const int&, int&)’:
+src/Util.cc:112:39: error: expression cannot be used as a function
+         psi(group, vertex, angle, cell) = phi(group, vertex, cell);
+                                       ^
+src/Util.cc:112:66: error: expression cannot be used as a function
+         psi(group, vertex, angle, cell) = phi(group, vertex, cell);
+                                                                  ^
+src/Problem.cc: In function ‘T Problem::hatL2Error(const PsiData<T>&)’:
+src/Problem.cc:130:20: error: no matching function for call to ‘gsum(double&)’
+     Comm::gsum(norm);
+                    ^
+In file included from src/Problem.cc:42:0:
+src/Comm.hh:55:6: note: candidate: void Comm::gsum(float&) <near match>
+ void gsum(float &x);
+      ^~~~
+src/Comm.hh:55:6: note:   conversion of argument 1 would be ill-formed:
+src/Comm.hh:56:6: note: candidate: void Comm::gsum(UINT&) <near match>
+ void gsum(UINT &x);
+      ^~~~
+src/Comm.hh:56:6: note:   conversion of argument 1 would be ill-formed:
+src/Problem.cc:131:20: error: no matching function for call to ‘gsum(double&)’
+     Comm::gsum(diff);
+                    ^
+In file included from src/Problem.cc:42:0:
+src/Comm.hh:55:6: note: candidate: void Comm::gsum(float&) <near match>
+ void gsum(float &x);
+      ^~~~
+src/Comm.hh:55:6: note:   conversion of argument 1 would be ill-formed:
+src/Comm.hh:56:6: note: candidate: void Comm::gsum(UINT&) <near match>
+ void gsum(UINT &x);
+      ^~~~
+src/Comm.hh:56:6: note:   conversion of argument 1 would be ill-formed:
+src/Problem.cc: In function ‘void Problem::getSource(PsiData<float>&)’:
+src/Problem.cc:142:15: error: invalid initialization of reference of type ‘int&’ from expression of type ‘PsiData<float>’
+     hatSource(source);
+               ^~~~~~
+src/Problem.cc:54:6: note: in passing argument 1 of ‘void hatSource(int&)’
+ void hatSource(PsiData<T> &source)
+      ^~~~~~~~~
+src/Util.cc: At global scope:
+src/Util.cc:155:22: error: invalid use of template-name ‘PhiData’ without an argument list
+ void operatorS(const PhiData &phi1, PhiData &phi2)
+                      ^~~~~~~
+In file included from src/Util.hh:44:0,
+                 from src/Util.cc:40:
+src/PsiData.hh:277:7: note: ‘template<class T> class PhiData’ declared here
+ class PhiData {
+       ^~~~~~~
+src/Util.cc:155:37: error: ‘PhiData’ is not a type
+ void operatorS(const PhiData &phi1, PhiData &phi2)
+                                     ^~~~~~~
+src/Util.cc: In function ‘void Util::operatorS(const int&, int&)’:
+src/Util.cc:160:31: error: expression cannot be used as a function
+         phi2(group,vertex,cell) = g_sigmaS[cell] / (4.0 * M_PI) *
+                               ^
+src/Util.cc:161:57: error: expression cannot be used as a function
+                                   phi1(group,vertex,cell);
+                                                         ^
+make: *** [build/SweeperPBJ.o] Error 1
+make: *** [build/SweeperTraverse.o] Error 1
+In file included from src/SourceIteration.cc:45:0:
+src/Util.hh: At global scope:
+src/Util.hh:50:23: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                       ^
+src/Util.hh:50:24: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                        ^
+src/Util.hh:50:46: error: ‘T’ was not declared in this scope
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                              ^
+src/Util.hh:50:47: error: template argument 1 is invalid
+ void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+                                               ^
+src/Util.hh:51:29: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                             ^
+src/Util.hh:51:30: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                              ^
+src/Util.hh:51:46: error: ‘T’ was not declared in this scope
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                              ^
+src/Util.hh:51:47: error: template argument 1 is invalid
+ void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+                                               ^
+src/Util.hh:52:36: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                    ^
+src/Util.hh:52:37: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                     ^
+src/Util.hh:52:62: error: ‘T’ was not declared in this scope
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                              ^
+src/Util.hh:52:63: error: template argument 1 is invalid
+ void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
+                                                               ^
+src/Util.hh:53:30: error: ‘T’ was not declared in this scope
+                      PsiData<T> &totalSource);
+                              ^
+src/Util.hh:53:31: error: template argument 1 is invalid
+                      PsiData<T> &totalSource);
+                               ^
+src/Util.hh:54:25: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                         ^
+src/Util.hh:54:26: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                          ^
+src/Util.hh:54:48: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                ^
+src/Util.hh:54:49: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                 ^
+src/Util.hh:54:73: error: ‘T’ was not declared in this scope
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                         ^
+src/Util.hh:54:74: error: template argument 1 is invalid
+ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+                                                                          ^
+src/Util.hh:55:30: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                              ^
+src/Util.hh:55:31: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                               ^
+src/Util.hh:55:48: error: ‘T’ was not declared in this scope
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                ^
+src/Util.hh:55:49: error: template argument 1 is invalid
+ void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
+                                                 ^
+make: *** [build/SweeperSchur.o] Error 1
+src/CommSides.cc:110:13: warning: ‘UINT getDataSize()’ defined but not used [-Wunused-function]
+ static UINT getDataSize()
+             ^~~~~~~~~~~
+make: *** [build/CommSides.o] Error 1
+src/SourceIteration.cc: In function ‘void {anonymous}::lhsOperator(const double*, double*, void*)’:
+src/SourceIteration.cc:91:13: error: missing template arguments before ‘phi’
+     PhiData phi(b);
+             ^~~
+src/SourceIteration.cc:95:21: error: ‘phi’ was not declared in this scope
+     Util::operatorS(phi, phi);
+                     ^~~
+src/SourceIteration.cc: In function ‘UINT SourceIteration::fixedPoint(SweeperAbstract&, PsiData<double>&, const PsiData<float>&)’:
+src/SourceIteration.cc:131:13: error: missing template arguments before ‘phiNew’
+     PhiData phiNew; //what should this type be?
+             ^~~~~~
+src/SourceIteration.cc:132:13: error: missing template arguments before ‘phiOld’
+     PhiData phiOld;
+             ^~~~~~
+src/SourceIteration.cc:136:20: error: ‘phiNew’ was not declared in this scope
+     Util::psiToPhi(phiNew, psi);
+                    ^~~~~~
+src/SourceIteration.cc:153:29: error: ‘phiOld’ was not declared in this scope
+         for(UINT i = 0; i < phiOld.size(); i++) {
+                             ^~~~~~
+src/SourceIteration.cc:159:39: error: ‘phiOld’ was not declared in this scope
+         Util::calcTotalSource(source, phiOld, totalSource);
+                                       ^~~~~~
+src/SourceIteration.cc:173:25: error: no matching function for call to ‘gsum(double&)’
+         Comm::gsum(error);
+                         ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:55:6: note: candidate: void Comm::gsum(float&) <near match>
+ void gsum(float &x);
+      ^~~~
+src/Comm.hh:55:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:173:25: error: invalid initialization of non-const reference of type ‘float&’ from an rvalue of type ‘float’
+         Comm::gsum(error);
+                         ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:56:6: note: candidate: void Comm::gsum(UINT&) <near match>
+ void gsum(UINT &x);
+      ^~~~
+src/Comm.hh:56:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:173:25: error: invalid initialization of non-const reference of type ‘UINT& {aka long unsigned int&}’ from an rvalue of type ‘UINT {aka long unsigned int}’
+         Comm::gsum(error);
+                         ^
+src/SourceIteration.cc:174:24: error: no matching function for call to ‘gsum(double&)’
+         Comm::gsum(norm);
+                        ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:55:6: note: candidate: void Comm::gsum(float&) <near match>
+ void gsum(float &x);
+      ^~~~
+src/Comm.hh:55:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:174:24: error: invalid initialization of non-const reference of type ‘float&’ from an rvalue of type ‘float’
+         Comm::gsum(norm);
+                        ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:56:6: note: candidate: void Comm::gsum(UINT&) <near match>
+ void gsum(UINT &x);
+      ^~~~
+src/Comm.hh:56:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:174:24: error: invalid initialization of non-const reference of type ‘UINT& {aka long unsigned int&}’ from an rvalue of type ‘UINT {aka long unsigned int}’
+         Comm::gsum(norm);
+                        ^
+src/SourceIteration.cc:181:33: error: no matching function for call to ‘gmax(double&)’
+         Comm::gmax(wallClockTime);
+                                 ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:57:6: note: candidate: void Comm::gmax(float&) <near match>
+ void gmax(float &x);
+      ^~~~
+src/Comm.hh:57:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:181:33: error: invalid initialization of non-const reference of type ‘float&’ from an rvalue of type ‘float’
+         Comm::gmax(wallClockTime);
+                                 ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:59:6: note: candidate: void Comm::gmax(UINT&) <near match>
+ void gmax(UINT &x);
+      ^~~~
+src/Comm.hh:59:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:181:33: error: invalid initialization of non-const reference of type ‘UINT& {aka long unsigned int&}’ from an rvalue of type ‘UINT {aka long unsigned int}’
+         Comm::gmax(wallClockTime);
+                                 ^
+src/SourceIteration.cc:196:25: error: no matching function for call to ‘gmax(double&)’
+     Comm::gmax(clockTime);
+                         ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:57:6: note: candidate: void Comm::gmax(float&) <near match>
+ void gmax(float &x);
+      ^~~~
+src/Comm.hh:57:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:196:25: error: invalid initialization of non-const reference of type ‘float&’ from an rvalue of type ‘float’
+     Comm::gmax(clockTime);
+                         ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:59:6: note: candidate: void Comm::gmax(UINT&) <near match>
+ void gmax(UINT &x);
+      ^~~~
+src/Comm.hh:59:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:196:25: error: invalid initialization of non-const reference of type ‘UINT& {aka long unsigned int&}’ from an rvalue of type ‘UINT {aka long unsigned int}’
+     Comm::gmax(clockTime);
+                         ^
+make: *** [build/Util.o] Error 1
+src/SourceIteration.cc: In function ‘UINT SourceIteration::krylov(SweeperAbstract&, PsiData<double>&, const PsiData<float>&)’:
+src/SourceIteration.cc:231:72: error: invalid conversion from ‘void (*)(const double*, double*, void*)’ to ‘KrylovSolver::Function {aka void (*)(const float*, float*, void*)}’ [-fpermissive]
+     KrylovSolver krylovSolver(vecSize, g_errMax, g_iterMax, lhsOperator);
+                                                                        ^
+In file included from src/Main.cc:51:0:
+src/SweepData.hh:60:67: error: ‘PsiBoundData’ is not a type
+     SweepData(PsiData<double> &psi, const PsiData<float> &source, PsiBoundData &psiBound,
+                                                                   ^~~~~~~~~~~~
+In file included from src/SourceIteration.cc:46:0:
+src/KrylovSolver.hh:105:5: note:   initializing argument 4 of ‘KrylovSolver::KrylovSolver(UINT, float, UINT, KrylovSolver::Function)’
+     KrylovSolver(UINT localVecSize, float rtol, UINT iterMax,
+     ^~~~~~~~~~~~
+src/SweepData.hh:178:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData &c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+src/SourceIteration.cc:240:32: error: cannot convert ‘float*’ to ‘double*’ in assignment
+     bArray = krylovSolver.getB();
+                                ^
+src/SourceIteration.cc:241:13: error: missing template arguments before ‘phiB’
+     PhiData phiB(bArray);
+             ^~~~
+src/SourceIteration.cc:242:20: error: ‘phiB’ was not declared in this scope
+     Util::psiToPhi(phiB, psi);
+                    ^~~~
+src/SourceIteration.cc:256:32: error: cannot convert ‘float*’ to ‘double*’ in assignment
+     xArray = krylovSolver.getX();
+                                ^
+src/SourceIteration.cc:257:13: error: missing template arguments before ‘phiX’
+     PhiData phiX(xArray);
+             ^~~~
+src/SourceIteration.cc:258:35: error: ‘phiX’ was not declared in this scope
+     Util::calcTotalSource(source, phiX, tempSource);
+                                   ^~~~
+src/SourceIteration.cc:274:25: error: no matching function for call to ‘gmax(double&)’
+     Comm::gmax(clockTime);
+                         ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:57:6: note: candidate: void Comm::gmax(float&) <near match>
+ void gmax(float &x);
+      ^~~~
+src/Comm.hh:57:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:274:25: error: invalid initialization of non-const reference of type ‘float&’ from an rvalue of type ‘float’
+     Comm::gmax(clockTime);
+                         ^
+In file included from src/SourceIteration.cc:43:0:
+src/Comm.hh:59:6: note: candidate: void Comm::gmax(UINT&) <near match>
+ void gmax(UINT &x);
+      ^~~~
+src/Comm.hh:59:6: note:   conversion of argument 1 would be ill-formed:
+src/SourceIteration.cc:274:25: error: invalid initialization of non-const reference of type ‘UINT& {aka long unsigned int&}’ from an rvalue of type ‘UINT {aka long unsigned int}’
+     Comm::gmax(clockTime);
+                         ^
+make: *** [build/Problem.o] Error 1
+In file included from src/Main.cc:51:0:
+src/SweepData.hh: In constructor ‘SweepData::SweepData(PsiData<double>&, const PsiData<float>&, int&, const Mat2<long unsigned int>&)’:
+src/SweepData.hh:62:19: error: class ‘SweepData’ does not have any field named ‘c_psiBound’
+     : c_psi(psi), c_psiBound(psiBound), c_source(source),
+                   ^~~~~~~~~~
+src/SweepData.hh: In member function ‘virtual void SweepData::setSideData(UINT, UINT, const char*)’:
+src/SweepData.hh:118:49: error: ‘c_psiBound’ was not declared in this scope
+             c_psiBound(group, fvrtx, angle, side) = localFaceData(fvrtx, group);
+                                                 ^
+src/SweepData.hh: In member function ‘virtual void SweepData::update(UINT, UINT, UINT*, BoundaryType*)’:
+src/SweepData.hh:160:62: error: ‘c_psiBound’ was not declared in this scope
+         Transport::populateLocalPsiBound(angle, cell, c_psi, c_psiBound,
+                                                              ^~~~~~~~~~
+In file included from src/Main.cc:55:0:
+src/SweeperPBJ.hh: At global scope:
+src/SweeperPBJ.hh:60:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBoundPrev;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/Main.cc:55:0:
+src/SweeperPBJ.hh:79:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/Main.cc:55:0:
+src/SweeperPBJ.hh:80:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_zeroPsiBound;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/Main.cc:55:0:
+src/SweeperPBJ.hh:98:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/Main.cc:56:0:
+src/SweeperSchur.hh:55:24: error: ‘T’ was not declared in this scope
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+                        ^
+src/SweeperSchur.hh:55:25: error: template argument 1 is invalid
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+                         ^
+src/SweeperSchur.hh:55:47: error: ‘T’ was not declared in this scope
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+                                               ^
+src/SweeperSchur.hh:55:48: error: template argument 1 is invalid
+     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
+                                                ^
+src/SweeperSchur.hh:60:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBoundPrev;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/Main.cc:56:0:
+src/SweeperSchur.hh:76:39: error: invalid use of template-name ‘PsiData’ without an argument list
+     void sweep(PsiData<T> &psi, const PsiData &source, bool zeroPsiBound);
+                                       ^~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:60:7: note: ‘template<class T> class PsiData’ declared here
+ class PsiData {
+       ^~~~~~~
+In file included from src/Main.cc:56:0:
+src/SweeperSchur.hh:81:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/Main.cc:56:0:
+src/SweeperSchur.hh:82:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_zeroPsiBound;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+In file included from src/Main.cc:56:0:
+src/SweeperSchur.hh:101:5: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+     PsiBoundData c_psiBound;
+     ^~~~~~~~~~~~
+In file included from src/Problem.hh:43:0,
+                 from src/Main.cc:41:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+src/Main.cc: In function ‘int main(int, char**)’:
+src/Main.cc:256:50: error: invalid initialization of reference of type ‘std::vector<double>&’ from expression of type ‘std::vector<float>’
+                                  sigmaT2, sigmaS2);
+                                                  ^
+In file included from src/Main.cc:41:0:
+src/Problem.hh:51:6: note: in passing argument 1 of ‘void Problem::createCrossSections(std::vector<double>&, std::vector<double>&, double, double, double, double)’
+ void createCrossSections(std::vector<double> &sigmaT,
+      ^~~~~~~~~~~~~~~~~~~
+src/Main.cc:271:27: error: expected type-specifier before ‘SweeperTraverse’
+             sweeper = new SweeperTraverse();
+                           ^~~~~~~~~~~~~~~
+src/Main.cc:277:40: error: invalid new-expression of abstract class type ‘SweeperSchur’
+             sweeper = new SweeperSchur();
+                                        ^
+In file included from src/Main.cc:56:0:
+src/SweeperSchur.hh:52:7: note:   because the following virtual functions are pure within ‘SweeperSchur’:
+ class SweeperSchur : public SweeperAbstract
+       ^~~~~~~~~~~~
+In file included from src/SourceIteration.hh:44:0,
+                 from src/Main.cc:42:
+src/SweeperAbstract.hh:51:10: note: 	virtual void SweeperAbstract::sweep(PsiData<double>&, const PsiData<float>&, bool)
+     void sweep(PsiData<double> &psi, const PsiData<float> &source,
+          ^~~~~
+src/Main.cc:283:27: error: expected type-specifier before ‘SweeperSchurOuter’
+             sweeper = new SweeperSchurOuter();
+                           ^~~~~~~~~~~~~~~~~
+src/Main.cc:289:27: error: expected type-specifier before ‘SweeperSchurKrylov’
+             sweeper = new SweeperSchurKrylov();
+                           ^~~~~~~~~~~~~~~~~~
+src/Main.cc:295:27: error: expected type-specifier before ‘SweeperPBJ’
+             sweeper = new SweeperPBJ();
+                           ^~~~~~~~~~
+src/Main.cc:301:27: error: expected type-specifier before ‘SweeperPBJOuter’
+             sweeper = new SweeperPBJOuter();
+                           ^~~~~~~~~~~~~~~
+src/Main.cc:307:27: error: expected type-specifier before ‘SweeperPBJSI’
+             sweeper = new SweeperPBJSI();
+                           ^~~~~~~~~~~~
+make: *** [build/SourceIteration.o] Error 1
+make: *** [build/Main.o] Error 1
+src/Sweeper.cc:77:25: error: invalid use of template-name ‘PsiBoundData’ without an argument list
+ void getBoundData(const PsiBoundData &psiBound, const UINT side,
+                         ^~~~~~~~~~~~
+In file included from src/Sweeper.hh:43:0,
+                 from src/Sweeper.cc:40:
+src/PsiData.hh:177:7: note: ‘template<class T> class PsiBoundData’ declared here
+ class PsiBoundData {
+       ^~~~~~~~~~~~
+src/Sweeper.cc: In function ‘void getBoundData(const int&, UINT, UINT, std::vector<float>&)’:
+src/Sweeper.cc:82:73: error: expression cannot be used as a function
+         psiSide[VG(vertex, group)] = psiBound(group, vertex, angle, side);
+                                                                         ^
+src/Sweeper.cc: At global scope:
+src/Sweeper.cc:93:19: error: variable or field ‘setBoundData’ declared void
+ void setBoundData(PsiBoundData &psiBound, const vector<UINT> &commSides,
+                   ^~~~~~~~~~~~
+src/Sweeper.cc:93:32: error: missing template arguments before ‘&’ token
+ void setBoundData(PsiBoundData &psiBound, const vector<UINT> &commSides,
+                                ^
+src/Sweeper.cc:93:33: error: ‘psiBound’ was not declared in this scope
+ void setBoundData(PsiBoundData &psiBound, const vector<UINT> &commSides,
+                                 ^~~~~~~~
+src/Sweeper.cc:93:43: error: expected primary-expression before ‘const’
+ void setBoundData(PsiBoundData &psiBound, const vector<UINT> &commSides,
+                                           ^~~~~
+src/Sweeper.cc:94:19: error: expected primary-expression before ‘const’
+                   const vector<UINT> &commAngles, const vector<float> &commPsi)
+                   ^~~~~
+src/Sweeper.cc:94:51: error: expected primary-expression before ‘const’
+                   const vector<UINT> &commAngles, const vector<float> &commPsi)
+                                                   ^~~~~
+src/Sweeper.cc:410:33: error: expected declaration before end of line
+             #pragma omp parallel
+                                 ^
+src/Sweeper.cc:77:6: warning: ‘void getBoundData(const int&, UINT, UINT, std::vector<float>&)’ defined but not used [-Wunused-function]
+ void getBoundData(const PsiBoundData &psiBound, const UINT side,
+      ^~~~~~~~~~~~
+make: *** [build/Sweeper.o] Error 1

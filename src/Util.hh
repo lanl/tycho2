@@ -55,5 +55,9 @@ void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiB
 void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
 
 } // End namespace
-
+#include "Main.cc"
+#include "SweeperSchur.cc"
+#include "Util.cc"
+#include "SourceIteration.cc"
+#include "SweeperPBJ.cc"
 #endif

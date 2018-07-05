@@ -47,7 +47,7 @@ namespace Problem
 {
 template <class T>
 T hatL2Error(const PsiData<T> &psi);
-void getSource(PsiData &source);
+void getSource(PsiData<T> &source);
 void createCrossSections(std::vector<double> &sigmaT,
                          std::vector<double> &sigmaS,
                          double sigmaT1, double sigmaS1,
