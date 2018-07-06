@@ -74,7 +74,7 @@ UINT VG(UINT vrtx, UINT group)
     Puts psiBound data into communication data structure.
 */
 static
-void getBoundData(const PsiBoundData &psiBound, const UINT side,
+void getBoundData(const PsiBoundData<T> &psiBound, const UINT side,
                   const UINT angle, vector<float> &psiSide)
 {
     for (UINT vertex = 0; vertex < g_nVrtxPerFace; ++vertex) {
@@ -90,7 +90,7 @@ void getBoundData(const PsiBoundData &psiBound, const UINT side,
     Sets psiBound from the communication data structures.
 */
 static
-void setBoundData(PsiBoundData &psiBound, const vector<UINT> &commSides,
+void setBoundData(PsiBoundData<T> &psiBound, const vector<UINT> &commSides,
                   const vector<UINT> &commAngles, const vector<float> &commPsi)
 {
     for(unsigned i = 0; i < commSides.size(); i++) {
@@ -150,7 +150,7 @@ void send(const UINT step, const UINT angleGroup,
     Receive side data.
 */
 static
-void recv(const UINT step, const UINT angleGroup, PsiBoundData &psiBound)
+void recv(const UINT step, const UINT angleGroup, PsiBoundData<T> &psiBound)
 {
     if (step < g_sweepSchedule[angleGroup]->nSteps()) {
         for (UINT proc : g_sweepSchedule[angleGroup]->getRecvProcs(step)) {
@@ -198,7 +198,7 @@ void recv(const UINT step, const UINT angleGroup, PsiBoundData &psiBound)
 */
 static
 void updateComm(const UINT cell, const UINT angle,
-                const PsiBoundData &psiBound,
+                const PsiBoundData<T> &psiBound,
                 Mat2<vector<UINT>> &commSidesAngles,
                 Mat2<vector<float>> &commPsi)
 {
@@ -230,7 +230,7 @@ void updateComm(const UINT cell, const UINT angle,
     Updates psiBound after doing transport on a set of work.
 */
 static
-void updateBoundData(const UINT cell, const UINT angle, PsiBoundData &psiBound,
+void updateBoundData(const UINT cell, const UINT angle, PsiBoundData<T> &psiBound,
                      const Mat2<float> &localPsi)
 {
     for (UINT group = 0; group < g_nGroups; group++) {
@@ -267,7 +267,7 @@ void doComputation(const UINT step,
                    PsiData<double> &psi,
                    Mat2<vector<UINT>> &commSidesAngles,
                    Mat2<vector<float>> &commPsi,
-                   PsiBoundData &psiBound)
+                   PsiBoundData<T> &psiBound)
 {
     Mat2<float> localSource(g_nVrtxPerCell, g_nGroups);
     Mat2<float> localPsi(g_nVrtxPerCell, g_nGroups);

@@ -52,7 +52,7 @@ using namespace std;
 /*
     SweeperTraverse constructor
 */
-SweeperTraverse::SweeperTraverse()
+SweeperTraverse<T>::SweeperTraverse()
 {
     c_priorities.resize(g_nCells, g_nAngles);
     Priorities::calcPriorities(c_priorities);
@@ -62,7 +62,7 @@ SweeperTraverse::SweeperTraverse()
 /*
     solve
 */
-void SweeperTraverse::solve()
+void SweeperTraverse<T>::solve()
 {
     Problem::getSource(c_source);
     c_psi.setToValue(0.0);
@@ -79,7 +79,7 @@ void SweeperTraverse::solve()
 
     Sweep by traversing graph.
 */
-void SweeperTraverse::sweep(PsiData &psi, const PsiData &source, 
+void SweeperTraverse<T>::sweep(PsiData &psi, const PsiData &source, 
                             bool zeroPsiBound)
 {
     UNUSED_VARIABLE(zeroPsiBound);

@@ -47,11 +47,16 @@ namespace Util
 {
 template <class T>
 float diffBetweenGroups(const PsiData<T> &psi);
+template <class T>
 void psiToPhi(PhiData<T> &phi, const PsiData<T> &psi);
+template <class T>
 void phiToPsi(const PhiData<T> &phi, PsiData<T> &psi);
+template <class T>
 void calcTotalSource(const PsiData<T> &source, const PhiData<T> &phi,
                      PsiData<T> &totalSource);
+template <class T>
 void sweepLocal(PsiData<T> &psi, const PsiData<T> &source, PsiBoundData<T> &psiBound);
+template <class T>
 void operatorS(const PhiData<T> &phi1, PhiData<T> &phi2);
 
 } // End namespace

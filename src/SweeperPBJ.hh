@@ -57,7 +57,7 @@ public:
 
 private:
     CommSides c_commSides;
-    PsiBoundData c_psiBoundPrev;
+    PsiBoundData<T> c_psiBoundPrev;
     UINT c_iters;
 };
 

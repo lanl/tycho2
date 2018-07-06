@@ -59,7 +59,7 @@ template <typename T>
 struct SchurData
 {
     UINT psiBoundSize;
-    CommSides *commSides;
+    CommSides<T> *commSides;
     PsiData<T> *psi;
     PsiBoundData<T> *psiBound;
     PsiData<T> *source;
@@ -76,7 +76,8 @@ struct SchurData
 /*
     psiBoundToVec
 */
-void psiBoundToVec(float *x, const PsiBoundData &psiBound)
+template <class T>
+void psiBoundToVec(float *x, const PsiBoundDat<T> &psiBound)
 {
     int xArrayIndex = 0;
 
@@ -107,7 +108,8 @@ void psiBoundToVec(float *x, const PsiBoundData &psiBound)
 /*
     vecToPsiBound
 */
-void vecToPsiBound(const float *x, PsiBoundData &psiBound)
+template <class T>
+void vecToPsiBound(const float *x, PsiBoundData<T> &psiBound)
 {
     int xArrayIndex = 0;
 
@@ -496,7 +498,7 @@ void SchurKrylov(const float *x, float *b, void *voidData)
     // Unpack data for the solve
     SchurData *data = (SchurData*) voidData;
     UINT psiBoundSize = data->psiBoundSize;
-    CommSides &commSides = *(data->commSides);
+    CommSides<T> &commSides = *(data->commSides);
     PsiData<T> &psi = *(data->psi);
     PsiBoundData<T> &psiBound = *(data->psiBound);
     PsiData<T> &source = *(data->source);
@@ -505,7 +507,7 @@ void SchurKrylov(const float *x, float *b, void *voidData)
 
     // x -> (Psi_B, Phi)
     vecToPsiBound(x, psiBound);
-    const PhiData phi1(const_cast<float*>(&x[psiBoundSize]));
+    const PhiData<T> phi1(const_cast<float*>(&x[psiBoundSize])); //not sure because of the cast?
     Util::operatorS(phi1, phi);
     Util::phiToPsi(phi, source);
 

@@ -43,11 +43,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include "SweeperAbstract.hh"
 
-class Sweeper : public SweeperAbstract
+template <class T>
+class Sweeper<T> : public SweeperAbstract
 {
 public:
     Sweeper();
-    void sweep(PsiData<double> &psi, const PsiData<float> &source, bool zeroPsiBound);
+    template <class T>
+    void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
     void solve();
 
 private:
