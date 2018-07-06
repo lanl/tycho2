@@ -90,7 +90,7 @@ void PsiData::writeToFile(const std::string &filename)
         Comm::writeDoublesAt(file, 0, header, 8);
     }
 
-
+   template <class T>
    std::vector <T>  dbldata(c_na*c_ng*c_nv);
     // Write data one cell at a time
     for (size_t cell = 0; cell < c_nc; cell++) {

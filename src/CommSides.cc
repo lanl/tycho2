@@ -116,7 +116,8 @@ static UINT getDataSize()
 /*
     commSides
 */
-void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
+template <class T>
+void CommSides::commSides(PsiData<T> &psi, PsiBoundData &psiBound)
 {
     int mpiError;
     UINT numToRecv;

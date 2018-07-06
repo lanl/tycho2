@@ -46,10 +46,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SweeperAbstract.hh"
 
 template <class T>
-class SweeperTraverse : public SweeperAbstract
+class SweeperTraverse<T> : public SweeperAbstract
 {
 public:
     SweeperTraverse();
+template <class T>
     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
     void solve();
 
@@ -57,4 +58,6 @@ private:
     Mat2<UINT> c_priorities;
 };
 
+#include "Main.cc"
+#include "SweeperTraverse.cc"
 #endif
