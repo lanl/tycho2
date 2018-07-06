@@ -47,11 +47,20 @@ namespace Problem
 {
 template <class T>
 T hatL2Error(const PsiData<T> &psi);
-void getSource(PsiData &source);
+template <class T>
+void getSource(PsiData<T> &source);
 void createCrossSections(std::vector<double> &sigmaT,
                          std::vector<double> &sigmaS,
                          double sigmaT1, double sigmaS1,
                          double sigmaT2, double sigmaS2);
 
 } // End namespace
+
+#include "Main.cc"
+#include "SweeperTraverse.cc"
+#include "Problem.cc"
+#include "SweeperSchur.cc"
+#include "Sweeper.cc"
+#include "SweeperPBJ.cc"
+
 #endif

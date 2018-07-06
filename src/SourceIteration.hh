@@ -44,13 +44,22 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SweeperAbstract.hh"
 #include "Global.hh"
 
+template <class T>
 namespace SourceIteration
 {
 
-UINT fixedPoint(SweeperAbstract &sweeper, PsiData<double> &psi, const PsiData<float> &source);
-UINT krylov(SweeperAbstract &sweeper, PsiData<double> &psi, const PsiData<float> &source);
+
+template <class T>
+UINT fixedPoint(SweeperAbstract &sweeper, PsiData<T> &psi, const PsiData<T> &source);
+template <class T>
+UINT krylov(SweeperAbstract &sweeper, PsiData<T> &psi, const PsiData<T> &source);
 
 } // End namespace
 
-
+#include "Main.cc"
+#include "SweeperTraverse.cc"
+#include "SweeperSchur.cc"
+#include "Sweeper.cc"
+#include "SourceIteration.cc"
+#include "SweeperPBJ.cc"
 #endif

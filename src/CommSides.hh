@@ -47,7 +47,8 @@ class CommSides
 {
 public:
     CommSides();
-    void commSides(PsiData &psi, PsiBoundData &psiBound);
+	template <class T>
+    void commSides(PsiData<T> &psi, PsiBoundData<T> &psiBound);
 
 private:
     struct MetaData
