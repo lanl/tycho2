@@ -59,7 +59,7 @@ template <typename T>
 struct SchurData
 {
     UINT psiBoundSize;
-    CommSides<T> *commSides;
+    CommSides *commSides;
     PsiData<T> *psi;
     PsiBoundData<T> *psiBound;
     PsiData<T> *source;
@@ -217,7 +217,7 @@ void Schur(const float *x, float *b, void *voidData)
 /*
     solve
 */
-void SweeperSchur::solve()
+void SweeperSchur<T>::solve()
 {
     // Setup problem
     KrylovSolver ks(getPsiBoundSize(), g_ddErrMax, g_ddIterMax, Schur);
@@ -247,7 +247,7 @@ void SweeperSchur::solve()
     Run the Krylov solver
 */
 template <class T>
-void SweeperSchur::sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound)
+void SweeperSchur<T>::sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound)
 {
     UNUSED_VARIABLE(zeroPsiBound);
 
@@ -372,7 +372,7 @@ void SchurOuter(const float *x, float *b, void *voidData)
 /*
     solve
 */
-void SweeperSchurOuter::solve()
+void SweeperSchurOuter<T>::solve()
 {
     // Variables
     float rnorm;
@@ -467,7 +467,7 @@ void SweeperSchurOuter::solve()
     Run the Krylov solver
 */
 template <class T>
-void SweeperSchurOuter::sweep(PsiData<T> &psi, const PsiData<T> &source,
+void SweeperSchurOuter<T>::sweep(PsiData<T> &psi, const PsiData<T> &source,
                               bool zeroPsiBound)
 {
     if (zeroPsiBound) {
@@ -498,7 +498,7 @@ void SchurKrylov(const float *x, float *b, void *voidData)
     // Unpack data for the solve
     SchurData *data = (SchurData*) voidData;
     UINT psiBoundSize = data->psiBoundSize;
-    CommSides<T> &commSides = *(data->commSides);
+    CommSides &commSides = *(data->commSides);
     PsiData<T> &psi = *(data->psi);
     PsiBoundData<T> &psiBound = *(data->psiBound);
     PsiData<T> &source = *(data->source);
@@ -535,6 +535,7 @@ void SchurKrylov(const float *x, float *b, void *voidData)
 /*
     solve
 */
+template <class T>
 void SweeperSchurKrylov::solve()
 {
 
@@ -542,7 +543,7 @@ void SweeperSchurKrylov::solve()
     float *b;
     float rnorm;
     UINT its;
-    PhiData phi;
+    PhiData<T> phi;
     SchurData data;
 
     UINT psiBoundSize = getPsiBoundSize();
@@ -627,7 +628,8 @@ void SweeperSchurKrylov::solve()
 /*
     sweep
 */
-void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source,
+template <class T>
+void SweeperSchurKrylov::sweep(PsiData<T> &psi, const PsiData<T> &source,
                                bool zeroPsiBound)
 {
     UNUSED_VARIABLE(zeroPsiBound);

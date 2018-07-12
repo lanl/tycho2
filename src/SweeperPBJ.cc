@@ -57,9 +57,10 @@ using namespace std;
 
     (L_I - MSD) Psi^{n+1} = L_B Psi_B^n + Q
 */
+template <class T>
 void SweeperPBJOuter::solve()
 {
-    PsiData<double> psi0; //what is this
+    PsiData<T> psi0; //what is this
     vector<UINT> sourceIts;
 
 
@@ -166,7 +167,8 @@ void SweeperPBJ::solve()
 /*
     sweep
 */
-void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
+template <class T>
+void SweeperPBJ::sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound)
 {
     UNUSED_VARIABLE(zeroPsiBound);
 
@@ -227,12 +229,13 @@ void SweeperPBJ::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
 /*
     solve
 */
+template <class T>
 void SweeperPBJSI::solve()
 {
-    PhiData phi0;
-    PhiData phi1;
-    PsiData totalSource;
-    PsiBoundData psiBound0;
+    PhiData<T> phi0;
+    PhiData<T> phi1;
+    PsiData<T> totalSource;
+    PsiBoundData<T> psiBound0;
     vector<UINT> sourceIts;
 
 
@@ -292,7 +295,8 @@ void SweeperPBJSI::solve()
 /*
     sweep
 */
-void SweeperPBJSI::sweep(PsiData &psi, const PsiData &source, bool zeroPsiBound)
+template <class T>
+void SweeperPBJSI::sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound)
 {
     UNUSED_VARIABLE(zeroPsiBound);
     Util::sweepLocal(psi, source, c_psiBound);

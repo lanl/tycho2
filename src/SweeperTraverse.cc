@@ -52,7 +52,7 @@ using namespace std;
 /*
     SweeperTraverse constructor
 */
-SweeperTraverse<T>::SweeperTraverse()
+SweeperTraverse::SweeperTraverse()
 {
     c_priorities.resize(g_nCells, g_nAngles);
     Priorities::calcPriorities(c_priorities);
@@ -62,6 +62,7 @@ SweeperTraverse<T>::SweeperTraverse()
 /*
     solve
 */
+template <class T>
 void SweeperTraverse<T>::solve()
 {
     Problem::getSource(c_source);

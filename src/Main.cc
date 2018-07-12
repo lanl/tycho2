@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
     
     
     // Setup sweeper
-    SweeperAbstract *sweeper = NULL;
+    SweeperAbstract<double> *sweeper = NULL;
     switch (g_sweepType) {
         case SweepType_OriginalTycho1:
         case SweepType_OriginalTycho2:

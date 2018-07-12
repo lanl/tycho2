@@ -196,6 +196,7 @@ void recv(const UINT step, const UINT angleGroup, PsiBoundData<T> &psiBound)
 
     Updates data structures for communicating data between meshes.
 */
+template <class T>
 static
 void updateComm(const UINT cell, const UINT angle,
                 const PsiBoundData<T> &psiBound,
@@ -229,6 +230,7 @@ void updateComm(const UINT cell, const UINT angle,
 
     Updates psiBound after doing transport on a set of work.
 */
+template <class T>
 static
 void updateBoundData(const UINT cell, const UINT angle, PsiBoundData<T> &psiBound,
                      const Mat2<float> &localPsi)
@@ -260,6 +262,7 @@ void updateBoundData(const UINT cell, const UINT angle, PsiBoundData<T> &psiBoun
     Overall computation part of the sweeper.
     Split out so multiple sweeper schedules can be tested.
 */
+template <class T>
 static
 void doComputation(const UINT step,
                    const UINT angleGroup,
@@ -353,7 +356,7 @@ Sweeper::Sweeper()
 /*
     solve
 */
-void Sweeper::solve()
+void Sweeper<T>::solve()
 {
     Problem::getSource(c_source);
     c_psi.setToValue(0.0);
@@ -370,7 +373,7 @@ void Sweeper::solve()
 
     Does an Sn transport sweep.
 */
-void Sweeper::sweep(PsiData<double> &psi, const PsiData<float> &source, bool zeroPsiBound)
+void Sweeper<T>::sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound)
 {
     UNUSED_VARIABLE(zeroPsiBound);
 

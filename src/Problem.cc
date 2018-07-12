@@ -50,6 +50,7 @@ static const double cubeSize = 100.0;
 /*
     hatSource
 */
+template <class T>
 static
 void hatSource(PsiData<T> &source)
 {
@@ -137,7 +138,8 @@ T hatL2Error(const PsiData<T> &psi)
 /*
     getProblemSource
 */
-void getSource(PsiData<float> &source)
+template <class T>
+void getSource(PsiData<T> &source)
 {
     hatSource(source);
 }
