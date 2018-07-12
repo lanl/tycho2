@@ -45,12 +45,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Global.hh"
 #include "SweeperAbstract.hh"
 
-template <class T>
-class SweeperTraverse<T> : public SweeperAbstract
+class SweeperTraverse : public SweeperAbstract
 {
 public:
     SweeperTraverse();
-template <class T>
+    template <class T>
     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
     void solve();
 

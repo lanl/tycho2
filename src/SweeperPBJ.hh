@@ -76,8 +76,8 @@ public:
 
 private:
     CommSides c_commSides;
-    PsiBoundData c_psiBound;
-    PsiBoundData c_zeroPsiBound;
+    PsiBoundData<T> c_psiBound;
+    PsiBoundData<T> c_zeroPsiBound;
 };
 
 
@@ -86,11 +86,11 @@ private:
 
     Used for PBJ and source iteration at the same time.
 */
-template <class T>
 class SweeperPBJSI : public SweeperAbstract
 {
 public:
     void solve();
+    template <class T>
     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
 
 private:

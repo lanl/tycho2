@@ -43,11 +43,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "PsiData.hh"
 #include <string>
 
+template <class T>
 class SweeperAbstract
 {
 public:
     virtual
-    template <class T>
     void sweep(PsiData<T> &psi, const PsiData<T> &source,
                bool zeroPsiBound = false) = 0;
 

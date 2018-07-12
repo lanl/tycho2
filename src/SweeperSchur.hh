@@ -50,7 +50,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
     Used for Schur inside collision operator.
 */
 template <class T>
-class SweeperSchur<T> : public SweeperAbstract
+class SweeperSchur : public SweeperAbstract
 {
 public:
     void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
@@ -74,13 +74,13 @@ class SweeperSchurOuter : public SweeperAbstract
 {
 public:
     void solve();
-    void sweep(PsiData<T> &psi, const PsiData &source, bool zeroPsiBound);
+    void sweep(PsiData<T> &psi, const PsiData<T> &source, bool zeroPsiBound);
 
 private:
     CommSides c_commSides;
     KrylovSolver *c_krylovSolver;
-    PsiBoundData c_psiBound;
-    PsiBoundData c_zeroPsiBound;
+    PsiBoundData<T> c_psiBound;
+    PsiBoundData<T> c_zeroPsiBound;
 };
 
 
@@ -99,7 +99,7 @@ public:
 private:
     CommSides c_commSides;
     KrylovSolver *c_krylovSolver;
-    PsiBoundData c_psiBound;
+    PsiBoundData<T> c_psiBound;
 };
 
 
