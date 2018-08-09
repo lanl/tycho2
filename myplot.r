@@ -1,7 +1,7 @@
 library(ggplot2)
 
 #df <- read.csv("Data_for_1node_and_8_node_runs/averaged_values.csv", header=TRUE, sep=",")
-df <- read.csv("tycho2_plotter.csv", header=TRUE, sep=",")
+df <- read.csv("../tycho2_plotter.csv", header=TRUE, sep=",")
 
 #ggplot(data =df, aes(x = nodes, y=L2RelErr, group=1))+geom_line()+geom_point()
 #ggplot(data =df, aes(nodes)+ geom_line(aes(y=L2RelErr, colour="red")) + geom_line(aes(y=L2RelErr, colour="blue"))
@@ -19,3 +19,8 @@ ylab("time(sec)")
 
 ggsave("l2errors-1e5.pdf", l2plot)
 ggsave("runtime-1e5.pdf", timeplot)
+
+dfs <- split(df, df$precision)
+z<- sapply(dfs, function(x) tapply(x$TotSourceIterTime, x$nodes, max))
+
+print(z)

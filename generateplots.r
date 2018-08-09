@@ -1,7 +1,7 @@
 library(ggplot2)
 
 #df <- read.csv("Data_for_1Node_and_8_Node_runs/averaged_values.csv", header=TRUE, sep=",")
-df <- read.csv("tycho2results_plotter.csv", header=TRUE, sep=",")
+df <- read.csv("../tycho2results_plotter.csv", header=TRUE, sep=",")
 
 df$MPI <- sapply(df$MPI, as.factor)
 #df$Nodes- sapply(df$Nodes, as.numeric)
