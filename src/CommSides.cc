@@ -75,14 +75,14 @@ CommSides::CommSides()
         c_numSendPackets[rankIndex] = 0;
         c_numRecvPackets[rankIndex] = 0;
         
-        for (UINT cell = 0; cell < g_nCells; cell++) {
-        for (UINT face = 0; face < g_nFacePerCell; face++) {
-        
-            UINT adjRank = g_tychoMesh->getAdjRank(cell, face);        
-            if (adjRank == c_adjRanks[rankIndex]) {
-                for (UINT angle = 0; angle < g_nAngles; angle++) {
-                    if (g_tychoMesh->isOutgoing(angle, cell, face)) {
-                        CommSides::MetaData md;
+for (UINT cell = 0; cell < g_nCells; cell++) {
+for (UINT face = 0; face < g_nFacePerCell; face++) {
+
+    UINT adjRank = g_tychoMesh->getAdjRank(cell, face);        
+    if (adjRank == c_adjRanks[rankIndex]) {
+	for (UINT angle = 0; angle < g_nAngles; angle++) {
+	    if (g_tychoMesh->isOutgoing(angle, cell, face)) {
+		CommSides::MetaData md;
                         UINT side = g_tychoMesh->getSide(cell, face);
                         md.gSide = g_tychoMesh->getLGSide(side);
                         md.angle = angle;
@@ -116,7 +116,8 @@ static UINT getDataSize()
 /*
     commSides
 */
-void CommSides::commSides(PsiData &psi, PsiBoundData &psiBound)
+template <class T>
+void CommSides::commSides(PsiData<T> &psi, PsiBoundData<T> &psiBound)
 {
     int mpiError;
     UINT numToRecv;

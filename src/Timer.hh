@@ -56,7 +56,7 @@ private:
     std::chrono::high_resolution_clock::time_point begin;
     std::chrono::high_resolution_clock::time_point end;
     bool timer_on;
-    double sum_wall;
+    float sum_wall;
     UINT num_intervals;
 
 
@@ -90,16 +90,16 @@ public:
 
     // Get last timer stop() - start()
     inline
-    double wall_clock() const
+    float wall_clock() const
     {
         Assert(!timer_on);
-        std::chrono::duration<double> timeSpan = end - begin;
+        std::chrono::duration<float> timeSpan = end - begin;
         return timeSpan.count();
     }
 
     // Return sum of stop() - start() times
     inline
-    double sum_wall_clock() const 
+    float sum_wall_clock() const 
     {
         Assert(!timer_on);
         return sum_wall;

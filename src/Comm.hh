@@ -52,23 +52,23 @@ int rank();
 int rank(MPI_Comm comm);
 int numRanks();
 
-void gsum(double &x);
+void gsum(float &x);
 void gsum(UINT &x);
-void gmax(double &x);
-void gmax(double &x, MPI_Comm comm);
+void gmax(float &x);
+void gmax(float &x, MPI_Comm comm);
 void gmax(UINT &x);
 
 void sendUInt(UINT i, int destination);
 void sendUIntVector(const std::vector<UINT> &buffer, int destination);
 void iSendUIntVector(const std::vector<UINT> &buffer, int destination, 
                      int tag, MPI_Request &request);
-void iSendDoubleVector(const std::vector<double> &buffer, int destination, 
+void iSendDoubleVector(const std::vector<float> &buffer, int destination, 
                        int tag, MPI_Request &request);
 
 void recvUInt(UINT &i, int destination);
 void recvUIntVector(std::vector<UINT> &buffer, int destination);
 void recvUIntVector(std::vector<UINT> &buffer, int destination, int tag);
-void recvDoubleVector(std::vector<double> &buffer, int destination, int tag);
+void recvDoubleVector(std::vector<float> &buffer, int destination, int tag);
 
 void barrier();
 

@@ -422,11 +422,11 @@ void KeyValueReader::getInt(const std::string &key, int &value) const
 /*
     getDouble
     
-    Gets double value from key.
+    Gets float value from key.
     Throws an error if appropriate.
     If an error occurs, value is set to zero.
 */
-void KeyValueReader::getDouble(const std::string &key, double &value) const
+void KeyValueReader::getDouble(const std::string &key, float &value) const
 {
     string valueString;
     
@@ -436,12 +436,12 @@ void KeyValueReader::getDouble(const std::string &key, double &value) const
     // Get value as string
     getString(key, valueString);
     
-    // Convert to double
+    // Convert to float
     try {
         value = stod(valueString);
     }
     catch (...) {
-        c_data->printMessage("Error converting value to double");
+        c_data->printMessage("Error converting value to float");
         throw ExceptionStringConversionError;
     }
 }

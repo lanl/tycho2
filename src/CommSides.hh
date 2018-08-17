@@ -42,12 +42,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __COMMSIDES_HH__
 #define __COMMSIDES_HH__
 
-
 class CommSides
 {
 public:
     CommSides();
-    void commSides(PsiData &psi, PsiBoundData &psiBound);
+    template <class T>
+    void commSides(PsiData<T> &psi, PsiBoundData<T> &psiBound);
 
 private:
     struct MetaData
@@ -65,3 +65,5 @@ private:
 };
 
 #endif
+
+

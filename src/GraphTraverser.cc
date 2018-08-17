@@ -1015,19 +1015,19 @@ void GraphTraverser::traverse(const UINT maxComputePerStep,
     // Print times
     totalTimer.stop();
 
-    double totalTime = totalTimer.wall_clock();
+    float totalTime = totalTimer.wall_clock();
     Comm::gmax(totalTime);
 
-    double setupTime = setupTimer.wall_clock();
+    float setupTime = setupTimer.wall_clock();
     Comm::gmax(setupTime);
 
-    double commTime = commTimer.sum_wall_clock();
+    float commTime = commTimer.sum_wall_clock();
     Comm::gmax(commTime);
     
-    double sendTime = sendTimer.sum_wall_clock();
+    float sendTime = sendTimer.sum_wall_clock();
     Comm::gmax(sendTime);
     
-    double recvTime = recvTimer.sum_wall_clock();
+    float recvTime = recvTimer.sum_wall_clock();
     Comm::gmax(recvTime);
     
     if (Comm::rank() == 0) {

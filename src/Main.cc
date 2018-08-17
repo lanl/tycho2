@@ -90,8 +90,8 @@ void signalHandler(int sig)
 */
 static
 void readInput(const string &inputFileName, 
-               double &sigmaT1, double &sigmaS1,
-               double &sigmaT2, double &sigmaS2)
+               float &sigmaT1, float &sigmaS1,
+               float &sigmaT2, float &sigmaS2)
 {
     // Read data
     CKG_Utils::KeyValueReader kvr;
@@ -177,7 +177,7 @@ void readInput(const string &inputFileName,
 */
 int main(int argc, char *argv[])
 {
-    double sigmaT1, sigmaS1, sigmaT2, sigmaS2;
+    float sigmaT1, sigmaS1, sigmaT2, sigmaS2;
 
     
     // For Debugging (prints a backtrace)
@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
     
     
     // Setup sweeper
-    SweeperAbstract *sweeper = NULL;
+    SweeperAbstract<double> *sweeper = NULL;
     switch (g_sweepType) {
         case SweepType_OriginalTycho1:
         case SweepType_OriginalTycho2:
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
     
     
     // Time total solve
-    double clockTime = timer.wall_clock();
+    float clockTime = timer.wall_clock();
     Comm::gmax(clockTime);
     if(Comm::rank() == 0) {
         printf("Total time: %.2f\n", clockTime);
@@ -328,8 +328,8 @@ int main(int argc, char *argv[])
     
     
     // Print tests 
-    double psiError = Problem::hatL2Error(sweeper->getPsi());
-    double diffGroups = Util::diffBetweenGroups(sweeper->getPsi());
+    float psiError = Problem::hatL2Error(sweeper->getPsi());
+    float diffGroups = Util::diffBetweenGroups(sweeper->getPsi());
     if(Comm::rank() == 0) {
         printf("L2 Relative Error: %e\n", psiError);
         printf("Diff between groups: %e\n", diffGroups);
