@@ -8,6 +8,7 @@ MPICC += -DASSERT_ON=$(ASSERT_ON) -DUSE_PETSC=$(USE_PETSC)
 
 # Include source directory
 INC += -Isrc
+INC += -Isrc/tycho2/Quadrature
 
 
 # Add PETSC include directory and library command
@@ -22,7 +23,6 @@ endif
 SOURCE = $(wildcard src/*.cc)
 HEADERS = $(wildcard src/*.hh)
 OBJECTS = $(patsubst src%.cc, build%.o, $(SOURCE))
-
 
 # Link object files
 sweep.x: $(OBJECTS)

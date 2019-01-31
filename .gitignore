@@ -11,3 +11,7 @@ make.inc
 *.dSYM
 *.vtk
 *.visit
+*~
+\#*
+.#*
+build

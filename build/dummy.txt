@@ -1,2 +1,0 @@
-This file exists to have an empty folder for git.
-Git will not hold the directory in its repository with no files in it.
