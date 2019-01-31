@@ -1,6 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch2/catch.hpp"
 #include "tycho2.hpp"
+#include "range/v3/all.hpp"
 
 SCENARIO("GaussLegendre can return points and weights "
 	 "of the corresponding order", "[GaussLegendre]"){
@@ -24,10 +25,17 @@ SCENARIO("GaussLegendre can return points and weights "
 
       REQUIRE(wts == ref_wts);
 
-      //AND_THEN("using the points and weights to compute the "
-      //	       "integral of f(x)=x^2 on (-1,1)"){
+      AND_THEN("using the points and weights to compute the "
+      	       "integral of f(x)=x^2 on (-1,1)"){
+
+	auto x_squared= 
+	  ranges::view::zip_with([](auto&& x, auto&& w){return w * x * x;}, pts, wts);
 	
-      //}
+	auto result = ranges::accumulate(x_squared, 0.0);
+
+	REQUIRE(result==2.0/3.0);
+
+      }
 
     }
     

@@ -2,3 +2,7 @@
 	path = dependencies/Catch2
 	url = https://github.com/catchorg/Catch2.git
 	branch = master
+[submodule "dependencies/range-v3"]
+	path = dependencies/range-v3
+	url = https://github.com/ericniebler/range-v3.git
+	branch = master
