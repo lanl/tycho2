@@ -15,9 +15,9 @@ CCS-2 group, working together with Jim Warsa and Jae Chang, members of the Capsa
 at LANL. The goal of the mini-app is to provide a simple platform to explore the strange new world of GPUs and heterogeneous
 computer architectures. The idea being that, like the SNAP, UMT, and Kripke mini-apps for structured meshes*, potential approaches 
 and implementations for unstructured mesh transport could be investigated and perhaps transferred to the more complicated Capsaicin
-project if they showed promise. Makes sense, right? Anyway, Kris has left LANL and now it's up to Jim Warsa and any other contributors
-to take up where he left off. Recent work by Dan Ibanez of Sandia National Laboratory, with Kris, on using Kokkos in Tycho2 is
-gratefully acknowledged.
+project if they showed promise. Makes sense, right? Anyway, Kris has left LANL and now it's up to Jim Warsa, David Dixon, and other
+contributors to take up where he left off. Recent work by Dan Ibanez of Sandia National Laboratory, with Kris, on using Kokkos in 
+Tycho2 is gratefully acknowledged.
 
 *Note that, to the best of our knowledge, while UMT is targeted to unstructred meshes, the meshes are actually logially 
 orthgonal, without the additional complications and computational overhead associated with SN sweeps on meshes with 
