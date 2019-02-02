@@ -4,20 +4,20 @@ A mini-app for neutral-particle, discrete-ordinates (SN), transport on parallel-
 
 ## Background and History
 
-Tycho2 is based on a code called Tycho, written by Shawn Pautz (Sandia National Laboratory) sometime around the year 2000,
-when he was at Los Alamos National Laboratory. Though Tycho2 wasn't a mini-app (that term hadn't been invented yet), and 
-didn't borrow any code base from the original implementation, Shawn was using Tycho as a prototyping code to test ideas for
-parallel, unstructrued mesh, SN sweeps. Remember, those were early days. We named our mini-app Tycho2 in an homage to Shawn's 
-original code (and because Tycho2 works only on tets, like Tycho).
-
 Tycho2 was originally written by Kris Garrett while a postdoc at Los Alamos National Laboratory (see the license) in the
 CCS-2 group, working together with Jim Warsa and Jae Chang, members of the Capsaicin deterministic SN transport code project 
 at LANL. The goal of the mini-app is to provide a simple platform to explore the strange new world of GPUs and heterogeneous
 computer architectures. The idea being that, like the SNAP, UMT, and Kripke mini-apps for structured meshes*, potential approaches 
 and implementations for unstructured mesh transport could be investigated and perhaps transferred to the more complicated Capsaicin
-project if they showed promise. Makes sense, right? Anyway, Kris has left LANL and now it's up to Jim Warsa, David Dixon, and other
-contributors to take up where he left off. Recent work by Dan Ibanez of Sandia National Laboratory, with Kris, on using Kokkos in 
-Tycho2 is gratefully acknowledged.
+project if they showed promise. Makes sense, right? Anyway, Kris has left LANL and now it's up to Jim Warsa and any other contributors
+to take up where he left off. Recent work by Dan Ibanez of Sandia National Laboratory, with Kris, on using Kokkos in Tycho2 is
+gratefully acknowledged.
+
+Tycho2 is based on a code called Tycho, written by Shawn Pautz (Sandia National Laboratory) sometime around the year 2000,
+when he was at Los Alamos National Laboratory. Though Tycho2 wasn't a mini-app (that term hadn't been invented yet), and 
+didn't borrow any code base from the original implementation, Shawn was using Tycho as a prototyping code to test ideas for
+parallel, unstructrued mesh, SN sweeps. Remember, those were early days. We named our mini-app Tycho2 in an homage to Shawn's 
+original code (and because Tycho2 works only on tets, like Tycho).
 
 *Note that, to the best of our knowledge, while UMT is targeted to unstructred meshes, the meshes are actually logially 
 orthgonal, without the additional complications and computational overhead associated with SN sweeps on meshes with 
