@@ -23,5 +23,7 @@ if(tycho2.tests)
   add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/Catch2)
 endif()
 
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/json)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/range-v3)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/tycho2)

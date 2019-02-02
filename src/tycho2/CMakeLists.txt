@@ -3,3 +3,4 @@ target_sources(tycho2 INTERFACE
   $<INSTALL_INTERFACE:$<INSTALL_PREFIX>/include/tycho2/quadrature.hpp>)
 
 add_subdirectory(quadrature)
+add_subdirectory(io)

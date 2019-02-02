@@ -6,3 +6,7 @@
 	path = dependencies/range-v3
 	url = https://github.com/ericniebler/range-v3.git
 	branch = master
+[submodule "dependencies/json"]
+	path = dependencies/json
+	url = https://github.com/nlohmann/json.git
+	branch = master
