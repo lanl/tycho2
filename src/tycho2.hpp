@@ -11,6 +11,7 @@ All rights reserved.
 namespace tycho2{
 
 #include "tycho2/quadrature.hpp"
+#include "tycho2/mesh.hpp"  
 
 } // namespace tycho2
 
