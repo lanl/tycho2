@@ -1,50 +1,35 @@
 #define CATCH_CONFIG_MAIN
 #include "catch2/catch.hpp"
 #include "nlohmann/json.hpp"
-
+#include <fstream>
 
 SCENARIO("Integration testing for json library" "[json]"){
 using json = nlohmann::json;
  
-// create an empty structure (null)
-json j;
+ GIVEN("a json input file for the gold standard problem"){
 
-// add a number that is stored as double (note the implicit conversion of j to an object)
-j["pi"] = 3.141;
-
-// add a Boolean that is stored as bool
-j["happy"] = true;
-
-// add a string that is stored as std::string
-j["name"] = "Niels";
-
-// add another null object by passing nullptr
-j["nothing"] = nullptr;
-
-// add an object inside the object
-j["answer"]["everything"] = 42;
-
-// add an array that is stored as std::vector (using an initializer list)
-j["list"] = { 1, 0, 2 };
-
-// add another object (using an initializer list of pairs)
-j["object"] = { {"currency", "USD"}, {"value", 42.99} };
-
-// instead, you could also write (which looks very similar to the JSON above)
-json j2 = {
-  {"pi", 3.141},
-  {"happy", true},
-  {"name", "Niels"},
-  {"nothing", nullptr},
-  {"answer", {
-    {"everything", 42}
-  }},
-  {"list", {1, 0, 2}},
-  {"object", {
-    {"currency", "USD"},
-    {"value", 42.99}
-  }}
-};
-
-  
+   std::ifstream input("gold-standard.json");
+   json json_object;
+   input >> json_object;
+   
+   REQUIRE(json_object["snOrder"] == 8);
+   REQUIRE(json_object["iterMax"] == 100);
+   REQUIRE(json_object["errMax"] == 1e-10);
+   REQUIRE(json_object["maxCellsPerStep"] == 100);
+   REQUIRE(json_object["intraAngleP"] == 3);
+   REQUIRE(json_object["interAngleP"] == 1);
+   REQUIRE(json_object["nGroups"] == 2);
+   REQUIRE(json_object["sigmaT1"] == 10);
+   REQUIRE(json_object["sigmaS1"] == 5);
+   REQUIRE(json_object["sigmaT2"] == 10);
+   REQUIRE(json_object["sigmaS2"] == 5);
+   REQUIRE(json_object["OutputFile"] == true);
+   REQUIRE(json_object["OutputFilename"] == "out.psi");
+   REQUIRE(json_object["SourceIteration"] == true);
+   REQUIRE(json_object["MPIType"] == "TychoTwoSided");
+   REQUIRE(json_object["DD_IterMax"] == 100);
+   REQUIRE(json_object["DD_ErrMax"] == 1e-10);
+   REQUIRE(json_object["SweepType"] == "TraverseGraph");
+   REQUIRE(json_object["GaussElim"] == "NoPivot");   
+ }
 }
