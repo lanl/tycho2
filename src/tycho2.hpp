@@ -9,9 +9,9 @@ All rights reserved.
 #include <array>
 
 namespace tycho2{
-
+#include "tycho2/details.hpp"
 #include "tycho2/quadrature.hpp"
-#include "tycho2/mesh.hpp"  
+#include "tycho2/mesh.hpp"
 
 } // namespace tycho2
 

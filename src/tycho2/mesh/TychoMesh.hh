@@ -128,5 +128,4 @@ private:
     Mat1<UINT> c_cellMaterial;      // cell -> material index
 };
 
-
 #endif

@@ -1,7 +1,21 @@
 struct Tetrahedral {};
 
-template<typename Args...>
-class Type<Tetrahedral>{};
+template<typename... Args>
+auto make(Tetrahedral, Args&&...){
+  return 1.0; 
+};
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*
