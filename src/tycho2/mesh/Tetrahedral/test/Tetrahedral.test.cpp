@@ -6,4 +6,5 @@ SCENARIO("GaussLegendre can return points and weights "
 	 "of the corresponding order", "[GaussLegendre]"){
   namespace mesh = tycho2::mesh;
   auto myMesh = mesh::make<mesh::Tetrahedral>();
+  REQUIRE(myMesh == 1.0); 
 }
