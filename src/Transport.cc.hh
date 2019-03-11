@@ -492,7 +492,7 @@ void updateKokkos(
     const UINT angle,
     device_psi_data_t const &device_source, 
     device_psi_data_t const &device_psi_bound, 
-    device_psi_data_t device_psi,       // WHY NO REFERENCE HERE???
+    device_psi_data_t const &device_psi,
     UINT nGroups,
     device_mat3_t<double> const& device_omega_dot_n,
     device_mat2_t<UINT> const& device_adj_cell,

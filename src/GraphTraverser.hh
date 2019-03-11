@@ -67,6 +67,7 @@ private:
     device_mat1_t<double> c_device_cell_volume;
     device_mat2_t<double> c_device_face_area;
     device_mat3_t<UINT>   c_device_cell_to_face_vertex;
+    device_graph_t        c_device_graph;
 };
 
 #endif

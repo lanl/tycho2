@@ -43,6 +43,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <math.h>
 
+#include <Kokkos_Core.hpp>
+
 using namespace std;
 
 
@@ -192,6 +194,7 @@ vector<double> getNormal(TychoMesh::FaceCoords facePoints,
 */
 TychoMesh::TychoMesh(const std::string &filename)
 {
+    Kokkos::Profiling::pushRegion("TychoMesh::TychoMesh");
     // Read in the TychoMesh
     readTychoMesh(filename);
     
@@ -257,6 +260,7 @@ TychoMesh::TychoMesh(const std::string &filename)
         UINT node = getCellNode(cell, vrtx);
         c_neighborVrtx(cell, face, fvrtx) = getCellVrtx(neighborCell, node);
     }}}
+    Kokkos::Profiling::popRegion();
 }
 
 

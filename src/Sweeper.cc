@@ -53,6 +53,7 @@ using namespace std;
 */
 void Sweeper::solve(PsiData &psi)
 {
+  Kokkos::Profiling::pushRegion("Sweeper::solve");
     PhiData phi0, phi1;
     PsiData source, totalSource;
     PsiBoundData psiBound;
@@ -87,6 +88,7 @@ void Sweeper::solve(PsiData &psi)
     }}}
 
     
+    Kokkos::Profiling::pushRegion("iterations");
     // Source iterate till converged
     UINT iter;
     for (iter = 1; iter < g_iterMax; iter++) {
@@ -97,6 +99,7 @@ void Sweeper::solve(PsiData &psi)
         commSides.commSides(psi, psiBound);
         
 
+        Kokkos::Profiling::pushRegion("tolerance,phi0=phi1");
         // Check tolerance and set phi0 = phi1
         double errL1 = 0.0;
         double normL1 = 0.0;
@@ -107,6 +110,7 @@ void Sweeper::solve(PsiData &psi)
             normL1 += fabs(phi1(g,v,c));
             phi0(g,v,c) = phi1(g,v,c);
         }}}
+        Kokkos::Profiling::popRegion();
         
         Comm::gsum(errL1);
         Comm::gsum(normL1);
@@ -118,12 +122,14 @@ void Sweeper::solve(PsiData &psi)
         if (errL1 / normL1 < g_errMax)
             break;
     }
+    Kokkos::Profiling::popRegion();
     
     
     // Print statistics
     if (Comm::rank() == 0) {
         printf("PBJ Iters: %" PRIu64 "\n", iter);
     }
+    Kokkos::Profiling::popRegion();
 }
 
 
