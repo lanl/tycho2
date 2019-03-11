@@ -1,5 +1,5 @@
 # Makefile settings 
-BUILD_DIR = ./
+BUILD_DIR = ./build
 
 
 # Assert level: 0 = no asserts, 1 = all asserts ################################
