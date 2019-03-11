@@ -16,11 +16,11 @@ endif
 
 # List of sources, header files, and object files
 SOURCE = $(wildcard src/*.cc)
-OBJS = $(patsubst src%, build%, $(SOURCE)) 
+OBJS = $(patsubst src%, $(BUILD_DIR)%, $(SOURCE)) 
 OBJECTS = $(OBJS:%.cc=%.o)
 
 CSOURCE = $(wildcard src/*.c)
-COBJS = $(patsubst src%, build%, $(CSOURCE)) 
+COBJS = $(patsubst src%, $(BUILD_DIR)%, $(CSOURCE)) 
 OBJECTS += $(COBJS:%.c=%.o)
 
 HEADERS = $(wildcard src/*.hh)
@@ -31,12 +31,12 @@ sweep.x: $(OBJECTS)
 	@echo Linking $@
 	$(MPICXX) $(OBJECTS) -o sweep.x ${LIBS}
 
-build/%.o: src/%.c $(HEADERS)
+$(BUILD_DIR)/%.o: src/%.c $(HEADERS)
 	@echo Making $@
 	$(MPICC) $(INC) -c $< -o $@
 
 # Make object files
-build/%.o: src/%.cc $(HEADERS)
+$(BUILD_DIR)/%.o: src/%.cc $(HEADERS)
 	@echo Making $@
 	$(MPICXX) $(INC) -c $< -o $@
 
@@ -44,7 +44,7 @@ build/%.o: src/%.cc $(HEADERS)
 .PHONY: clean
 clean:
 	@echo Delete object files
-	rm -f build/*.o *.x
+	rm -f $(BUILD_DIR)/*.o *.x
 
 print-%  : ; @echo $* = $($*)
 

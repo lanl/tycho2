@@ -54,7 +54,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SweeperTraverse.hh"
 #include "SweeperChaotic.hh"
 #include "SweeperPBJ.hh"
+
+#if USE_PETSC
 #include "SweeperSchur.hh"
+#endif
+
 #include <signal.h>
 #include <execinfo.h>
 #include <omp.h>
@@ -304,6 +308,7 @@ int main(int argc, char *argv[])
                                    SweepData::getDataSizeInBytes());
             sweeper = new SweeperChaotic();
             break;
+#if USE_PETSC
         case SweepType_Schur:
             g_graphTraverserForward = 
                 new GraphTraverser(Direction_Forward, false, 
@@ -322,6 +327,7 @@ int main(int argc, char *argv[])
                                    SweepData::getDataSizeInBytes());
             sweeper = new SweeperSchurKrylov();
             break;
+#endif
         case SweepType_PBJ:
             g_graphTraverserForward = 
                 new GraphTraverser(Direction_Forward, false, 

@@ -1,4 +1,5 @@
-# Makefile settings for CCS servers
+# Makefile settings 
+BUILD_DIR = ./
 
 
 # Assert level: 0 = no asserts, 1 = all asserts ################################

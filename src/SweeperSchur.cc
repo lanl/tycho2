@@ -35,6 +35,7 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if USE_PETSC
 
 #include "SweeperSchur.hh"
 #include "Util.hh"
@@ -610,3 +611,4 @@ void SweeperSchurKrylov::sweep(PsiData &psi, const PsiData &source,
     Util::sweepLocal(psi, source, c_psiBound);
 }
 
+#endif

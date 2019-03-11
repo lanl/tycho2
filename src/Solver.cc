@@ -43,7 +43,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "Timer.hh"
 #include "Util.hh"
+#if USE_PETSC
 #include "KrylovSolver.hh"
+#endif
 #include <math.h>
 
 extern "C" {
@@ -357,6 +359,8 @@ UINT fixedPointNKA(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source
     return iter;
 }
 
+#if USE_PETSC
+
 /*
     Krylov solver
     Solves (I - DL^{-1}MS) \Phi = DL^{-1} Q.
@@ -425,6 +429,7 @@ UINT krylov(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
     // Return number of iterations
     return its;
 }
+#endif
 
 
 } // End anonymous namespace
@@ -452,7 +457,11 @@ UINT solver(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
         }
         case SolverType_Krylov:
         {
+#if USE_PETSC
             its = krylov(sweeper, psi, source);
+#else
+            Insist(false, "WHAT? Petsc is not enabled!");
+#endif
             break;
         }
         default:
