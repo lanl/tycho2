@@ -56,7 +56,8 @@ class SweeperAbstract
     
     void writePsiToFile(std::string &filename)
     {
-        c_psi.writeToFile(filename);
+        std::string psiFile(filename+".psi");
+        c_psi.writeToFile(psiFile);
     }
     
     PsiData& getPsi()

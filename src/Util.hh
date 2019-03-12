@@ -53,7 +53,7 @@ void calcTotalSource(const PsiData &source, const PhiData &phi,
                      PsiData &totalSource);
 void sweepLocal(PsiData &psi, const PsiData &source, PsiBoundData &psiBound);
 void operatorS(const PhiData &phi1, PhiData &phi2);
-void writePhi(const PsiData &psi);
+void writePhi(const PsiData &psi, std::string &filename);
 } // End namespace
 
 #endif

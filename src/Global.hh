@@ -139,7 +139,7 @@ EXTERN Quadrature *g_quadrature;
 EXTERN GraphTraverser *g_graphTraverserForward;
 EXTERN GaussElim g_gaussElim;
 EXTERN bool g_outputFile;
-EXTERN std::string g_outputFilename;
+EXTERN std::string g_prefixFilename;
 EXTERN UINT g_nAngles;
 EXTERN UINT g_nCells;
 EXTERN double g_ddErrMax;

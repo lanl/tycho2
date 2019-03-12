@@ -38,6 +38,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <iostream>
+#include <fstream>
+
 #include "Util.hh"
 #include "Global.hh"
 #include "Comm.hh"
@@ -161,10 +163,14 @@ void operatorS(const PhiData &phi1, PhiData &phi2)
 /*
     writePhi (cell average)
 */
-void writePhi(const PsiData &psi) 
+void writePhi(const PsiData &psi, std::string &filename)
 {
     PhiData phi;
     psiToPhi(phi, psi);
+
+    std::string phiFile(filename+".psi");
+    std::ofstream outfile;
+    outfile.open(phiFile);
     
     #pragma omp parallel for
     for (UINT group = 0; group < g_nGroups; ++group) {
@@ -174,9 +180,10 @@ void writePhi(const PsiData &psi)
             for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
                 phi_avg += phi(group,vertex,cell);
             }
-            std::cout << "     " << g_tychoMesh->getLGCell(cell) << " " << 0.25*phi_avg << std::endl;
+            outfile << "     " << g_tychoMesh->getLGCell(cell) << " " << 0.25*phi_avg << std::endl;
         }
     }
+    outfile.close();
 }
 
 

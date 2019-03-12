@@ -120,8 +120,8 @@ void readInput(const string &inputFileName,
     kvr.getDouble("sigmaS1", sigmaS1);
     kvr.getDouble("sigmaT2", sigmaT2);
     kvr.getDouble("sigmaS2", sigmaS2);
-    kvr.getBool("OutputFile", g_outputFile);
-    kvr.getString("OutputFilename", g_outputFilename);
+    kvr.getBool("outputFile", g_outputFile);
+    kvr.getString("prefixFilename", g_prefixFilename);
     kvr.getInt("DD_IterMax", ddIterMax);
     kvr.getDouble("DD_ErrMax", g_ddErrMax);
        
@@ -374,11 +374,12 @@ int main(int argc, char *argv[])
         printf("Diff between groups: %e\n", diffGroups);
     }
 
-    // Output psi to file
+    // Output files
     if(g_outputFile)
-        sweeper->writePsiToFile(g_outputFilename);
-
-    //Util::writePhi(sweeper->getPsi());
+    {
+        sweeper->writePsiToFile(g_prefixFilename);
+        Util::writePhi(sweeper->getPsi(), g_prefixFilename);;
+    };
     
     // End program
     #if USE_PETSC

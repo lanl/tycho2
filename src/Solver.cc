@@ -158,27 +158,24 @@ UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
         double norm = 0.0;
         timer.start();
         
-
-        // phiOld = phiNew
+        // Save phiOld for error calculation
         for(UINT i = 0; i < phiOld.size(); i++) {
             phiOld[i] = phiNew[i];
         }
 
-        
         // totalSource = fixedSource + phiOld
         Util::calcTotalSource(source, phiOld, totalSource);
 
-        
         // Sweep
         sweeper.sweep(psi, totalSource);
         
+        // Update phi
+        Util::psiToPhi(phiNew, psi);
+
         switch (g_normType)
         {
-            case TychoNormType_L2:
+            case TychoNormType_L2: // Calculate L_2 error 
             {
-                // Calculate L_2 error for phi
-                Util::psiToPhi(phiNew, psi);
-
                 error = 0.0;
                 UINT n = phiNew.size();
                 for (UINT i = 0; i < n; i++) {
@@ -193,12 +190,9 @@ UINT fixedPoint(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source)
 
                 break;
             }
-            case TychoNormType_L1:
+            case TychoNormType_L1: // Calculate L_1 relative error 
             default:
             {
-                // Calculate L_1 relative error for phi
-                Util::psiToPhi(phiNew, psi);
-
                 error = 0.0;
                 UINT n = phiNew.size();
                 for (UINT i = 0; i < n; i++) {
@@ -261,8 +255,19 @@ UINT fixedPointNKA(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source
     // Get phi
     Util::psiToPhi(phiNew, psi);
 
-    NKA nka = nka_create(phiNew.size(), g_nRestart, 0.001, DP);
-    
+    // Get size of working variables
+    UINT n=phiNew.size();
+
+    // Setup NKA
+    NKA nka = nka_create(n, g_nRestart, 0.001, DP);
+    std::vector<double> fx(n), fxOld(n);
+    for(UINT i = 0; i < n; i++) {
+       phiOld[i] = phiNew[i];
+       fx[i] = phiNew[i];
+    }
+
+    nka_correction(nka, &fx[0]);    
+
     // Source iteration
     UINT iter = 0;
     double error = 1.0;
@@ -276,9 +281,10 @@ UINT fixedPointNKA(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source
         double norm = 0.0;
         timer.start();
         
-        // phiOld = phiNew
-        for(UINT i = 0; i < phiOld.size(); i++) {
+        // Save phiOld for error calculation
+        for(UINT i = 0; i < n; i++) {
             phiOld[i] = phiNew[i];
+            fxOld[i] = fx[i];
         }
         
         // totalSource = fixedSource + phiOld
@@ -287,15 +293,23 @@ UINT fixedPointNKA(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source
         // Sweep
         sweeper.sweep(psi, totalSource);
 
+        // Update phi
+        Util::psiToPhi(phiNew, psi);
+
+        // Apply NKA
+        for (UINT i = 0; i < n; i++) {
+            fx[i] = phiNew[i] - phiOld[i];
+        }
+        nka_correction(nka, &fx[0]);    
+        for (UINT i = 0; i < n; i++) {
+            phiNew[i] = phiNew[i]-fx[i];
+        }
+
         switch (g_normType)
         {
-            case TychoNormType_L2:
+            case TychoNormType_L2:  // Calculate L_2 error 
             {
-                // Calculate L_2 error for phi
-                Util::psiToPhi(phiNew, psi);
-
                 error = 0.0;
-                UINT n = phiNew.size();
                 for (UINT i = 0; i < n; i++) {
                     error += (phiNew[i] - phiOld[i])*(phiNew[i] - phiOld[i]);
                     norm += phiNew[i]*phiNew[i];
@@ -308,14 +322,10 @@ UINT fixedPointNKA(SweeperAbstract &sweeper, PsiData &psi, const PsiData &source
 
                 break;
             }
-            case TychoNormType_L1:
+            case TychoNormType_L1: // Calculate L_1 relative error  
             default:
             {
-                // Calculate L_1 relative error for phi
-                Util::psiToPhi(phiNew, psi);
-
                 error = 0.0;
-                UINT n = phiNew.size();
                 for (UINT i = 0; i < n; i++) {
                     error += fabs(phiNew[i] - phiOld[i]);
                     norm += fabs(phiNew[i]);
