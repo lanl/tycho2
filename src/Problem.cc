@@ -42,6 +42,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include <math.h>
 
+#include <Kokkos_Core.hpp>
+
 
 // cubeSize assumes using cube meshes in util folder
 static const double cubeSize = 100.0;
@@ -88,6 +90,7 @@ void getSource(PsiData &source)
 */
 double hatL2Error(const PsiData &psi)
 {
+  Kokkos::Profiling::pushRegion("Problem::hatL2Error");
     double diff = 0.0;
     double norm = 0.0;
     
@@ -127,6 +130,8 @@ double hatL2Error(const PsiData &psi)
     
     Comm::gsum(norm);
     Comm::gsum(diff);
+
+    Kokkos::Profiling::popRegion();
     
     return sqrt(diff / norm);
 }

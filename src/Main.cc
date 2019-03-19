@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
     Comm::init();
     Kokkos::initialize(argc, argv);
 
+    Kokkos::Profiling::pushRegion("main");
 
     // Input data.
     if (argc < 3) {
@@ -182,6 +183,7 @@ int main(int argc, char *argv[])
     if(outputFile)
         writePsiToFile(outputFilename, psi);
 
+    Kokkos::Profiling::popRegion();
     
     // Cleanup
     Kokkos::finalize();

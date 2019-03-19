@@ -37,6 +37,8 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <Kokkos_Core.hpp>
+
 #include "Comm.hh"
 #include "Assert.hh"
 #include "Global.hh"
@@ -123,12 +125,14 @@ int numRanks()
 */
 void gsum(double &x)
 {
+  Kokkos::Profiling::pushRegion("Comm::gsum(double)");
     double send = x;
     double recv = 0;
     int result = MPI_Allreduce(&send, &recv, 1, MPI_DOUBLE, MPI_SUM, 
                                MPI_COMM_WORLD);
     Insist(result == MPI_SUCCESS, "Comm::gsum(double) MPI error.\n");
     x = recv;
+  Kokkos::Profiling::popRegion();
 }
 
 

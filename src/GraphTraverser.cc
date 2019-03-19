@@ -53,6 +53,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 GraphTraverser::GraphTraverser()
 {
+  Kokkos::Profiling::pushRegion("GraphTraverser::GraphTraverser");
     // Put constant data on GPU
     auto host_omega_dot_n = host_mat3_t<double>(
         g_tychoMesh->c_omegaDotN.data(),
@@ -93,23 +94,23 @@ GraphTraverser::GraphTraverser()
         g_nVrtxPerCell);
 
     c_device_omega_dot_n = Kokkos::create_mirror_view_and_copy(
-        device(), host_omega_dot_n);
+        device(), host_omega_dot_n, "omega_dot_n");
     c_device_adj_cell = Kokkos::create_mirror_view_and_copy(
-        device(), host_adj_cell);
+        device(), host_adj_cell, "adj_cell");
     c_device_neighbor_vertex = Kokkos::create_mirror_view_and_copy(
-        device(), host_neighbor_vertex);
+        device(), host_neighbor_vertex, "neighbor_vertex");
     c_device_adj_proc = Kokkos::create_mirror_view_and_copy(
-        device(), host_adj_proc);
+        device(), host_adj_proc, "adj_proc");
     c_device_side = Kokkos::create_mirror_view_and_copy(
-        device(), host_side);
+        device(), host_side, "side");
     c_device_sigma_t = Kokkos::create_mirror_view_and_copy(
-        device(), host_sigma_t);
+        device(), host_sigma_t, "sigma_t");
     c_device_cell_volume = Kokkos::create_mirror_view_and_copy(
-        device(), host_cell_volume);
+        device(), host_cell_volume, "cell_volume");
     c_device_face_area = Kokkos::create_mirror_view_and_copy(
-        device(), host_face_area);
+        device(), host_face_area, "face_area");
     c_device_cell_to_face_vertex = Kokkos::create_mirror_view_and_copy(
-        device(), host_cell_to_face_vertex);
+        device(), host_cell_to_face_vertex, "cell_to_face_vertex");
 
     // Allocate space on GPU
     // NOT SAFE?
@@ -131,30 +132,6 @@ GraphTraverser::GraphTraverser()
         g_nVrtxPerCell,
         g_nAngles,
         g_nCells);
-}
-
-
-/*
-    traverse
-    
-    Traverses g_tychoMesh.
-*/
-void GraphTraverser::traverse(
-    const PsiData &source,
-    const PsiBoundData &psiBound,
-    PsiData &psi)
-{
-    Timer totalTimer;
-    Timer setupTimer;
-    
-
-    // Start total timer
-    totalTimer.start();
-    
-
-    // Start setup timer
-    setupTimer.start();
-
 
     // Get dependencies
     auto nitems = int(g_nCells * g_nAngles);
@@ -192,17 +169,37 @@ void GraphTraverser::traverse(
         Assert(j + row_map(item) == row_map(item + 1));
     }, "fill-dependencies");
 
-
     // Get the policy
     auto device_row_map = Kokkos::create_mirror_view_and_copy(device(), row_map);
     auto device_entries = Kokkos::create_mirror_view_and_copy(device(), entries);
-    auto graph = Kokkos::Crs<int,device,void,int>(device_row_map, device_entries);
-    auto policy = Kokkos::WorkGraphPolicy<device,int>(graph);
+    c_device_graph = Kokkos::Crs<int,device,void,int>(device_row_map, device_entries);
+    Kokkos::Profiling::popRegion();
+}
 
+
+/*
+    traverse
     
+    Traverses g_tychoMesh.
+*/
+void GraphTraverser::traverse(
+    const PsiData &source,
+    const PsiBoundData &psiBound,
+    PsiData &psi)
+{
+    Timer totalTimer;
+    Timer setupTimer;
+    
+    // Start total timer
+    totalTimer.start();
+    
+    // Start setup timer
+    setupTimer.start();
+
+    auto policy = Kokkos::WorkGraphPolicy<device,int>(c_device_graph);
+
     // End setup timer
     setupTimer.stop();
-
 
     // Copy data to device views
     auto host_source = host_psi_data_t(

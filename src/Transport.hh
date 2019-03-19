@@ -70,7 +70,7 @@ using host_mat3_t =
 template <class T>
 using device_mat3_t =
   Kokkos::View<T***, Kokkos::LayoutLeft, device>;
-
+using device_graph_t = Kokkos::Crs<int,device,void,int>;
 
 //#include "Transport.cc.hh"
 
