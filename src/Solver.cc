@@ -67,6 +67,7 @@ static double DP(int n, double *x, double *y)
 namespace
 {
 
+#if USE_PETSC
 /*
     LHSData
     
@@ -129,6 +130,7 @@ void lhsOperator(const double *x, double *b, void *voidData)
         b[i] = x[i] - b[i];
     }
 }
+#endif
 
 /*
     Fixed-point iteration (Richardson or source iteration)
