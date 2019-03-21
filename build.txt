@@ -1,0 +1,69 @@
+
+#---------------------------------------------------------------------------------------
+#for capsaicin -DENABLE_CUDA on volta-x86
+# export PATH=/projects/draco/cmake-3.14.0-rc3-Linux-x86_64/bin:${PATH}
+#---------------------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------------------
+#Make kokkos (power9 darwin, no GPU support from kokkos on this partition)
+# NOTE: change ~/kokkos/bin/nvcc_wrapper host_compiler=mpicxx 
+#---------------------------------------------------------------------------------------
+cmake -DCMAKE_INSTALL_PREFIX=/home/warsa/KOKKOS/build.power9 -DKOKKOS_ENABLE_CUDA=OFF -DKOKKOS_ENABLE_SERIAL=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ARCH="Power9" -KOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=OFF -DCMAKE_CXX_FLAGS="-O3 -g" ~/kokkos
+
+https://github.com/kokkos/kokkos/wiki/Compiling
+
+#Makefile begin
+# Kokkos stuff
+KOKKOS_PATH = /home/warsa/kokkos
+KOKKOS_INSTALL_PATH = /home/warsa/KOKKOS/build
+
+# THIS SUCKS: have to change nvcc_wrapper host_compiler to mpicxx 
+CXX = /home/warsa/kokkos/bin/nvcc_wrapper
+CXXFLAGS = -O3 -Wall -Wextra -Wpedantic -DASSERT_ON=0 -Isrc -I$(KOKKOS_INSTALL_PATH)/include
+
+BUILD_DIR = ./obj
+
+default: sweep.x
+	echo "Start Build"
+
+KOKKOS_DEVICES = "Cuda,OpenMP"
+KOKKOS_ARCH = "Power9"
+KOKKOS_CUDA_OPTIONS += "enable_lambda"
+
+DEPFLAGS = -M
+
+# List of sources, header files, and object files
+SOURCE = $(wildcard src/*.cc)
+OBJS = $(patsubst src%, $(BUILD_DIR)%, $(SOURCE)) 
+OBJECTS = $(OBJS:%.cc=%.o)
+HEADERS = $(wildcard src/*.hh)
+
+include $(KOKKOS_INSTALL_PATH)/Makefile.kokkos
+
+# Link object files
+sweep.x: $(OBJECTS) $(KOKKOS_LINK_DEPENDS)
+	@echo Linking $@
+	$(CXX) $(KOKKOS_LDFLAGS) $(OBJECTS) -o sweep.x $(LIBS) -L$(KOKKOS_INSTALL_PATH)/lib $(KOKKOS_LIBS) -ldl
+
+# Make object files
+$(BUILD_DIR)/%.o: src/%.cc $(HEADERS) $(KOKKOS_CPP_DEPENDS)
+	@echo Making $@
+#	@echo $(KOKKOS_CPP_DEPENDS)
+	$(CXX) $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS) $(CXXFLAGS) -c $< -o $@
+
+
+# Delete object files
+.PHONY: clean
+clean:
+	@echo Delete object files
+	rm -f $(BUILD_DIR)/*.o sweep.x *.o *.a *.h *.tmp
+
+#Makefile end
+
+#---------------------------------------------------------------------------------------
+#Build UTIL
+#---------------------------------------------------------------------------------------
+
+export METIS_DIR=/usr/projects/draco/vendors/spack.power9-0.11.2/opt/spack/linux-rhel7-ppc64le/gcc-7.1.0/metis-5.1.0-mzschmzxwstgx62dicfs5zwzovrjknbk
+cmake -DUSE_MOAB:BOOL=OFF -DUSE_METIS:BOOL=ON -DMETIS_DIR=${METIS_DIR} ~/tycho2/util
+cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper ~/tycho2
