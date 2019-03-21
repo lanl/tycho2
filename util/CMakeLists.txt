@@ -1,3 +1,7 @@
+cmake_minimum_required(VERSION 3.12.1)
+
+find_package(MPI REQUIRED)
+
 set(SRC_MESH
     "${CMAKE_CURRENT_SOURCE_DIR}/../src/SerialMesh.cc"
     "${CMAKE_CURRENT_SOURCE_DIR}/../src/ParallelMesh.cc"
@@ -12,20 +16,29 @@ set(INC "${CMAKE_CURRENT_SOURCE_DIR}/../src")
 add_executable(SerialMeshInfo.x ${SRC_MESH} "SerialMeshInfo.cc")
 target_include_directories(SerialMeshInfo.x PUBLIC "${INC}")
 target_compile_definitions(SerialMeshInfo.x PUBLIC "-DPARALLEL_MESH_READ_SERIAL_ONLY")
+
 add_executable(ParallelMeshInfo.x ${SRC_MESH2} "ParallelMeshInfo.cc")
-target_include_directories(ParallelMeshInfo.x PUBLIC "${INC}")
+target_include_directories(ParallelMeshInfo.x PUBLIC ${INC} ${MPI_INCLUDE_PATH})
+
+target_link_libraries(ParallelMeshInfo.x PUBLIC ${MPI_LIBRARIES})
+
 add_executable(PartitionColumns.x ${SRC_MESH} "PartitionColumns.cc")
 target_include_directories(PartitionColumns.x PUBLIC "${INC}")
 target_compile_definitions(PartitionColumns.x PUBLIC "-DPARALLEL_MESH_READ_SERIAL_ONLY")
+
 add_executable(RefineSerialMesh.x ${SRC_MESH} "RefineSerialMesh.cc")
 target_include_directories(RefineSerialMesh.x PUBLIC "${INC}")
 target_compile_definitions(RefineSerialMesh.x PUBLIC "-DPARALLEL_MESH_READ_SERIAL_ONLY")
 
+find_package(MPI REQUIRED)
+
 option(USE_METIS "Use METIS" OFF)
 if (USE_METIS)
+  message("here ${METIS_DIR}")
   set(METIS_DIR "" CACHE PATH "METIS install directory")
   find_library(METIS_LIBRARY NAMES metis PATHS "${METIS_DIR}/lib" NO_DEFAULT_PATH)
   set(METIS_INC "${METIS_DIR}/include")
+
   add_executable(PartitionMetis.x ${SRC_MESH} "PartitionMetis.cc")
   target_include_directories(PartitionMetis.x PUBLIC "${INC}" "${METIS_INC}")
   target_link_libraries(PartitionMetis.x PUBLIC "${METIS_LIBRARY}")
@@ -50,16 +63,20 @@ if (USE_MOAB)
       "${HDF5_LIBRARY}"
       dl
       ZLIB::ZLIB)
+
   add_executable(MoabToSerialMesh.x ${SRC_MESH} "MoabToSerialMesh.cc")
   target_include_directories(MoabToSerialMesh.x PUBLIC "${INC}" "${MOAB_INC}")
   target_link_libraries(MoabToSerialMesh.x PUBLIC "${MOAB_LIBRARIES}")
   target_compile_definitions(MoabToSerialMesh.x PUBLIC "-DPARALLEL_MESH_READ_SERIAL_ONLY")
+
   add_executable(SerialMeshToMoab.x ${SRC_MESH} "SerialMeshToMoab.cc")
   target_include_directories(SerialMeshToMoab.x PUBLIC "${INC}" "${MOAB_INC}")
   target_link_libraries(SerialMeshToMoab.x PUBLIC "${MOAB_LIBRARIES}")
   target_compile_definitions(SerialMeshToMoab.x PUBLIC "-DPARALLEL_MESH_READ_SERIAL_ONLY")
+
   add_executable(ParallelMeshToMoab.x ${SRC_MESH} "ParallelMeshToMoab.cc")
   target_include_directories(ParallelMeshToMoab.x PUBLIC "${INC}" "${MOAB_INC}")
   target_link_libraries(ParallelMeshToMoab.x PUBLIC "${MOAB_LIBRARIES}")
   target_compile_definitions(ParallelMeshToMoab.x PUBLIC "-DPARALLEL_MESH_READ_SERIAL_ONLY")
+
 endif()
