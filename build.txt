@@ -1,10 +1,5 @@
 
 #---------------------------------------------------------------------------------------
-#for capsaicin -DENABLE_CUDA on volta-x86
-# export PATH=/projects/draco/cmake-3.14.0-rc3-Linux-x86_64/bin:${PATH}
-#---------------------------------------------------------------------------------------
-
-#---------------------------------------------------------------------------------------
 #Make kokkos (power9 darwin, no GPU support from kokkos on this partition)
 # NOTE: change ~/kokkos/bin/nvcc_wrapper host_compiler=mpicxx 
 #---------------------------------------------------------------------------------------
