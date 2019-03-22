@@ -30,8 +30,6 @@ add_executable(RefineSerialMesh.x ${SRC_MESH} "RefineSerialMesh.cc")
 target_include_directories(RefineSerialMesh.x PUBLIC "${INC}")
 target_compile_definitions(RefineSerialMesh.x PUBLIC "-DPARALLEL_MESH_READ_SERIAL_ONLY")
 
-find_package(MPI REQUIRED)
-
 option(USE_METIS "Use METIS" OFF)
 if (USE_METIS)
   message("here ${METIS_DIR}")

@@ -1,13 +1,31 @@
 
 #---------------------------------------------------------------------------------------
-#Make kokkos (power9 darwin, no GPU support from kokkos on this partition)
+# Make kokkos (power9 darwin, no GPU support from kokkos on this partition)
 # NOTE: change ~/kokkos/bin/nvcc_wrapper host_compiler=mpicxx 
+# see https://github.com/kokkos/kokkos/wiki/Compiling for KOKKOS_ARCH
 #---------------------------------------------------------------------------------------
 cmake -DCMAKE_INSTALL_PREFIX=/home/warsa/KOKKOS/build.power9 -DKOKKOS_ENABLE_CUDA=OFF -DKOKKOS_ENABLE_SERIAL=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ARCH="Power9" -KOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=OFF -DCMAKE_CXX_FLAGS="-O3 -g" ~/kokkos
 
-https://github.com/kokkos/kokkos/wiki/Compiling
+#---------------------------------------------------------------------------------------
+# Env variables
+#---------------------------------------------------------------------------------------
 
+export OMP_NUM_THREADS=1
+export METIS_DIR=/usr/projects/draco/vendors/spack.power9-0.11.2/opt/spack/linux-rhel7-ppc64le/gcc-7.1.0/metis-5.1.0-mzschmzxwstgx62dicfs5zwzovrjknbk
+export KOKKOS_ROOT=/home/warsa/KOKKOS/build.power9
+
+#---------------------------------------------------------------------------------------
+# Configure, build, run with 2 mpi ranks
+#---------------------------------------------------------------------------------------
+
+cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DUSE_MOAB:BOOL=OFF -DUSE_METIS:BOOL=ON -DMETIS_DIR=${METIS_DIR} -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper ~/tycho2
+./run.sh 2
+
+#---------------------------------------------------------------------------------------
+# in case all else fails here's a Makefile
+#---------------------------------------------------------------------------------------
 #Makefile begin
+
 # Kokkos stuff
 KOKKOS_PATH = /home/warsa/kokkos
 KOKKOS_INSTALL_PATH = /home/warsa/KOKKOS/build
@@ -54,11 +72,5 @@ clean:
 	rm -f $(BUILD_DIR)/*.o sweep.x *.o *.a *.h *.tmp
 
 #Makefile end
-
-#---------------------------------------------------------------------------------------
-#Build UTIL
 #---------------------------------------------------------------------------------------
 
-export METIS_DIR=/usr/projects/draco/vendors/spack.power9-0.11.2/opt/spack/linux-rhel7-ppc64le/gcc-7.1.0/metis-5.1.0-mzschmzxwstgx62dicfs5zwzovrjknbk
-cmake -DUSE_MOAB:BOOL=OFF -DUSE_METIS:BOOL=ON -DMETIS_DIR=${METIS_DIR} ~/tycho2/util
-cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper ~/tycho2

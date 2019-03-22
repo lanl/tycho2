@@ -45,13 +45,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace Util
 {
-
-double diffBetweenGroups(const PsiData &psi);
-void psiToPhi(PhiData &phi, const PsiData &psi);
-void phiToPsi(const PhiData &phi, PsiData &psi);
-void calcTotalSource(const PsiData &source, const PhiData &phi, 
-                     PsiData &totalSource);
-
+  
+  double diffBetweenGroups(const PsiData &psi);
+  void psiToPhi(PhiData &phi, const PsiData &psi);
+  void phiToPsi(const PhiData &phi, PsiData &psi);
+  void calcTotalSource(const PsiData &source, const PhiData &phi, 
+		       PsiData &totalSource);
+  void writePhi(std::string &filename, const PsiData &psi);
+  
 } // End namespace
 
 #endif

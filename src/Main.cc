@@ -180,8 +180,10 @@ int main(int argc, char *argv[])
 
     // Output psi to file
     if(outputFile)
+      {
         writePsiToFile(outputFilename, psi);
-
+	Util::writePhi(outputFilename, psi);
+      }
     
     // Cleanup
     Kokkos::finalize();

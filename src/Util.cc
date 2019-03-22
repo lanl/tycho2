@@ -42,94 +42,137 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include <math.h>
 #include <limits>
-
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 namespace Util
 {
 
-/*
+  /*
     diffBetweenGroups
-*/
-double diffBetweenGroups(const PsiData &psi)
-{
+  */
+  double diffBetweenGroups(const PsiData &psi)
+  {
     double maxDiff = 0.0;
     double maxEntry = 0.0;
     
     for(UINT cell = 0; cell < g_nCells; cell++) {
-    for(UINT angle = 0; angle < g_nAngles; angle++) {
-    for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
+      for(UINT angle = 0; angle < g_nAngles; angle++) {
+	for(UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
         
-        double psi0 = psi(0, vrtx, angle, cell);
+	  double psi0 = psi(0, vrtx, angle, cell);
         
-        if(fabs(psi0) > maxEntry)
+	  if(fabs(psi0) > maxEntry)
             maxEntry = fabs(psi0);
         
-        for(UINT group = 1; group < g_nGroups; group++) {
+	  for(UINT group = 1; group < g_nGroups; group++) {
             double psi1 = psi(group, vrtx, angle, cell);
             if (fabs(psi0 - psi1) > maxDiff)
-                maxDiff = fabs(psi0 - psi1);
-        }
-    }}}
+	      maxDiff = fabs(psi0 - psi1);
+	  }
+	}}}
     
     maxDiff = maxDiff / maxEntry;
     Comm::gmax(maxDiff);
     return maxDiff;
-}
+  }
 
 
-/*
+  /*
     psiToPhi
-*/
-void psiToPhi(PhiData &phi, const PsiData &psi) 
-{
+  */
+  void psiToPhi(PhiData &phi, const PsiData &psi) 
+  {
     for (UINT c = 0; c < g_nCells; c++) {
-    for (UINT v = 0; v < g_nVrtxPerCell; v++) {
-    for (UINT g = 0; g < g_nGroups; g++) {
-        phi(g,v,c) = 0.0;
-    }}}
+      for (UINT v = 0; v < g_nVrtxPerCell; v++) {
+	for (UINT g = 0; g < g_nGroups; g++) {
+	  phi(g,v,c) = 0.0;
+	}}}
     
-  //#pragma omp parallel for
+    //#pragma omp parallel for
     for (UINT cell = 0; cell < g_nCells; ++cell) {
-    for (UINT angle = 0; angle < g_nAngles; ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-    for (UINT group = 0; group < g_nGroups; ++group) {
-        phi(group, vertex, cell) +=
-            psi(group, vertex, angle, cell) * g_quadrature->getWt(angle);
-    }}}}
-}
+      for (UINT angle = 0; angle < g_nAngles; ++angle) {
+	for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+	  for (UINT group = 0; group < g_nGroups; ++group) {
+	    phi(group, vertex, cell) +=
+	      psi(group, vertex, angle, cell) * g_quadrature->getWt(angle);
+	  }}}}
+  }
 
 
-/*
+  /*
     phiToPsi
-*/
-void phiToPsi(const PhiData &phi, PsiData &psi) 
-{
-  //#pragma omp parallel for
+  */
+  void phiToPsi(const PhiData &phi, PsiData &psi) 
+  {
+    //#pragma omp parallel for
     for (UINT cell = 0; cell < g_nCells; ++cell) {
-    for (UINT angle = 0; angle < g_nAngles; ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-    for (UINT group = 0; group < g_nGroups; ++group) {
-        psi(group, vertex, angle, cell) = phi(group, vertex, cell);
-    }}}}
-}
+      for (UINT angle = 0; angle < g_nAngles; ++angle) {
+	for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+	  for (UINT group = 0; group < g_nGroups; ++group) {
+	    psi(group, vertex, angle, cell) = phi(group, vertex, cell);
+	  }}}}
+  }
 
 
-/*
+  /*
     calcTotalSource
-*/
-void calcTotalSource(const PsiData &source, const PhiData &phi, 
-                     PsiData &totalSource)
-{
-  //#pragma omp parallel for
+  */
+  void calcTotalSource(const PsiData &source, const PhiData &phi, 
+		       PsiData &totalSource)
+  {
+    //#pragma omp parallel for
     for (UINT cell = 0; cell < g_nCells; ++cell) {
-    for (UINT angle = 0; angle < g_nAngles; ++angle) {
-    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
-    for (UINT group = 0; group < g_nGroups; ++group) {
-        totalSource(group, vertex, angle, cell) = 
-            source(group, vertex, angle, cell) + 
-            g_sigmaS[cell] / (4.0 * M_PI) *  phi(group, vertex, cell);
-    }}}}
-}
+      for (UINT angle = 0; angle < g_nAngles; ++angle) {
+	for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) {
+	  for (UINT group = 0; group < g_nGroups; ++group) {
+	    totalSource(group, vertex, angle, cell) = 
+	      source(group, vertex, angle, cell) + 
+	      g_sigmaS[cell] / (4.0 * M_PI) *  phi(group, vertex, cell);
+	  }}}}
+  }
 
+  void writePhi(std::string &filename, const PsiData &psi)
+  {
+    PhiData phi;
+    psiToPhi(phi, psi);
+    
+    int np(Comm::numRanks());
+    int pid(Comm::rank());
 
+    std::string phiFile(filename+".phi.txt");
+    std::ofstream outfile;
+
+    for (int i=0; i<np; ++i)
+      {
+	MPI_Barrier(MPI_COMM_WORLD);
+	
+        if (i == pid)
+	  {      
+	    if (pid == 0)
+	      outfile.open(phiFile,std::ios::out);
+	    else
+	      outfile.open(phiFile,std::ios::app);
+
+	    for (UINT group = 0; group < g_nGroups; ++group) 
+	      {
+		outfile << "[" << pid << "] group " << group << std::endl;
+		for (UINT cell = 0; cell < g_nCells; ++cell) 
+		  {
+		    double phi_avg = 0.0;
+		    for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex) 
+		      {
+			phi_avg += phi(group,vertex,cell);
+		      }
+		    outfile << "     " << g_tychoMesh->getLGCell(cell) << " " << 0.25*phi_avg << std::endl;
+		  }
+	      }
+	    outfile.close();
+	  }
+    
+      }; // end mpi rank waiting
+    
+  };
+  
 } // End namespace Util

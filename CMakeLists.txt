@@ -11,3 +11,8 @@ set(CMAKE_CXX_FLAGS "-O3 -fopenmp -Wall -Wextra -Wpedantic ")
 
 add_subdirectory(src)
 
+option(BUILD_UTILS "Build utility programs" ON)
+if (BUILD_UTILS)
+  add_subdirectory(util)
+endif()
+

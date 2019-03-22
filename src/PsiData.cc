@@ -81,8 +81,8 @@ void writePsiToFile(const std::string &filename,
 
 
     // Open file
-    Comm::openFileForWrite(filename, file);
-    
+    std::string psiFile(filename+".psi");
+    Comm::openFileForWrite(psiFile, file);
 
     // If rank 0, write header data
     if (Comm::rank() == 0) {
@@ -138,6 +138,7 @@ void writePhiToFile(const std::string &filename,
 
 
     // Open file
+    std::string phiFile(filename+".phi");
     Comm::openFileForWrite(filename, file);
     
 
