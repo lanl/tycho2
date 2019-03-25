@@ -7,8 +7,11 @@
 cmake -DCMAKE_INSTALL_PREFIX=/home/warsa/KOKKOS/build.power9 -DKOKKOS_ENABLE_CUDA=OFF -DKOKKOS_ENABLE_SERIAL=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ARCH="Power9" -KOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=OFF -DCMAKE_CXX_FLAGS="-O3 -g" ~/kokkos
 
 #---------------------------------------------------------------------------------------
-# Env variables
+# Env variables and modules (darwin)
 #---------------------------------------------------------------------------------------
+
+module unload trilinos/12.12.1-gcc-7.3.0-openmpi-3.1.2-netlib 
+module load cuda/9.2
 
 export OMP_NUM_THREADS=1
 export METIS_DIR=/usr/projects/draco/vendors/spack.power9-0.11.2/opt/spack/linux-rhel7-ppc64le/gcc-7.1.0/metis-5.1.0-mzschmzxwstgx62dicfs5zwzovrjknbk

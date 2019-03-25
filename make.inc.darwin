@@ -1,8 +1,0 @@
-# Settings for Darwin (LANL machine)
-
-# Assert level: 0 = no asserts, 1 = all asserts
-ASSERT_ON = 0
-
-# Compile command 
-MPICC = mpicxx -O3 -std=c++11 -fopenmp -Wall -Wextra -Wpedantic
-

@@ -8,4 +8,4 @@ export OMP_NUM_THREADS=1
 # Run one MPI rank
 
 ./util/PartitionMetis.x $1 ~/tycho2/util/cube-208.smesh temp.pmesh
-mpirun -n $1 ./src/sweep.x temp.pmesh input.kokkos
+mpirun -n $1 ./src/tycho2.x temp.pmesh input.kokkos
