@@ -4,7 +4,9 @@
 # NOTE: change ~/kokkos/bin/nvcc_wrapper host_compiler=mpicxx 
 # see https://github.com/kokkos/kokkos/wiki/Compiling for KOKKOS_ARCH
 #---------------------------------------------------------------------------------------
-cmake -DCMAKE_INSTALL_PREFIX=/home/warsa/KOKKOS/build.power9 -DKOKKOS_ENABLE_CUDA=OFF -DKOKKOS_ENABLE_SERIAL=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ARCH="Power9" -KOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=OFF -DCMAKE_CXX_FLAGS="-O3 -g" ~/kokkos
+
+cmake -DCMAKE_INSTALL_PREFIX=/home/warsa/KOKKOS/build.power9 -DKOKKOS_ENABLE_CUDA=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ARCH="Power9;Volta72" -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_OPENMP=ON -DKOKKOS_ENABLE_CUDA_LAMBDA=ON -DCMAKE_CXX_FLAGS="-O3 -g" ~/kokkos
+
 
 #---------------------------------------------------------------------------------------
 # Env variables and modules (darwin)
