@@ -59,26 +59,32 @@ endif()
 
 message("USE_KOKKOS ${USE_KOKKOS}")
 if (USE_KOKKOS)
-   ##list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-   SET(KOKKOS_DIR "$ENV{KOKKOS_ROOT}" CACHE LOCATION "where in the world is Kokkos Miranda?")
-
-   message(" ... looking for ${KOKKOS_DIR}")
-
-   find_path(
-   KOKKOS_INCLUDE_PATH
-   NAMES "include"
-   PATHS "${KOKKOS_DIR}"
-   NO_DEFAULT_PATH)
-
-   set(KOKKOS_INCLUDE_DIRS "${KOKKOS_INCLUDE_PATH}/include")
-
-   find_library(
-   KOKKOS_LIBRARIES
-   NAMES "libkokkos.a" "libkokkos.so"
-   PATHS "${KOKKOS_DIR}/lib"
-   NO_DEFAULT_PATH )
-
-   target_include_directories(tycho2.x PUBLIC "${KOKKOS_INCLUDE_DIRS}")
-   target_link_libraries(tycho2.x PUBLIC ${KOKKOS_LIBRARIES})
+#  target_include_directories(tycho2.x PUBLIC kokkos)
+  target_link_libraries(tycho2.x PUBLIC kokkos)
 endif()
+
+#message("USE_KOKKOS ${USE_KOKKOS}")
+#if (USE_KOKKOS)
+#   ##list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+#   SET(KOKKOS_DIR "$ENV{KOKKOS_ROOT}" CACHE LOCATION "where in the world is Kokkos Miranda?")
+#
+#   message(" ... looking for ${KOKKOS_DIR}")
+#
+#   find_path(
+#   KOKKOS_INCLUDE_PATH
+#   NAMES "include"
+#   PATHS "${KOKKOS_DIR}"
+#   NO_DEFAULT_PATH)
+#
+#   set(KOKKOS_INCLUDE_DIRS "${KOKKOS_INCLUDE_PATH}/include")
+#
+#   find_library(
+#   KOKKOS_LIBRARIES
+#   NAMES "libkokkos.a" "libkokkos.so"
+#   PATHS "${KOKKOS_DIR}/lib"
+#   NO_DEFAULT_PATH )
+#
+#   target_include_directories(tycho2.x PUBLIC "${KOKKOS_INCLUDE_DIRS}")
+#   target_link_libraries(tycho2.x PUBLIC ${KOKKOS_LIBRARIES})
+#endif()
 
