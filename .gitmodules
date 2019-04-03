@@ -1,0 +1,4 @@
+[submodule "dependencies/kokkos"]
+	path = dependencies/kokkos
+	url = https://github.com/kokkos/kokkos.git
+	branch = master
