@@ -12,7 +12,7 @@ export METIS_ROOT=/usr/projects/draco/vendors/spack.power9-0.11.2/opt/spack/linu
 # NEW cmake 
 #---------------------------------------------------------------------------------------
 
- cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DBUILD_UTILS=ON -DUSE_METIS=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ENABLE_CUDA=ON -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ARCH="Power9;Volta70" -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=ON ~/tycho2
+ cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DBUILD_UTILS=ON -DUSE_METIS=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ENABLE_CUDA=ON -DKOKKOS_ENABLE_OPENMP=ON -DKOKKOS_ARCH="Power9;Volta70" -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=ON ~/tycho2
 
 #---------------------------------------------------------------------------------------
 # Run on 2 procs
