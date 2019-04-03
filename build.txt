@@ -1,12 +1,4 @@
 
-#---------------------------------------------------------------------------------------
-# Make kokkos (power9 darwin, no GPU support from kokkos on this partition)
-# NOTE: change ~/kokkos/bin/nvcc_wrapper host_compiler=mpicxx 
-# see https://github.com/kokkos/kokkos/wiki/Compiling for KOKKOS_ARCH
-#---------------------------------------------------------------------------------------
-
-cmake -DCMAKE_INSTALL_PREFIX=/home/warsa/KOKKOS/build.power9 -DKOKKOS_ENABLE_CUDA=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ARCH="Power9;Volta72" -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_OPENMP=ON -DKOKKOS_ENABLE_CUDA_LAMBDA=ON -DCMAKE_CXX_FLAGS="-O3 -g" ~/kokkos
-
 
 #---------------------------------------------------------------------------------------
 # Env variables and modules (darwin)
@@ -14,74 +6,19 @@ cmake -DCMAKE_INSTALL_PREFIX=/home/warsa/KOKKOS/build.power9 -DKOKKOS_ENABLE_CUD
 
 module unload trilinos/12.12.1-gcc-7.3.0-openmpi-3.1.2-netlib 
 module load cuda/9.2
-
-export OMP_NUM_THREADS=1
-export METIS_DIR=/usr/projects/draco/vendors/spack.power9-0.11.2/opt/spack/linux-rhel7-ppc64le/gcc-7.1.0/metis-5.1.0-mzschmzxwstgx62dicfs5zwzovrjknbk
-export KOKKOS_ROOT=/home/warsa/KOKKOS/build.power9
-
-#---------------------------------------------------------------------------------------
-# Configure, build, run with 2 mpi ranks
-#---------------------------------------------------------------------------------------
-
-cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DUSE_MOAB:BOOL=OFF -DUSE_METIS:BOOL=ON -DMETIS_DIR=${METIS_DIR} -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper ~/tycho2
-./run.sh 2
+export METIS_ROOT=/usr/projects/draco/vendors/spack.power9-0.11.2/opt/spack/linux-rhel7-ppc64le/gcc-7.1.0/metis-5.1.0-mzschmzxwstgx62dicfs5zwzovrjknbk
 
 #---------------------------------------------------------------------------------------
 # NEW cmake 
 #---------------------------------------------------------------------------------------
 
-cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ENABLE_CUDA=ON -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ARCH="Power9;Volta70" -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=ON ~/tycho2
+ cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DBUILD_UTILS=ON -DUSE_METIS=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ENABLE_CUDA=ON -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ARCH="Power9;Volta70" -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=ON ~/tycho2
 
 #---------------------------------------------------------------------------------------
-# in case all else fails here's a Makefile
+# Run on 2 procs
 #---------------------------------------------------------------------------------------
-#Makefile begin
 
-# Kokkos stuff
-KOKKOS_PATH = /home/warsa/kokkos
-KOKKOS_INSTALL_PATH = /home/warsa/KOKKOS/build
-
-# THIS SUCKS: have to change nvcc_wrapper host_compiler to mpicxx 
-CXX = /home/warsa/kokkos/bin/nvcc_wrapper
-CXXFLAGS = -O3 -Wall -Wextra -Wpedantic -DASSERT_ON=0 -Isrc -I$(KOKKOS_INSTALL_PATH)/include
-
-BUILD_DIR = ./obj
-
-default: sweep.x
-	echo "Start Build"
-
-KOKKOS_DEVICES = "Cuda,OpenMP"
-KOKKOS_ARCH = "Power9"
-KOKKOS_CUDA_OPTIONS += "enable_lambda"
-
-DEPFLAGS = -M
-
-# List of sources, header files, and object files
-SOURCE = $(wildcard src/*.cc)
-OBJS = $(patsubst src%, $(BUILD_DIR)%, $(SOURCE)) 
-OBJECTS = $(OBJS:%.cc=%.o)
-HEADERS = $(wildcard src/*.hh)
-
-include $(KOKKOS_INSTALL_PATH)/Makefile.kokkos
-
-# Link object files
-sweep.x: $(OBJECTS) $(KOKKOS_LINK_DEPENDS)
-	@echo Linking $@
-	$(CXX) $(KOKKOS_LDFLAGS) $(OBJECTS) -o sweep.x $(LIBS) -L$(KOKKOS_INSTALL_PATH)/lib $(KOKKOS_LIBS) -ldl
-
-# Make object files
-$(BUILD_DIR)/%.o: src/%.cc $(HEADERS) $(KOKKOS_CPP_DEPENDS)
-	@echo Making $@
-#	@echo $(KOKKOS_CPP_DEPENDS)
-	$(CXX) $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS) $(CXXFLAGS) -c $< -o $@
-
-
-# Delete object files
-.PHONY: clean
-clean:
-	@echo Delete object files
-	rm -f $(BUILD_DIR)/*.o sweep.x *.o *.a *.h *.tmp
-
-#Makefile end
-#---------------------------------------------------------------------------------------
+cp ~/tycho2/run.sh .
+cp ~/tycho2/input.kokkos .
+./run.sh 2
 
