@@ -59,8 +59,8 @@ endif()
 
 message("USE_KOKKOS ${USE_KOKKOS}")
 if (USE_KOKKOS)
-#  target_include_directories(tycho2.x PUBLIC kokkos)
-  target_link_libraries(tycho2.x PUBLIC kokkos)
+  include_directories(${Kokkos_INCLUDE_DIRS_RET})
+  target_link_libraries(tycho2.x kokkos)
 endif()
 
 #message("USE_KOKKOS ${USE_KOKKOS}")

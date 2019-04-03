@@ -32,8 +32,9 @@ target_compile_definitions(RefineSerialMesh.x PUBLIC "-DPARALLEL_MESH_READ_SERIA
 
 option(USE_METIS "Use METIS" OFF)
 if (USE_METIS)
-  message("here ${METIS_DIR}")
-  set(METIS_DIR "" CACHE PATH "METIS install directory")
+
+  set(METIS_DIR $ENV{METIS_ROOT} CACHE PATH "METIS install directory" FORCE)
+
   find_library(METIS_LIBRARY NAMES metis PATHS "${METIS_DIR}/lib" NO_DEFAULT_PATH)
   set(METIS_INC "${METIS_DIR}/include")
 

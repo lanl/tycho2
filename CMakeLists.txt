@@ -14,6 +14,7 @@ add_subdirectory(src)
 
 option(BUILD_UTILS "Build utility programs" ON)
 if (BUILD_UTILS)
+  message("BUILD_UTILS ${BUILD_UTILS}") 
   add_subdirectory(util)
 endif()
 

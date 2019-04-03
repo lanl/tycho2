@@ -27,6 +27,12 @@ cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DUSE_MOAB:BOOL=OFF -DUSE_METIS:BOOL=ON -D
 ./run.sh 2
 
 #---------------------------------------------------------------------------------------
+# NEW cmake 
+#---------------------------------------------------------------------------------------
+
+cmake -DUSE_PETSC=OFF -DUSE_KOKKOS=ON -DCMAKE_CXX_COMPILER=/home/warsa/kokkos/bin/nvcc_wrapper -DKOKKOS_ENABLE_CUDA=ON -DKOKKOS_ENABLE_SERIAL=ON -DKOKKOS_ARCH="Power9;Volta70" -DKOKKOS_ENABLE_DEPRECATED_CODE=OFF -DKOKKOS_ENABLE_CUDA_LAMBDA=ON ~/tycho2
+
+#---------------------------------------------------------------------------------------
 # in case all else fails here's a Makefile
 #---------------------------------------------------------------------------------------
 #Makefile begin
