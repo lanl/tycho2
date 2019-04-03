@@ -8,6 +8,13 @@ module unload trilinos/12.12.1-gcc-7.3.0-openmpi-3.1.2-netlib
 module load cuda/9.2
 export METIS_ROOT=/usr/projects/draco/vendors/spack.power9-0.11.2/opt/spack/linux-rhel7-ppc64le/gcc-7.1.0/metis-5.1.0-mzschmzxwstgx62dicfs5zwzovrjknbk
 
+# these make openmpi play nicely
+
+export OMP_PROC_BIND=true
+export OMPI_MCA_btl=^openib
+export UCX_NET_DEVICES=mlx5_0:1
+export UCX_WARN_UNUSED_ENV_VARS=n
+
 #---------------------------------------------------------------------------------------
 # NEW cmake 
 #---------------------------------------------------------------------------------------
