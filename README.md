@@ -59,3 +59,4 @@ LA-CC-16-049
 - David Dixon (LANL, contributor)
 - Dan Ibanez (SNL, contributor, Kokkos expert)
 - Jae Chang (LANL, honorable team leader)
+- Jeff Haack (LANL, contributor)
