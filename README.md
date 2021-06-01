@@ -14,10 +14,10 @@ to take up where he left off. Recent work by Dan Ibanez of Sandia National Labor
 gratefully acknowledged.
 
 Tycho2 is based on a code called Tycho, written by Shawn Pautz (Sandia National Laboratory) sometime around the year 2000,
-when he was at Los Alamos National Laboratory. Alhough Tycho wasn't a mini-app (that term hadn't been invented yet), and 
-didn't borrow any code base from the original implementation, Shawn was using Tycho as a prototyping code to test ideas for
-parallel, unstructrued mesh, SN sweeps. Remember, those were early days. We named our mini-app Tycho2 in an homage to Shawn's 
-original code (and because Tycho2 works only on tets, like Tycho).
+when he was at Los Alamos National Laboratory. Alhough Tycho wasn't a mini-app (that term hadn't been invented yet), 
+Shawn was using Tycho to explore ideas for parallel, unstructrued mesh, SN sweeps. Remember, those were early days. 
+Although we didn't borrow any code base from the original implementation, we named our mini-app Tycho2 in an homage to 
+Shawn's original code (and because Tycho2 works only on tets, like Tycho).
 
 *Note that, to the best of our knowledge, while UMT is targeted to unstructred meshes, the meshes are actually logially 
 orthgonal, without the additional complications and computational overhead associated with SN sweeps on meshes with 
