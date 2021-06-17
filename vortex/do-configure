@@ -1,0 +1,17 @@
+#!/bin/sh
+
+export METIS_ROOT=/ascldap/users/gahanse/hpc_home/install/vortex/metis-5.1.0
+
+cmake \
+    -DUSE_PETSC=OFF \
+    -DUSE_KOKKOS=ON \
+    -DBUILD_UTILS=ON \
+    -DUSE_METIS=ON \
+    -DCMAKE_CXX_COMPILER=/ascldap/users/gahanse/Codes/Sceptre/tycho2/dependencies/kokkos/bin/nvcc_wrapper \
+    -DKokkos_ENABLE_CUDA=ON \
+    -DKokkos_ENABLE_OPENMP=ON \
+    -DKokkos_ENABLE_SERIAL=OFF \
+    -DKokkos_ARCH_POWER9=ON \
+    -DKokkos_ARCH_VOLTA70=ON \
+    -DKokkos_ENABLE_CUDA_LAMBDA=ON \
+$1

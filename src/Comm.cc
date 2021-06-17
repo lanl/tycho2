@@ -37,6 +37,8 @@ OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include <cstdio>
+
 #include "Comm.hh"
 #include "Assert.hh"
 #include "Global.hh"
@@ -276,7 +278,10 @@ void openFileForRead(const std::string &filename, Comm::File &file)
     MPI_File *mpiFile = (MPI_File*)file.c_file;
     int result = MPI_File_open(MPI_COMM_WORLD, filename1, MPI_MODE_RDONLY, 
                                MPI_INFO_NULL, mpiFile);
-    Insist(result == MPI_SUCCESS, "Comm::openFileForRead MPI error.\n");
+// The below check does not work here. A successful of "MPI_File_open"
+// returns zero for a status code (i.e. result == 0)
+//    Insist(result == MPI_SUCCESS, "Comm::openFileForRead MPI error.\n");
+    Insist(result == 0, "Comm::openFileForRead MPI error.\n");
 }
 
 
