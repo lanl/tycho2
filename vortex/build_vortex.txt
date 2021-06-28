@@ -3,20 +3,21 @@ tycho2 build and test notes for the "vortex" machine at SNL.
 Date: 06/17/2021
 By: Glen Hansen "gahanse@sandia.gov"
 
+1. Bsub to a couple of compute nodes
 
-1. Edit ./do-configure file and point to the correct Kokkos "nvcc_wrapper" and "metis-5.1.0" installation. 
+   lalloc 2
 
-   export VTX_DIR=`pwd`
+2. Edit ./do-configure file and point to the correct Kokkos "nvcc_wrapper" and "metis-5.1.0" installation.
 
-2. Need to edit the "nvcc_wrapper" for this machine and CUDA 11. Make the following changes:
+3. Need to edit the "nvcc_wrapper" for this machine and CUDA 11. Make the following changes:
 
-   Line 12: change default_arch="sm_35" to
+   Line 15: change default_arch="sm_35" to
    default_arch="sm_70"
 
-   Line 530: change nvcc_command="$nvcc_command $compile_arg $output_arg" to
+   Line 416: change nvcc_command="$nvcc_command $compile_arg $output_arg" to
    nvcc_command="$nvcc_command -Xcompiler -mno-float128 -expt-extended-lambda $compile_arg $output_arg" 
 
-3. Set the modules at login (need to set in a dot file so "lalloc" will pick these up on each node)
+4. Set the modules at login (need to set in a dot file so "lalloc" will pick these up on each node)
 
     module load cuda/11.2.0
     module load gcc/8.3.1
@@ -24,24 +25,29 @@ By: Glen Hansen "gahanse@sandia.gov"
     module load git/2.29.1
     module load lapack/3.9.0-gcc-7.3.1
 
-4. Make a "build" directory somewhere
+5. Make a "build" directory somewhere
 
    mkdir /vscratch1/some_user/build
    cd /vscratch1/some_user/build
 
-5. Bsub to a couple of compute nodes
+6. Export vortex directory location as an environment variable
 
-   lalloc 2
+For the export command below, be sure to be in the tycho2/vortex directory so that the pwd command gives the correct directory:
 
-6. Configure
+   export VTX_DIR=`pwd`
+
+7. Configure
 
    $VTX_DIR/do-configure $VTX_DIR/..
 
-7. Make it
+8. Make it
 
    make -j16
 
-8. Run small test on 2 nodes
+9. Run small test on 2 nodes while in the build directory
 
    cp $VTX_DIR/vortex.sh .
+
    ./vortex.sh $VTX_DIR/.. 2
+
+   Results are in temp.pmesh file.
