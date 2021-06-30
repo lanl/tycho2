@@ -1,6 +1,6 @@
 tycho2 build and test notes for the "vortex" machine at SNL.
 
-Date: 06/17/2021
+Date: 06/30/2021
 By: Glen Hansen "gahanse@sandia.gov"
 
 1. Bsub to a couple of compute nodes
@@ -25,6 +25,14 @@ By: Glen Hansen "gahanse@sandia.gov"
     module load git/2.29.1
     module load lapack/3.9.0-gcc-7.3.1
 
+   Note: The "backend" nodes on vortex apparently "automagically" prefix your PATH with "/usr/local/cuda/bin", which adds 
+   pre-CUDA 11 binaries (specifically a pre-CUDA 11 version of nvcc) that breaks builds that rely on CUDA 11 capabilies. 
+   "tycho2" does not - but if you need a CUDA >= 11 environment you need to strip this from your PATH and LD_LIBRARY_PATH, 
+   possibly using (in .bashrc):
+
+   export PATH=${PATH/"/usr/local/cuda/bin:"/}
+   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH/"/usr/local/cuda/lib64:"/}
+
 5. Make a "build" directory somewhere
 
    mkdir /vscratch1/some_user/build
@@ -32,7 +40,8 @@ By: Glen Hansen "gahanse@sandia.gov"
 
 6. Export vortex directory location as an environment variable
 
-For the export command below, be sure to be in the tycho2/vortex directory so that the pwd command gives the correct directory:
+   For the export command below, be sure to be in the tycho2/vortex directory so that the `pwd` command 
+   gives the correct directory:
 
    export VTX_DIR=`pwd`
 
