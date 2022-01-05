@@ -115,7 +115,6 @@ public:
     UINT getCellMaterial(const UINT cell) const
         { return c_cellMaterial(cell); }
     
-    
     // Arbitrary value to mark any face that lies on a boundary.
     static const UINT BOUNDARY_FACE = UINT64_MAX;
     static const UINT NOT_BOUNDARY_FACE = UINT64_MAX;

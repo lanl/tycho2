@@ -47,7 +47,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Assert.hh"
 #include "Timer.hh"
 #include "Sweeper.hh"
-#include <Kokkos_Core.hpp>
 
 using namespace std;
 
@@ -71,7 +70,7 @@ void readInput(const string &inputFileName,
     // Reader only reads int and not UINT type
     int isnOrder, iterMax, nGroups;
     
-    
+ 
     // Get data
     kvr.getInt("snOrder", isnOrder);
     kvr.getInt("iterMax", iterMax);
@@ -85,13 +84,12 @@ void readInput(const string &inputFileName,
     snOrder = isnOrder;
     g_iterMax = iterMax;
     g_nGroups = nGroups;
-
+  printf("g_nGroups: %lu \n", g_nGroups);
     Insist(g_nGroups <= g_nMaxGroups, "Too many groups.");
 
     if (Comm::rank() == 0)
         kvr.print();
 }
-
 
 /*
     main
@@ -108,8 +106,6 @@ int main(int argc, char *argv[])
     
     // Init parallel communication
     Comm::init();
-    Kokkos::initialize(argc, argv);
-
 
     // Input data.
     if (argc < 3) {
@@ -186,7 +182,6 @@ int main(int argc, char *argv[])
       }
     
     // Cleanup
-    Kokkos::finalize();
     Comm::finalize();
     return 0;
 }

@@ -54,9 +54,8 @@ using namespace std;
 /*
     calcSource
 */
-static
-KOKKOS_INLINE_FUNCTION
-void calcSourceKokkos(
+
+void calcSourceNVgraph(
     const double volume, 
     const double localSource[g_nVrtxPerCell][g_nMaxGroups],
     double cellSource[g_nVrtxPerCell],
@@ -73,13 +72,11 @@ void calcSourceKokkos(
     cellSource[3] = volume / 20.0 * (q0 + q1 + q2 + 2.0 * q3);
 }
 
-
 /*
     calcVolumeIntegrals
 */
-static
-KOKKOS_INLINE_FUNCTION
-void calcVolumeIntegralsKokkos(
+
+void calcVolumeIntegralsNVgraph(
     const double volume, 
     const double area[g_nFacePerCell],
     const double sigmaTotal,
@@ -105,14 +102,11 @@ void calcVolumeIntegralsKokkos(
     matrix[3][2] = area[3] / 12.0 + 1.0 * sigmaTotal * volume / 20.0;
     matrix[3][3] = area[3] / 12.0 + 2.0 * sigmaTotal * volume / 20.0;
 }
-
-
 /*
     calcOutgoingFlux
 */
-static
-KOKKOS_INLINE_FUNCTION
-void calcOutgoingFluxKokkos(
+
+void calcOutgoingFluxNVgraph(
     const double area[g_nFacePerCell],
     double matrix[g_nVrtxPerCell][g_nVrtxPerCell])
 {
@@ -172,20 +166,17 @@ void calcOutgoingFluxKokkos(
         matrix[2][2] += 2.0 * area[3] / 12.0;
     }
 }
-
-
 /*
     calcIncomingFlux
 */
-static
-KOKKOS_INLINE_FUNCTION
-void calcIncomingFluxKokkos(
+
+void calcIncomingFluxNVgraph(
     const UINT cell, 
     const double area[g_nFacePerCell],
     const double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
     double cellSource[g_nVrtxPerCell],
     const UINT group,
-    device_mat3_t<UINT> const &cell_to_face_vertex)
+    Mat3<UINT> const &cell_to_face_vertex)
 {
     UINT faceVertex0, faceVertex1, faceVertex2, faceVertex3;
     double psiNeighbor0, psiNeighbor1, psiNeighbor2, psiNeighbor3;
@@ -283,9 +274,8 @@ void calcIncomingFluxKokkos(
 /*
     gaussElim4
 */
-static 
-KOKKOS_INLINE_FUNCTION
-void gaussElim4Kokkos(double A[4][4], double b[4])
+
+void gaussElim4NVgraph(double A[4][4], double b[4])
 {
     double tmp;
     
@@ -358,23 +348,21 @@ void gaussElim4Kokkos(double A[4][4], double b[4])
     b[0] = b[0] - A[0][3]*b[3] - A[0][2]*b[2] - A[0][1]*b[1]; 
 } 
 
-
 /*
     solve
 */
-static 
-KOKKOS_INLINE_FUNCTION
-void solveKokkos(
+
+void solveNVgraph(
     const UINT cell, 
     const UINT angle, 
     const double sigmaTotal,
     const double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
     const double localSource[g_nVrtxPerCell][g_nMaxGroups],
     double localPsi[g_nVrtxPerCell][g_nMaxGroups],
-    device_mat1_t<double> const &cell_volume,
-    device_mat2_t<double> const &face_area,
-    device_mat3_t<double> const &omega_dot_n,
-    device_mat3_t<UINT> const &cell_to_face_vertex,
+    Mat1<double> const &cell_volume,
+    Mat2<double> const &face_area,
+    Mat3<double> const &omega_dot_n,
+    Mat3<UINT> const &cell_to_face_vertex,
     UINT nGroups)
 {
     double volume, area[g_nFacePerCell];
@@ -401,20 +389,20 @@ void solveKokkos(
         double solution[g_nVrtxPerCell];
     
         // form local source term
-        calcSourceKokkos(volume, localSource, cellSource, group);
+        calcSourceNVgraph(volume, localSource, cellSource, group);
         
         // form streaming-plus-collision portion of matrix
-        calcVolumeIntegralsKokkos(volume, area, sigmaTotal, matrix);
+        calcVolumeIntegralsNVgraph(volume, area, sigmaTotal, matrix);
         
         // form dependencies on incoming (outgoing) faces
-        calcOutgoingFluxKokkos(area, matrix);
-        calcIncomingFluxKokkos(cell, area, localPsiBound, cellSource, group,
+        calcOutgoingFluxNVgraph(area, matrix);
+        calcIncomingFluxNVgraph(cell, area, localPsiBound, cellSource, group,
                                cell_to_face_vertex);
         
         // solve matrix
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
             solution[vertex] = cellSource[vertex];
-        gaussElim4Kokkos(matrix, solution);
+        gaussElim4NVgraph(matrix, solution);
         
         // put local solution onto global solution
         for (UINT vertex = 0; vertex < g_nVrtxPerCell; ++vertex)
@@ -427,19 +415,18 @@ void solveKokkos(
     
     Put data from neighboring cells into localPsiBound(fvrtx, face, group).
 */
-static 
-KOKKOS_INLINE_FUNCTION
-void populateLocalPsiBoundKokkos(
+
+void populateLocalPsiBoundNVgraph(
     const UINT angle, 
     const UINT cell, 
-    device_psi_data_t const &psi, 
-    device_psi_data_t const &psiBound, 
+    PsiData* psi, 
+    const PsiBoundData* psiBound, 
     double localPsiBound[g_nVrtxPerFace][g_nFacePerCell][g_nMaxGroups],
-    device_mat3_t<double> const& omega_dot_n,
-    device_mat2_t<UINT> const& adj_cell,
-    device_mat3_t<UINT> const& neighbor_vertex,
-    device_mat2_t<UINT> const& adj_proc,
-    device_mat2_t<UINT> const& sides,
+    Mat3<double> const& omega_dot_n,
+    Mat2<UINT> const& adj_cell,
+    Mat3<UINT> const& neighbor_vertex,
+    Mat2<UINT> const& adj_proc,
+    Mat2<UINT> const& sides,
     UINT nGroups)
 {
     for (UINT i = 0; i < g_nVrtxPerFace; i++) {
@@ -449,7 +436,6 @@ void populateLocalPsiBoundKokkos(
     }}}
     
     // Populate if incoming flux
-    #pragma omp simd
     for (UINT group = 0; group < nGroups; group++) {
     for (UINT face = 0; face < g_nFacePerCell; face++) {
         if (omega_dot_n(angle, cell, face) <= 0) {
@@ -460,7 +446,7 @@ void populateLocalPsiBoundKokkos(
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
                     UINT neighborVrtx = neighbor_vertex(cell, face, fvrtx);
                     localPsiBound[fvrtx][face][group] = 
-                        psi(group, neighborVrtx, angle, neighborCell);
+                        psi->operator()(group, neighborVrtx, angle, neighborCell);
                 }
             }
             
@@ -469,13 +455,12 @@ void populateLocalPsiBoundKokkos(
                 for (UINT fvrtx = 0; fvrtx < g_nVrtxPerFace; fvrtx++) {
                     UINT side = sides(cell, face);
                     localPsiBound[fvrtx][face][group] = 
-                        psiBound(group, fvrtx, angle, side);
+                       psiBound->operator()(group, fvrtx, angle, side);
                 }
             }
         }
     }}
 }
-
 
 // Global functions
 namespace Transport
@@ -486,23 +471,23 @@ namespace Transport
     
     Does a transport update for the given cell/angle pair.
 */
-KOKKOS_INLINE_FUNCTION
-void updateKokkos(
+
+void updateNVgraph(
     const UINT cell, 
     const UINT angle,
-    device_psi_data_t const &device_source, 
-    device_psi_data_t const &device_psi_bound, 
-    device_psi_data_t device_psi,       // WHY NO REFERENCE HERE???
+    const PsiData* d_source, 
+    const PsiBoundData* d_psi_bound, 
+    PsiData* d_psi,
     UINT nGroups,
-    device_mat3_t<double> const& device_omega_dot_n,
-    device_mat2_t<UINT> const& device_adj_cell,
-    device_mat3_t<UINT> const& device_neighbor_vertex,
-    device_mat2_t<UINT> const& device_adj_proc,
-    device_mat2_t<UINT> const& device_side,
-    device_mat1_t<double> const &device_cell_volume,
-    device_mat1_t<double> const &device_sigma_t,
-    device_mat2_t<double> const &device_face_area,
-    device_mat3_t<UINT> const &device_cell_to_face_vertex)
+    Mat3<double> const& d_omega_dot_n,
+    Mat2<UINT> const& d_adj_cell,
+    Mat3<UINT> const& d_neighbor_vertex,
+    Mat2<UINT> const& d_adj_proc,
+    Mat2<UINT> const& d_side,
+    Mat1<double> const &d_cell_volume,
+    std::vector<double> const &d_sigma_t,
+    Mat2<double> const &d_face_area,
+    Mat3<UINT> const &d_cell_to_face_vertex)
 {
     double localSource[g_nVrtxPerCell][g_nMaxGroups];
     double localPsi[g_nVrtxPerCell][g_nMaxGroups];
@@ -512,31 +497,29 @@ void updateKokkos(
     // Populate localSource
     for (UINT group = 0; group < nGroups; group++) {
     for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        localSource[vrtx][group] = device_source(group, vrtx, angle, cell);
+        localSource[vrtx][group] = d_source->operator()(group, vrtx, angle, cell);
     }}
     
     
     // Populate localPsiBound
-    populateLocalPsiBoundKokkos(angle, cell, device_psi, device_psi_bound, 
-                                localPsiBound, device_omega_dot_n,
-                                device_adj_cell, device_neighbor_vertex, 
-                                device_adj_proc, device_side, nGroups);
+    populateLocalPsiBoundNVgraph(angle, cell, d_psi, d_psi_bound, 
+                                localPsiBound, d_omega_dot_n,
+                                d_adj_cell, d_neighbor_vertex, 
+                                d_adj_proc, d_side, nGroups);
     
     
     // Transport solve
-    solveKokkos(cell, angle, device_sigma_t(cell), localPsiBound, localSource, 
-          localPsi, device_cell_volume, device_face_area, device_omega_dot_n,
-          device_cell_to_face_vertex, nGroups);
+    solveNVgraph(cell, angle, d_sigma_t[cell], localPsiBound, localSource, 
+          localPsi, d_cell_volume, d_face_area, d_omega_dot_n,
+          d_cell_to_face_vertex, nGroups);
     
     
     // localPsi -> psi
     for (UINT group = 0; group < nGroups; group++) {
     for (UINT vrtx = 0; vrtx < g_nVrtxPerCell; vrtx++) {
-        device_psi(group, vrtx, angle, cell) = localPsi[vrtx][group];
+        d_psi->operator()(group, vrtx, angle, cell) = localPsi[vrtx][group];
     }}
 }
-
-
 
 } // End namespace Transport
 

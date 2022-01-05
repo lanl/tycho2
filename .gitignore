@@ -14,3 +14,5 @@ make.inc
 *.visit
 KokkosCore_config.*
 *.a
+/build
+/build_*

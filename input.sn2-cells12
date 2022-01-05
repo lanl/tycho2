@@ -1,10 +1,12 @@
 
-snOrder         8
+#snOrder         8
+snOrder         2
 iterMax         40
 errMax          1e-10
-nGroups         2
+#nGroups         2
+nGroups         3
 sigmaT          10.0
 sigmaS          5.0
 OutputFile      true
-OutputFilename  out.psi
+OutputFilename  test
 

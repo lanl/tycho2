@@ -1,6 +1,6 @@
 
 option(USE_PETSC "Use PETSc" OFF)
-option(USE_KOKKOS "Use Kokkos" ON)
+option(USE_NVGRAPH "Use nvGraph" ON)
 option(ASSERT_ON "Turn on asserts" ON)
 
 function(bool_to_int OUT IN)
@@ -37,6 +37,7 @@ target_compile_definitions(tycho2.x
 target_include_directories(tycho2.x PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 
 target_include_directories(tycho2.x PUBLIC ${MPI_INCLUDE_PATH})
+
 target_link_libraries(tycho2.x PUBLIC ${MPI_LIBRARIES})
 
 if(MPI_COMPILE_FLAGS)
@@ -57,36 +58,14 @@ if (USE_PETSC)
   target_link_libraries(tycho2.x PUBLIC "${PETSC_LIBRARY}")
 endif()
 
-message("USE_KOKKOS ${USE_KOKKOS}")
-if (USE_KOKKOS)
-  include_directories(${Kokkos_INCLUDE_DIRS_RET})
-  include_directories(${CMAKE_SOURCE_DIR}/dependencies/kokkos/core/src)
-  include_directories(${CMAKE_BINARY_DIR}/dependencies/kokkos)
-  target_link_libraries(tycho2.x PUBLIC kokkos)
+message("USE_NVGRAPH ${USE_NVGRAPH}")
+if (USE_NVGRAPH)
+  string(REPLACE ":" ";" CMAKE_PREFIX_PATH "$ENV{CMAKE_PREFIX_PATH}" )
+  list(APPEND CMAKE_PREFIX_PATH "/usr/tce/packages/cuda/cuda-10.1.243/lib64")
+  list(APPEND CMAKE_PREFIX_PATH "/usr/tce/packages/cuda/cuda-10.1.243/include")
+  find_library(NVGLIB nvgraph)
+  target_link_libraries(tycho2.x PUBLIC "${NVGLIB}" )
+  find_path(NVGINC nvgraph.h)
+  target_include_directories(tycho2.x PUBLIC "${NVGINC}" )
 endif()
-
-#message("USE_KOKKOS ${USE_KOKKOS}")
-#if (USE_KOKKOS)
-#   ##list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-#   SET(KOKKOS_DIR "$ENV{KOKKOS_ROOT}" CACHE LOCATION "where in the world is Kokkos Miranda?")
-#
-#   message(" ... looking for ${KOKKOS_DIR}")
-#
-#   find_path(
-#   KOKKOS_INCLUDE_PATH
-#   NAMES "include"
-#   PATHS "${KOKKOS_DIR}"
-#   NO_DEFAULT_PATH)
-#
-#   set(KOKKOS_INCLUDE_DIRS "${KOKKOS_INCLUDE_PATH}/include")
-#
-#   find_library(
-#   KOKKOS_LIBRARIES
-#   NAMES "libkokkos.a" "libkokkos.so"
-#   PATHS "${KOKKOS_DIR}/lib"
-#   NO_DEFAULT_PATH )
-#
-#   target_include_directories(tycho2.x PUBLIC "${KOKKOS_INCLUDE_DIRS}")
-#   target_link_libraries(tycho2.x PUBLIC ${KOKKOS_LIBRARIES})
-#endif()
 

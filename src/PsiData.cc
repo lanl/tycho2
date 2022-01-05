@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Comm.hh"
 #include "Mat.hh"
 #include <string.h>
-
+#include <stdio.h>
 
 /*
     writePsiToFile
@@ -63,6 +63,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 void writePsiToFile(const std::string &filename,
                     const PsiData &psi)
 {
+  FILE *ofp;
+
+  ofp = fopen(filename.c_str(),"w");
+
+  for (size_t cell = 0; cell < g_nCells; cell++) {
+    for (UINT a = 0; a < g_nAngles; a++) {
+      for (UINT v = 0; v < g_nVrtxPerCell; v++) {
+        for (UINT g = 0; g < g_nGroups; g++) {
+            fprintf(ofp,"psi(%lu, %lu, %lu, %d): %4f \n", psi(g,v,a,cell));    
+        }}}}
+  fclose(ofp); 
+
+#if 0
     Comm::File file;
     char outputName[32] = {
         'T', 'y', 'c', 'h', 'o', ' ', '2', ' ', 'P', 's', 'i', ' ', 
@@ -112,6 +125,7 @@ void writePsiToFile(const std::string &filename,
 
     // Close file
     Comm::closeFile(file);
+#endif
 }
 
 
@@ -120,6 +134,18 @@ void writePsiToFile(const std::string &filename,
 void writePhiToFile(const std::string &filename,
                     const PhiData &phi)
 {
+  FILE *ofp;
+  ofp = fopen(filename.c_str(),"w");
+
+  for (size_t cell = 0; cell < g_nCells; cell++) {
+      for (UINT v = 0; v < g_nVrtxPerCell; v++) {
+        for (UINT g = 0; g < g_nGroups; g++) {
+            fprintf(ofp,"phi(%lu, %lu, %d): %4f \n", phi(g,v,cell));    
+        }}}
+  fclose(ofp); 
+
+
+#if 0
     Comm::File file;
     char outputName[32] = {
         'T', 'y', 'c', 'h', 'o', ' ', '2', ' ', 'P', 'h', 'i', ' ', 
@@ -169,4 +195,5 @@ void writePhiToFile(const std::string &filename,
 
     // Close file
     Comm::closeFile(file);
+#endif
 }

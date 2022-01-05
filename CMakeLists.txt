@@ -7,7 +7,8 @@ project( TYCHO2 )
 find_package(MPI REQUIRED)
 
 set_property(GLOBAL APPEND PROPERTY CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "-O3 -fopenmp -Wall -Wextra -Wpedantic ")
+set(CMAKE_CXX_FLAGS "-O3 -fopenmp -Wall -Wextra -Wpedantic")
+#set(CMAKE_CXX_FLAGS "-O0 -g -fopenmp -Wall -Wextra -Wpedantic")
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/kokkos)
 add_subdirectory(src)

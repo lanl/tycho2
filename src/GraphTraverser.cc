@@ -1,3 +1,4 @@
+
 /*
 Copyright (c) 2016, Los Alamos National Security, LLC
 All rights reserved.
@@ -45,121 +46,55 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Timer.hh"
 #include "Transport.hh"
 #include "Transport.cc.hh"
-#include <Kokkos_Core.hpp>
-
+#include <nvgraph.h>
+#include <algorithm>
 
 /*
     GraphTraverser
 */
 GraphTraverser::GraphTraverser()
 {
-    // Put constant data on GPU
-    auto host_omega_dot_n = host_mat3_t<double>(
-        g_tychoMesh->c_omegaDotN.data(),
-        g_nAngles,
-        g_nCells,
-        g_nFacePerCell);
-    auto host_adj_cell = host_mat2_t<UINT>(
-        g_tychoMesh->c_adjCell.data(),
-        g_nCells,
-        g_nFacePerCell);
-    auto host_neighbor_vertex = host_mat3_t<UINT>(
-        g_tychoMesh->c_neighborVrtx.data(),
-        g_nCells,
-        g_nFacePerCell,
-        g_nVrtxPerFace);
-    auto host_adj_proc = host_mat2_t<UINT>(
-        g_tychoMesh->c_adjProc.data(),
-        g_nCells,
-        g_nFacePerCell);
-    auto host_side = host_mat2_t<UINT>(
-        g_tychoMesh->c_side.data(),
-        g_nCells,
-        g_nFacePerCell);
-    auto host_sigma_t = host_mat1_t<double>(
-        g_sigmaT.data(),
-        g_sigmaT.size());
-    auto host_cell_volume = host_mat1_t<double>(
-        g_tychoMesh->c_cellVolume.data(),
-        g_nCells);
-    auto host_face_area = host_mat2_t<double>(
-        g_tychoMesh->c_faceArea.data(),
-        g_nCells,
-        g_nFacePerCell);
-    auto host_cell_to_face_vertex = host_mat3_t<UINT>(
-        g_tychoMesh->c_cellToFaceVrtx.data(),
-        g_nCells,
-        g_nFacePerCell,
-        g_nVrtxPerCell);
-
-    c_device_omega_dot_n = Kokkos::create_mirror_view_and_copy(
-        device(), host_omega_dot_n);
-    c_device_adj_cell = Kokkos::create_mirror_view_and_copy(
-        device(), host_adj_cell);
-    c_device_neighbor_vertex = Kokkos::create_mirror_view_and_copy(
-        device(), host_neighbor_vertex);
-    c_device_adj_proc = Kokkos::create_mirror_view_and_copy(
-        device(), host_adj_proc);
-    c_device_side = Kokkos::create_mirror_view_and_copy(
-        device(), host_side);
-    c_device_sigma_t = Kokkos::create_mirror_view_and_copy(
-        device(), host_sigma_t);
-    c_device_cell_volume = Kokkos::create_mirror_view_and_copy(
-        device(), host_cell_volume);
-    c_device_face_area = Kokkos::create_mirror_view_and_copy(
-        device(), host_face_area);
-    c_device_cell_to_face_vertex = Kokkos::create_mirror_view_and_copy(
-        device(), host_cell_to_face_vertex);
-
-    // Allocate space on GPU
-    // NOT SAFE?
-    c_device_source = device_psi_data_t(
-        "source",
-        g_nGroups,
-        g_nVrtxPerCell,
-        g_nAngles,
-        g_nCells);
-    c_device_psi_bound = device_psi_data_t(
-        "psi_bound",
-        g_nGroups,
-        g_nVrtxPerFace,
-        g_nAngles,
-        g_tychoMesh->getNSides());
-    c_device_psi = device_psi_data_t(
-        "psi",
-        g_nGroups,
-        g_nVrtxPerCell,
-        g_nAngles,
-        g_nCells);
 }
 
-
 /*
-    traverse
+    traverseNV
     
-    Traverses g_tychoMesh.
+    Traverses g_tychoMesh using nvgraph.
 */
-void GraphTraverser::traverse(
+
+void check_status(nvgraphStatus_t status){
+  if((int) status !=0) {
+    printf("nvGraph ERROR: %d\n", status);
+    exit(0);
+  }
+}
+
+void GraphTraverser::traverseNV(
     const PsiData &source,
     const PsiBoundData &psiBound,
     PsiData &psi)
 {
     Timer totalTimer;
     Timer setupTimer;
-    
 
     // Start total timer
     totalTimer.start();
-    
 
     // Start setup timer
     setupTimer.start();
 
-
     // Get dependencies
-    auto nitems = int(g_nCells * g_nAngles);
-    Kokkos::View<int*, host> counts("counts", nitems);
-    Kokkos::parallel_for(Kokkos::RangePolicy<int, host>(0,nitems), [=](int item) {
+    int nitems = int(g_nCells * g_nAngles);
+
+    int counts[nitems];
+    for (int i = 0; i < nitems; ++i) {
+      counts[i] = 0;
+    }
+
+    // Get row_map from counts (number of outgoing cell faces (Omega . n > 0) 
+    //   along a given angle in mesh)
+    int sum = 0;
+    for(int item = 0; item  < nitems; ++item) {
         int cell = item % g_nCells;
         int angle = item / g_nCells;
         for (UINT face = 0; face < g_nFacePerCell; ++face) {
@@ -167,125 +102,291 @@ void GraphTraverser::traverse(
             if (!is_out) continue;
             auto adjCell = g_tychoMesh->getAdjCell(cell, face);
             if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
-            counts(item) += 1;
+            counts[item] += 1;
         }
-    }, "count-dependencies");
+        sum += counts[item];
+    }
 
-    
-    // Get the row_map
-    Kokkos::View<int*, host> row_map;
-    Kokkos::get_crs_row_map_from_counts(row_map, counts);
-    auto nedges = row_map(row_map.size() - 1);
-    Kokkos::View<int*, host> entries("entries", nedges);
-    Kokkos::parallel_for(Kokkos::RangePolicy<int, host>(0,nitems), [=](int item) {
-        int cell = item % g_nCells;
-        int angle = item / g_nCells;
-        int j = 0;
-        for (UINT face = 0; face < g_nFacePerCell; ++face) {
-            bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
-            if (!is_out) continue;
-            auto adjCell = g_tychoMesh->getAdjCell(cell, face);
-            if (adjCell == TychoMesh::BOUNDARY_FACE) continue;
-            entries(row_map(item) + j) = adjCell + g_nCells * angle;
-            ++j;
-        }
-        Assert(j + row_map(item) == row_map(item + 1));
-    }, "fill-dependencies");
+    int nrows = nitems + 1;
+    int row_map[nrows];
 
+    row_map[0] = 0;
 
-    // Get the policy
-    auto device_row_map = Kokkos::create_mirror_view_and_copy(device(), row_map);
-    auto device_entries = Kokkos::create_mirror_view_and_copy(device(), entries);
-    auto graph = Kokkos::Crs<int,device,void,int>(device_row_map, device_entries);
-    auto policy = Kokkos::WorkGraphPolicy<device,int>(graph);
+    for (int j=1; j < nrows; ++j){
+       row_map[j] = counts[j-1] + row_map[j-1];        
+    }        
 
-    
+    // Get entries
+    int nedges = row_map[nitems];
+#if 0
+    if (Comm::rank() == 0) {
+
+      printf(" g_nCells: %lu, g_nAngles: %lu \n", g_nCells, g_nAngles);
+      printf(" nitems: %d, nrows: %d, nedges: %d \n", nitems, nrows, nedges);
+      printf(" sum: %d \n", sum);
+      printf(" counts[%d]: %d \n", nitems-1, counts[nitems-1]);
+    }
+#endif
+
+    int entries[nedges];
+
+    for(int item = 0; item < nitems; ++item){
+      int cell = item % g_nCells;
+      int angle = item / g_nCells;
+      int j = 0;
+      for(UINT face = 0; face < g_nFacePerCell; ++face){
+        bool is_out = g_tychoMesh->isOutgoing(angle, cell, face);
+        if(!is_out)
+          continue;
+        auto adjCell = g_tychoMesh->getAdjCell(cell, face);
+        if(adjCell == TychoMesh::BOUNDARY_FACE)
+          continue;
+        entries[row_map[item] + j] = adjCell + g_nCells * angle;
+        ++j;
+      }
+      Assert(j + row_map[item]  == row_map[item + 1]);
+    }
+          
+#if 0
+    // Printing count, row_map and entries info
+    if (Comm::rank() == 0) {
+
+      for(int i = 0; i < nitems+1; i++){
+        printf("  row_map[%d]: %d \n", i, row_map[i]);
+      }
+      printf("\n");
+
+      for(int i = 0; i < nedges; i++){
+        printf("   entries[%d]: %d \n", i, entries[i]);
+      }
+      printf("\n");
+
+    }
+#endif
+
     // End setup timer
     setupTimer.stop();
 
+   // Begin nvgraph calculations
 
-    // Copy data to device views
-    auto host_source = host_psi_data_t(
-        const_cast<PsiData&>(source).data(),
-        g_nGroups,
-        g_nVrtxPerCell,
-        g_nAngles,
-        g_nCells);
-    auto host_psi_bound = host_psi_data_t(
-        const_cast<PsiBoundData&>(psiBound).data(),
-        g_nGroups,
-        g_nVrtxPerFace,
-        g_nAngles,
-        g_tychoMesh->getNSides());
-    auto host_psi = host_psi_data_t(
-        psi.data(),
-        g_nGroups,
-        g_nVrtxPerCell,
-        g_nAngles,
-        g_nCells);
+   // Store distances from source and where to store
+   // predecessors in search tree
 
-    Kokkos::deep_copy(c_device_source, host_source);
-    Kokkos::deep_copy(c_device_psi_bound, host_psi_bound);
-    Kokkos::deep_copy(c_device_psi, host_psi);
+    int bfs_distances_h[nitems];
+    //int bfs_predecessors_h[nitems];
 
+    //const size_t vertex_numsets = 2;
+    const size_t vertex_numsets = 1;
+   
+    nvgraphHandle_t handle;
+    nvgraphGraphDescr_t graph;
+    nvgraphCSRTopology32I_t CSR_input;
+    cudaDataType_t* vertex_dimT;
+    size_t distances_index = 0;
+    //size_t predecessors_index = 1;
+    vertex_dimT = (cudaDataType_t*)malloc(vertex_numsets*sizeof(cudaDataType_t));
+    vertex_dimT[distances_index] = CUDA_R_32I;
+    //vertex_dimT[predecessors_index] = CUDA_R_32I;
 
-    // Actually do graph traversal
-    // THIS IS WEIRD!!!
-    auto nCells = g_nCells;
-    auto nGroups = g_nGroups;
-    auto device_omega_dot_n = c_device_omega_dot_n;
-    auto device_adj_cell = c_device_adj_cell;
-    auto device_neighbor_vertex = c_device_neighbor_vertex;
-    auto device_adj_proc = c_device_adj_proc;
-    auto device_side = c_device_side;
-    auto device_sigma_t = c_device_sigma_t;
-    auto device_cell_volume = c_device_cell_volume;
-    auto device_face_area = c_device_face_area;
-    auto device_cell_to_face_vertex = c_device_cell_to_face_vertex;
-    auto device_source = c_device_source;
-    auto device_psi_bound = c_device_psi_bound;
-    auto device_psi = c_device_psi;
+    //Creating nvgraph objects
+    check_status(nvgraphCreate (&handle));
+    check_status(nvgraphCreateGraphDescr (handle, &graph));
 
-    auto lambda = KOKKOS_LAMBDA(int item) {
-        int cell = item % nCells;
-        int angle = item / nCells;
+    // Set graph connectivity and properties (tranfers)
+    CSR_input = (nvgraphCSRTopology32I_t) malloc(sizeof(struct nvgraphCSCTopology32I_st));
+    CSR_input->nvertices = nitems;
+    CSR_input->nedges = nedges;
+    CSR_input->source_offsets = row_map;
+    CSR_input->destination_indices = entries;
 
-        Transport::updateKokkos(
+    check_status(nvgraphSetGraphStructure(handle, graph, (void*)CSR_input, NVGRAPH_CSR_32));
+    check_status(nvgraphAllocateVertexData(handle, graph, vertex_numsets, vertex_dimT));
+
+    nvgraphTraversalParameter_t traversal_param;
+    nvgraphTraversalParameterInit(&traversal_param);
+    nvgraphTraversalSetDistancesIndex(&traversal_param, distances_index);
+    //nvgraphTraversalSetPredecessorsIndex(&traversal_param, predecessors_index);
+    nvgraphTraversalSetUndirectedFlag(&traversal_param, false);
+    
+    // Setup queue for solution process which has a maximum possible number of bLevels equal
+    // to maxBLevels, the largest possible distance to any leaf in the entire graph.
+    // nvGraph stores these in the bfs_distances_h vector and are converted to Q values based 
+    // on the bLevel (priority) and item number; i.e. Q = Q[maxBLevels][nitems], where 
+    // nitems = g_nAngles * g_nCells. maxBLevels is estimated below, but may need increased based on
+    // the number of cells in the problem.
+    // 
+
+    int maxBLevels = 100;
+    int **Q = new int*[maxBLevels];
+
+    // Initialize Q. Initially, assume all cells for each angle all
+    // have priority (bLevel) 0, so preload Q[0][item] = cell.
+    Q[0] = new int[nitems];
+
+    for(int p = 1; p < maxBLevels; ++p){
+      Q[p] = new int [nitems];
+      for(UINT ang=0; ang < g_nAngles; ++ang){
+         for(UINT cell = 0; cell < g_nCells; ++cell){
+           int item = cell + ang*g_nCells;
+              Q[p][item] = -1;
+          }
+       }
+    }
+
+    for(int item = 0; item < nitems; item++)
+       Q[0][item] = item;
+   
+    // Do the graph traverse and do the updates 
+    // 
+    int actMaxBL = 0;
+
+    for (int item = 0; item < nitems; item++){   // nvgraph traverses
+
+      int source_vert = item;
+
+      //printf(" source_vert: %d \n", source_vert);
+        
+      // Computing traversal using BFS algorithm
+      check_status(nvgraphTraversal(handle, graph, NVGRAPH_TRAVERSAL_BFS, &source_vert, traversal_param));
+
+      // Get result
+     check_status(nvgraphGetVertexData(handle, graph, (void*)bfs_distances_h, distances_index));
+     //check_status(nvgraphGetVertexData(handle, graph, (void*)bfs_predecessors_h, predecessors_index));
+
+      //int cell = item % g_nCells;
+      int angle = item / g_nCells;
+#if 0
+      UINT NN = 0;
+      for(UINT i = 0; i < nitems; ++i){
+        if(i / g_nCells == NN){
+          printf(" angle: %lu \n", NN);
+          NN++;
+        }
+        if(bfs_distances_h[i] != pow(2,31)-1)
+          printf("Distance to vertex %d: %i\n",i, bfs_distances_h[i]);
+      }
+       printf("\n");
+#endif
+      // Fill the Q array with cells for a given bValue 
+      int MAXBL = pow(2,31)-1;
+      int bItem = angle*g_nCells;
+      int eItem = bItem + g_nCells;
+      //printf("bItem: %d, eItem: %d \n", bItem, eItem);
+
+      for(int it = bItem; it < eItem; ++it){
+         int idx = bfs_distances_h[it]; 
+         if(idx == MAXBL)
+           continue;
+         else{
+           Q[idx][it] = it;
+           actMaxBL = std::max(actMaxBL, idx);
+         }
+      }
+#if 0
+      NN = 0;
+      for(int i = 0; i < nitems; ++i){
+        if(i / g_nCells == NN){
+          printf(" angle: %d \n", NN);
+          NN++;
+        }
+        //if(bfs_predecessors_h[i] > -1)
+          printf("Predecessor of vertex %d: %i\n",i, bfs_predecessors_h[i]);
+      }
+      printf("\n");
+
+#endif
+     }  // End of nvgraph traverses
+
+     //printf("actMaxBL: %d \n", actMaxBL);
+
+      // Select highest bLevel in each queue
+      for(int it = 0; it < nitems; it++){
+         for(int p = actMaxBL+1; p-- > 0; ){
+            //printf("Q[%d][%d]: %d \n", p, it, Q[p][it]);
+            if(Q[p][it] != -1){
+               for(int pp = p; pp-- > 0; ){
+                 Q[pp][it] = -1;
+               }
+            }
+          }
+      }
+#if 0
+  // Print  Q values
+  printf("\n \n");
+  for(int p = 0; p < actMaxBL+1; ++p)
+     for(int item = 0; item < nitems; ++item)
+         printf("Q[%d][%d]: %d \n", p, item, Q[p][item]);
+  printf("\n \n");
+#endif  
+
+    // Setup pointers to solution data
+    PsiData* d_psi = &psi;
+    const PsiData* d_source = &source;
+    const PsiBoundData* d_psiBound = &psiBound;
+
+    // Setup update method for queue
+    auto lambda = [=](int item) {
+        int cell = item % g_nCells;
+        int angle = item / g_nCells;
+
+        Transport::updateNVgraph(
             cell,
             angle,
-            device_source,
-            device_psi_bound,
-            device_psi,
-            nGroups,
-            device_omega_dot_n,
-            device_adj_cell,
-            device_neighbor_vertex,
-            device_adj_proc,
-            device_side,
-            device_cell_volume,
-            device_sigma_t,
-            device_face_area,
-            device_cell_to_face_vertex);
+            d_source,
+            d_psiBound,
+            d_psi,
+            g_nGroups,
+            g_tychoMesh->c_omegaDotN,
+            g_tychoMesh->c_adjCell,
+            g_tychoMesh->c_neighborVrtx,
+            g_tychoMesh->c_adjProc,
+            g_tychoMesh->c_side,
+            g_tychoMesh->c_cellVolume,
+            g_sigmaT,
+            g_tychoMesh->c_faceArea,
+            g_tychoMesh->c_cellToFaceVrtx);
     };
     
+    // Perform sweep
 
-    // Perform sweep and copy Psi back to host
-    Kokkos::parallel_for(policy, lambda, "traverse-dag");
-    Kokkos::deep_copy(host_psi, device_psi);
+    // These values were taken from the Kokkos version of the solution for a 12 Cell, 8 angle test
+    //  mesh found in /util.  They were used as a comparison for the Q values used below.
+    //int queue[nitems] = {1,12, 34,41,50,51,64,77,89,2,5,6,20,21,22,24,29,33,27,40,46,49,59,52,63,65,68,73,76,82,85,88,94,3,11,7,9,16,19,18,17,32,28,25,30,38,42,36,45,48,55,56,53,62,64,60,67,75,80,72,81,86,90,92,84,93,4,8,0,10,23,13,31,27,26,39,47,43,44, 54,58,61,69,70,76,72,83,79,78,95,14,15,35,57,91,4,8,0,10,23,13,31,27,26,39,47,43,44, 54,58,61,69,70,76,72,83,79,78,95,14,15,35,57,91,4,8,0,10,23,13,31,27,26,39,47,43,44, 54,58,61,69,70,76,72,83,79,78,95,14,15,35,57,91,4,8,0,10,23,13,31,27,26,39,47,43,44, 54,58,61,69,70,76,72,83,79,78,95,14,15,35,57,91};
 
-    
-    // Print times
-    totalTimer.stop();
+    // Do sweep 
+    for(int p = 0; p < actMaxBL+1; p++){
+       for(UINT ang = 0; ang < g_nAngles; ang++){
+          int bItem = ang*g_nCells;
+          int eItem = bItem + g_nCells;
+          for(int item = bItem; item < eItem; item++){
+            if(Q[p][item] == -1)
+              continue;
+            int Item = Q[p][item];
+            //printf("angle: %lu, Item: %d \n", ang, Item);
+            lambda(Item);
+          }
+       }
+   }
 
-    double totalTime = totalTimer.wall_clock();
-    Comm::gmax(totalTime);
+   for(int p = 0; p < maxBLevels; p++)
+         delete [] Q[p]; 
+   delete [] Q;
+ 
+   free(vertex_dimT);
+   free(CSR_input);
 
-    double setupTime = setupTimer.wall_clock();
-    Comm::gmax(setupTime);
+   check_status(nvgraphDestroyGraphDescr (handle, graph));
+   check_status(nvgraphDestroy (handle));
 
-    if (Comm::rank() == 0) {
+   // Print times
+   totalTimer.stop();
+   double totalTime = totalTimer.wall_clock();
+   Comm::gmax(totalTime);
+   //
+   double setupTime = setupTimer.wall_clock();
+     Comm::gmax(setupTime);
+     if (Comm::rank() == 0) {
         printf("      Traverse Timer (setup):   %fs\n", setupTime);
         printf("      Traverse Timer (total):   %fs\n", totalTime);
     }
 }
-

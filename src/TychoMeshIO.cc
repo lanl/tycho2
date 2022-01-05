@@ -160,6 +160,8 @@ void TychoMesh::readTychoMesh(const std::string &filename)
     // Read mesh
     ParallelMesh::readInParallel(filename, partData);
     
+    // Write mesh to terminal
+    // ParallelMesh::printPartitionData(partData, 1);
     
     // g_nCells, c_nNodes
     g_nCells = partData.numCells;

@@ -92,8 +92,11 @@ void Sweeper::solve(PsiData &psi)
     for (iter = 1; iter < g_iterMax; iter++) {
         
         Util::calcTotalSource(source, phi0, totalSource);
-        graphTraverser.traverse(totalSource, psiBound, psi);
+
+        graphTraverser.traverseNV(totalSource, psiBound, psi);
+
         Util::psiToPhi(phi1, psi);
+
         commSides.commSides(psi, psiBound);
         
 
@@ -120,8 +123,12 @@ void Sweeper::solve(PsiData &psi)
     }
     
     
+    // std::string so ("PHI");
+    // writePhiToFile(so, phi0);
+
     // Print statistics
     if (Comm::rank() == 0) {
+
         printf("PBJ Iters: %" PRIu64 "\n", iter);
     }
 }
