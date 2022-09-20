@@ -15,7 +15,7 @@ SRC_MESH2 = ../src/SerialMesh.cc \
 
 INC = -I../src \
       -I$(MOAB_DIR)/include \
-      -I$(METIS_DIR)/include
+      -I$(METIS_INC_DIR)
 
 LIB_MOAB = $(MOAB_DIR)/lib/libMOAB.a \
        $(MOAB_DIR)/lib/libiMesh.a \
@@ -23,7 +23,7 @@ LIB_MOAB = $(MOAB_DIR)/lib/libMOAB.a \
        $(HDF5_DIR)/lib/libhdf5.a \
        -ldl -lz 
 
-LIB_METIS = $(METIS_DIR)/lib/libmetis.a
+LIB_METIS = ${METIS_LIB_DIR}/libmetis.so
 
 
 ##### Applications #####

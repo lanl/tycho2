@@ -1,0 +1,24 @@
+# Makefile setting for Toss 3 machines at LANL
+
+
+# Assert level: 0 = no asserts, 1 = all asserts ################################
+ASSERT_ON = 0
+
+
+# PETSC library ################################################################
+USE_PETSC = 1   # 0 = no, 1 = yes
+PETSC_INC = -I{PETSC_INC_DIR}
+PETSC_LIB = ${PETSC_LIB_DIR}/libpetsc.so
+
+
+
+# Extra libraries ##############################################################
+INC = 
+LIBS = 
+
+
+# Compile command ##############################################################
+# Needs (1) MPI C++ compiler wrapper
+#       (2) openmp enabled
+#       (3) c++11 standard enabled  (-std=c++11 for gcc, intel)
+MPICC = mpicxx -Wall -Wextra -g -std=c++11 -O3 -fopenmp
