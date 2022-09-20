@@ -1,0 +1,71 @@
+# SSI input deck
+# This performs a 'sweep' on the specified pmesh
+# This computes a sweep over the specified tet mesh (number of tets specified in a .smesh file)
+# With 128 angles (2 * sn_order * sn_order)
+# And 7 groups (nGroups below)
+# Total DOFS would be 7 x 128 x num_tets x 4 
+
+
+# To build and run:
+# ----------------
+# 0. Make an environment with metis and petsc available
+#    These should set e.g. PETSC_LIB_DIR, update LD_LIBRARY_PATH, etc.
+# 1. Build sweep.x
+#    copy examples/make.inc.petsc to the base tyrho2 directory
+#    type `make` and sweep.x will build
+# 2. Build PartitionMetis.x
+#    cd to the util directory
+#    copy make.inc.petsc to make.inc
+#    type `make PartitionMetis` to create `PartitionMetis.x`
+# 3. Move `sweep.x` and `util/PartitionMetis.x` to a test dir
+#    Move `examples/ssi_test.deck` and any/all of the `*.smesh` files to the test dir
+# 4. In the test dir, run `./PartitionMetis.x $NUM_PARTITIONS $IN_MESH $OUT_MESH`
+#    Where
+#      $NUM_PARTITIONS is the number of ranks you will run on (and thus the number of decompositioned mesh chunks)
+#      $IN_MESH is the name of the .smesh file that you are chopping up (e.g. cube-10717.smesh)
+#      $OUT_MESH is the name of the resulting .pmesh file that tycho reads
+# 5. Run the sweeper by invoking `mpirun -n $NUM_PARTITIONS ./sweep.x $OUT_MESH ssi_test.deck`
+     
+
+snOrder         8
+iterMax         100
+errMax          1e-8
+maxCellsPerStep 100
+intraAngleP     3
+interAngleP     1
+nGroups         7
+sigmaT1         10.0
+sigmaS1         5.0
+sigmaT2         10.0
+sigmaS2         5.0
+OutputFile      false
+OutputFilename  out.psi
+SourceIteration true
+OneSidedMPI     false
+MPIType CapsaicinTwoSided
+
+DD_IterMax      100
+DD_ErrMax       1e-8
+
+SweepType SchurKrylov
+
+# other experimental sweep options
+#SweepType OriginalTycho1
+#SweepType OriginalTycho2
+#SweepType TraverseGraph
+#SweepType PBJ
+#SweepType PBJOuter
+#SweepType Schur
+#SweepType SchurOuter
+#SweepType PBJSI
+
+
+# Gaussian Elimination Types: NoPivot seems to be best
+#    Original:    Uses pivoting
+#    NoPivot:     No pivoting
+#    CramerGlu:   Use Cramer's rule to invert (algorithm from OpenGL library)
+#    CramerIntel: User Cramer's rule to invert (algorithm found from Intel blog)
+#GaussElim Original
+GaussElim NoPivot
+#GaussElim CramerGlu
+#GaussElim CramerIntel
